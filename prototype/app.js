@@ -1,17 +1,41 @@
+const prototype = document.querySelector(".prototype");
 const toast = document.querySelector("[data-toast]");
 const refreshButton = document.querySelector("[data-refresh]");
-const sidebar = document.querySelector("#sidebar");
-const sidebarOpenButton = document.querySelector("[data-sidebar-open]");
-const workspace = document.querySelector(".workspace");
-const mobileNavigation = window.matchMedia("(max-width: 860px)");
+const designName = document.querySelector("[data-design-name]");
 let toastTimer;
+
+const layouts = {
+  sidebar: {
+    name: "시안 A · 좌측 메뉴",
+    title: "Quality Hub · 시안 A 좌측 메뉴",
+  },
+  top: {
+    name: "시안 B · 상단 메뉴",
+    title: "Quality Hub · 시안 B 상단 메뉴",
+  },
+};
+
+const chartPeriods = {
+  7: {
+    compliance: "98.4%",
+    anomaly: "7건",
+    label: "최근 7일",
+    path: "M42 172 C90 164 112 156 142 158 S202 135 242 140 S302 116 342 120 S402 100 442 104 S502 78 542 84 S612 48 654 54",
+  },
+  30: {
+    compliance: "97.9%",
+    anomaly: "24건",
+    label: "최근 30일",
+    path: "M42 156 C82 138 112 174 142 151 S207 166 242 143 S305 108 342 132 S406 94 442 116 S505 74 542 92 S614 68 654 61",
+  },
+};
 
 const showToast = (message) => {
   if (!toast) return;
   toast.textContent = message;
   toast.classList.add("is-visible");
   window.clearTimeout(toastTimer);
-  toastTimer = window.setTimeout(() => toast.classList.remove("is-visible"), 2600);
+  toastTimer = window.setTimeout(() => toast.classList.remove("is-visible"), 2400);
 };
 
 const formatDate = (date) =>
@@ -27,27 +51,41 @@ const formatTime = (date) =>
     minute: "2-digit",
   }).format(date);
 
-const setSidebarState = (isOpen, restoreFocus = false) => {
-  document.body.classList.toggle("is-sidebar-open", isOpen);
-  sidebarOpenButton?.setAttribute("aria-expanded", String(isOpen));
+const updateLayoutQuery = (layout) => {
+  const url = new URL(window.location.href);
+  url.searchParams.set("design", layout);
+  window.history.replaceState({}, "", url);
+};
 
-  if (sidebar) {
-    sidebar.inert = mobileNavigation.matches && !isOpen;
-    if (mobileNavigation.matches) sidebar.setAttribute("aria-hidden", String(!isOpen));
-    else sidebar.removeAttribute("aria-hidden");
-  }
+const setLayout = (layout, announce = false) => {
+  if (!prototype || !layouts[layout]) return;
 
-  if (workspace) workspace.inert = mobileNavigation.matches && isOpen;
+  prototype.dataset.layout = layout;
+  document.title = layouts[layout].title;
+  designName?.replaceChildren(layouts[layout].name);
 
-  if (isOpen) {
-    window.setTimeout(() => sidebar?.querySelector("[data-sidebar-close]")?.focus(), 40);
-  } else if (restoreFocus) {
-    sidebarOpenButton?.focus();
+  document.querySelectorAll("[data-layout-switch]").forEach((button) => {
+    const isSelected = button.dataset.layoutSwitch === layout;
+    button.classList.toggle("is-selected", isSelected);
+    button.setAttribute("aria-pressed", String(isSelected));
+  });
+
+  updateLayoutQuery(layout);
+  window.localStorage.setItem("quality-hub-design", layout);
+
+  if (announce) {
+    showToast(`${layouts[layout].name}으로 전환했습니다.`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 };
 
-setSidebarState(false);
-mobileNavigation.addEventListener("change", () => setSidebarState(false));
+const initialQuery = new URL(window.location.href).searchParams.get("design");
+const storedLayout = window.localStorage.getItem("quality-hub-design");
+setLayout(layouts[initialQuery] ? initialQuery : layouts[storedLayout] ? storedLayout : "sidebar");
+
+document.querySelectorAll("[data-layout-switch]").forEach((button) => {
+  button.addEventListener("click", () => setLayout(button.dataset.layoutSwitch, true));
+});
 
 document.querySelectorAll("[data-today]").forEach((element) => {
   element.textContent = formatDate(new Date());
@@ -55,32 +93,32 @@ document.querySelectorAll("[data-today]").forEach((element) => {
 
 document.querySelectorAll("[data-planned]").forEach((element) => {
   element.addEventListener("click", () => {
-    const wasSidebarOpen = document.body.classList.contains("is-sidebar-open");
-    showToast(`${element.dataset.planned} 화면은 다음 목업에서 연결할 예정입니다.`);
-    setSidebarState(false, wasSidebarOpen);
+    showToast(`${element.dataset.planned} 화면은 디자인 확정 후 연결할 예정입니다.`);
   });
 });
 
-document.querySelectorAll("[data-sidebar-open]").forEach((element) => {
-  element.addEventListener("click", () => {
-    setSidebarState(true);
-  });
-});
+document.querySelectorAll("[data-period]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const state = chartPeriods[button.dataset.period];
+    if (!state) return;
 
-document.querySelectorAll("[data-sidebar-close]").forEach((element) => {
-  element.addEventListener("click", () => {
-    setSidebarState(false, true);
-  });
-});
+    document.querySelectorAll("[data-period]").forEach((item) => {
+      const isSelected = item === button;
+      item.classList.toggle("is-selected", isSelected);
+      item.setAttribute("aria-pressed", String(isSelected));
+    });
 
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && document.body.classList.contains("is-sidebar-open")) {
-    setSidebarState(false, true);
-  }
-  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-    event.preventDefault();
-    showToast("통합 검색은 다음 목업에서 연결할 예정입니다.");
-  }
+    document.querySelector("[data-compliance-value]")?.replaceChildren(state.compliance);
+    document.querySelector("[data-anomaly-value]")?.replaceChildren(state.anomaly);
+    document.querySelectorAll("[data-period-label]").forEach((item) => {
+      item.replaceChildren(state.label);
+    });
+
+    const linePath = document.querySelector("[data-line-path]");
+    const lineArea = document.querySelector("[data-line-area]");
+    linePath?.setAttribute("d", state.path);
+    lineArea?.setAttribute("d", `${state.path} L654 216 L42 216Z`);
+  });
 });
 
 refreshButton?.addEventListener("click", () => {
@@ -104,61 +142,9 @@ refreshButton?.addEventListener("click", () => {
   }, 720);
 });
 
-const chartStates = {
-  compliance: {
-    label: "평균 준수율",
-    value: "97.8%",
-    change: "+0.8% 개선",
-    title: "최근 7일 공정 준수율 추이",
-    desc: "월요일 96.4퍼센트에서 일요일 98.4퍼센트로 점진적으로 상승한 예시 차트입니다.",
-    line: "M44 172 C86 164 116 154 144 156 S214 130 244 136 S314 112 344 118 S414 96 444 102 S514 74 544 82 S614 58 644 66 S704 38 732 44",
-    area: "M44 172 C86 164 116 154 144 156 S214 130 244 136 S314 112 344 118 S414 96 444 102 S514 74 544 82 S614 58 644 66 S704 38 732 44 L732 218 L44 218Z",
-    points: [[44, 172], [144, 156], [244, 136], [344, 118], [444, 102], [544, 82], [644, 66], [732, 44]],
-  },
-  anomaly: {
-    label: "일평균 이상 건수",
-    value: "2.4건",
-    change: "-1.1건 감소",
-    title: "최근 7일 품질 이상 건수 추이",
-    desc: "월요일 5건에서 일요일 2건으로 감소한 예시 차트입니다.",
-    line: "M44 58 C86 76 116 68 144 82 S214 96 244 91 S314 118 344 110 S414 132 444 126 S514 151 544 143 S614 163 644 156 S704 178 732 170",
-    area: "M44 58 C86 76 116 68 144 82 S214 96 244 91 S314 118 344 110 S414 132 444 126 S514 151 544 143 S614 163 644 156 S704 178 732 170 L732 218 L44 218Z",
-    points: [[44, 58], [144, 82], [244, 91], [344, 110], [444, 126], [544, 143], [644, 156], [732, 170]],
-  },
-};
-
-document.querySelectorAll("[data-chart]").forEach((button) => {
-  button.addEventListener("click", () => {
-    const state = chartStates[button.dataset.chart];
-    if (!state) return;
-
-    document.querySelectorAll("[data-chart]").forEach((item) => {
-      item.classList.toggle("is-selected", item === button);
-      item.setAttribute("aria-pressed", String(item === button));
-    });
-
-    const chart = document.querySelector(".line-chart");
-    chart?.classList.toggle("is-anomaly", button.dataset.chart === "anomaly");
-    chart?.querySelector("title")?.replaceChildren(state.title);
-    chart?.querySelector("desc")?.replaceChildren(state.desc);
-    chart?.querySelector("[data-chart-line]")?.setAttribute("d", state.line);
-    chart?.querySelector("[data-chart-area]")?.setAttribute("d", state.area);
-
-    const points = chart?.querySelector("[data-chart-points]");
-    if (points) {
-      points.replaceChildren(
-        ...state.points.map(([cx, cy]) => {
-          const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-          circle.setAttribute("cx", cx);
-          circle.setAttribute("cy", cy);
-          circle.setAttribute("r", "5");
-          return circle;
-        }),
-      );
-    }
-
-    document.querySelector("[data-chart-label]")?.replaceChildren(state.label);
-    document.querySelector("[data-chart-value]")?.replaceChildren(state.value);
-    document.querySelector("[data-chart-change]")?.replaceChildren(state.change);
-  });
+document.addEventListener("keydown", (event) => {
+  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+    event.preventDefault();
+    showToast("통합 검색 화면은 디자인 확정 후 연결할 예정입니다.");
+  }
 });
