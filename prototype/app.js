@@ -14,6 +14,7 @@ const layouts = {
     title: "Quality Hub · 시안 B 상단 메뉴",
   },
 };
+const defaultLayout = layouts[prototype?.dataset.defaultLayout] ? prototype.dataset.defaultLayout : "top";
 
 const chartPeriods = {
   7: {
@@ -53,7 +54,11 @@ const formatTime = (date) =>
 
 const updateLayoutQuery = (layout) => {
   const url = new URL(window.location.href);
-  url.searchParams.set("design", layout);
+  if (layout === defaultLayout) {
+    url.searchParams.delete("design");
+  } else {
+    url.searchParams.set("design", layout);
+  }
   window.history.replaceState({}, "", url);
 };
 
@@ -71,7 +76,6 @@ const setLayout = (layout, announce = false) => {
   });
 
   updateLayoutQuery(layout);
-  window.localStorage.setItem("quality-hub-design", layout);
 
   if (announce) {
     showToast(`${layouts[layout].name}으로 전환했습니다.`);
@@ -80,8 +84,7 @@ const setLayout = (layout, announce = false) => {
 };
 
 const initialQuery = new URL(window.location.href).searchParams.get("design");
-const storedLayout = window.localStorage.getItem("quality-hub-design");
-setLayout(layouts[initialQuery] ? initialQuery : layouts[storedLayout] ? storedLayout : "sidebar");
+setLayout(layouts[initialQuery] ? initialQuery : defaultLayout);
 
 document.querySelectorAll("[data-layout-switch]").forEach((button) => {
   button.addEventListener("click", () => setLayout(button.dataset.layoutSwitch, true));

@@ -37,4 +37,8 @@
 python3 -m http.server 4173 --directory prototype
 ```
 
-브라우저에서 `http://localhost:4173`으로 접속합니다. 목업의 모든 수치와 상태는 실제 데이터가 아닌 UI 검토용 예시입니다.
+브라우저에서 `http://localhost:4173`으로 접속합니다. 확정한 기본 시안은 **B · 상단 메뉴형**입니다.
+
+보존한 **A · 좌측 메뉴형**은 `http://localhost:4173/design-a-sidebar.html`에서 바로 확인할 수 있습니다. 기본 화면 우측 하단의 디자인 전환 버튼이나 `http://localhost:4173/?design=sidebar` 주소로도 즉시 전환할 수 있습니다.
+
+목업의 모든 수치와 상태는 실제 데이터가 아닌 UI 검토용 예시입니다.
