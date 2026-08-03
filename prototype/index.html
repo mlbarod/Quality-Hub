@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=1280" />
     <meta
       name="description"
-      content="Quality Hub 데스크톱 대시보드 디자인 시안 비교"
+      content="Quality Hub 데스크톱 대시보드 목업"
     />
-    <title>Quality Hub · 디자인 시안 비교</title>
+    <title>Quality Hub</title>
     <link rel="stylesheet" href="./styles.css" />
     <script src="./app.js" defer></script>
   </head>
@@ -61,9 +61,21 @@
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
         <path d="m9 12 2 2 4-4" />
       </symbol>
+      <symbol id="icon-expand" viewBox="0 0 24 24">
+        <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" />
+      </symbol>
+      <symbol id="icon-close" viewBox="0 0 24 24">
+        <path d="m6 6 12 12M18 6 6 18" />
+      </symbol>
+      <symbol id="icon-plus" viewBox="0 0 24 24">
+        <path d="M12 5v14M5 12h14" />
+      </symbol>
+      <symbol id="icon-send" viewBox="0 0 24 24">
+        <path d="m4 4 17 8-17 8 3-8zM7 12h14" />
+      </symbol>
     </svg>
 
-    <div class="prototype" data-layout="top" data-default-layout="top">
+    <div class="prototype" data-layout="top" data-agent-mode="drawer" data-report-mode="closed">
       <aside class="sidebar" aria-label="좌측 서비스 메뉴">
         <a class="brand sidebar-brand" href="#dashboard" aria-label="Quality Hub 홈">
           <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -78,6 +90,11 @@
             <svg class="icon"><use href="#icon-grid"></use></svg>
             <span>대시보드</span>
           </a>
+          <button class="side-nav-item agent-side-button" type="button" data-agent-open aria-expanded="true">
+            <span class="agent-spark" aria-hidden="true">✦</span>
+            <span>품질 Agent</span>
+            <span class="agent-live-dot" aria-label="사내 LLM 연결됨"></span>
+          </button>
           <button class="side-nav-item" type="button" data-planned="통합 검색">
             <svg class="icon"><use href="#icon-search"></use></svg>
             <span>통합 검색</span>
@@ -150,6 +167,9 @@
               <button type="button" data-planned="데이터 원천"><svg class="icon"><use href="#icon-activity"></use></svg><span><strong>데이터 원천</strong><small>연결 및 최신 상태 확인</small></span></button>
             </div>
           </div>
+          <button class="top-nav-link agent-nav-button" type="button" data-agent-open aria-expanded="true">
+            <span aria-hidden="true">✦</span>품질 Agent
+          </button>
           <button class="top-nav-link" type="button" data-planned="도움말">도움말</button>
         </nav>
 
@@ -258,22 +278,40 @@
             </div>
 
             <div class="app-grid">
-              <button class="app-card app-card-featured" type="button" data-planned="통합 검색" data-motion-card="search">
+              <button class="app-card app-card-featured" type="button" data-report-open data-motion-card="report">
                 <span class="app-card-header">
-                  <span class="app-icon"><svg class="icon"><use href="#icon-search"></use></svg></span>
-                  <span><strong>통합 검색</strong><small>Search workspace</small></span>
-                  <i class="app-status">바로가기</i>
+                  <span class="app-icon"><svg class="icon"><use href="#icon-grid"></use></svg></span>
+                  <span><strong>각종 Report 조회</strong><small>Report catalog</small></span>
+                  <i class="app-status">Spotfire 연동</i>
                 </span>
-                <span class="app-description">품질 지표, 관리 Rule과 사내 문서를<br />하나의 검색창에서 빠르게 찾습니다.</span>
-                <span class="search-illustration" aria-hidden="true" data-motion-visual>
+                <span class="app-description">Quality Hub의 Report를 카테고리별로 찾고<br />선택한 Spotfire 화면을 바로 조회합니다.</span>
+                <span class="report-illustration" aria-hidden="true" data-motion-visual>
                   <span class="visual-glow"></span>
-                  <span class="search-scan-line"></span>
-                  <span class="fake-search"><svg class="icon"><use href="#icon-search"></use></svg><span data-search-term>식각 공정 이상률</span><i class="typing-caret"></i><kbd>⌘ K</kbd></span>
-                  <span class="result-row"><i class="result-icon">R</i><span><b>식각 공정 이상률 관리 기준</b><em>관리 Rule · v2.4</em></span><strong>97%</strong></span>
-                  <span class="result-row"><i class="result-icon doc">D</i><span><b>ETCH 품질 점검 가이드</b><em>공유 문서 · 오늘 수정</em></span><strong>PDF</strong></span>
-                  <span class="result-row is-queued"><i class="result-icon qa">Q</i><span><b>식각 공정 검사 주기 문의</b><em>Q&amp;A · 답변 완료</em></span><strong>완료</strong></span>
+                  <span class="report-category-row">
+                    <i class="is-selected">전체</i><i>품질 현황</i><i>공정 분석</i><i>정기 보고</i>
+                  </span>
+                  <span class="report-shelf">
+                    <span class="report-preview-card is-primary">
+                      <i class="report-preview-icon"><svg class="icon"><use href="#icon-activity"></use></svg></i>
+                      <span><b>종합 품질 현황</b><em>품질 현황 · Spotfire</em></span>
+                      <strong>LIVE</strong>
+                    </span>
+                    <span class="report-preview-card">
+                      <i class="report-preview-icon is-amber"><svg class="icon"><use href="#icon-grid"></use></svg></i>
+                      <span><b>공정 이상 분석</b><em>공정 분석 · Spotfire</em></span>
+                      <strong>OPEN</strong>
+                    </span>
+                    <span class="report-preview-card">
+                      <i class="report-preview-icon is-slate"><svg class="icon"><use href="#icon-book"></use></svg></i>
+                      <span><b>주간 품질 Report</b><em>정기 보고 · Spotfire</em></span>
+                      <strong>WEEKLY</strong>
+                    </span>
+                    <span class="report-preview-card is-more">
+                      <i>+9</i><span><b>더 많은 Report</b><em>카테고리별 모아보기</em></span>
+                    </span>
+                  </span>
                 </span>
-                <span class="app-card-footer"><span>Rule · 파일 · URL 본문</span><svg class="icon"><use href="#icon-arrow"></use></svg></span>
+                <span class="app-card-footer"><span>카테고리 · Report 카드 · 원본 화면</span><svg class="icon"><use href="#icon-arrow"></use></svg></span>
               </button>
 
               <button class="app-card" type="button" data-planned="관리 Rule" data-motion-card="rule">
@@ -319,13 +357,329 @@
         </main>
       </div>
 
-      <section class="design-switcher" aria-label="디자인 시안 선택">
-        <span><small>DESIGN PREVIEW</small><strong data-design-name>시안 B · 상단 메뉴</strong></span>
-        <div role="group" aria-label="시안 전환">
-          <button type="button" data-layout-switch="sidebar" aria-pressed="false"><i>A</i>좌측 메뉴 유지</button>
-          <button class="is-selected" type="button" data-layout-switch="top" aria-pressed="true"><i>B</i>상단 메뉴형</button>
+      <aside class="agent-drawer" aria-label="품질 Agent 대화 패널" aria-hidden="false" data-agent-drawer>
+        <header class="agent-panel-header">
+          <div class="agent-identity">
+            <span class="agent-logo" aria-hidden="true">✦</span>
+            <span><strong>품질 Agent</strong><small><i></i> 사내 LLM · 연결됨</small></span>
+          </div>
+          <div class="agent-window-actions">
+            <button type="button" data-agent-expand aria-label="품질 Agent 전체 화면으로 확장">
+              <svg class="icon"><use href="#icon-expand"></use></svg>
+            </button>
+            <button type="button" data-agent-close aria-label="품질 Agent 패널 닫기">
+              <svg class="icon"><use href="#icon-close"></use></svg>
+            </button>
+          </div>
+        </header>
+
+        <div class="agent-drawer-content">
+          <section class="agent-welcome" aria-labelledby="agent-drawer-title">
+            <p class="agent-context-label">DASHBOARD COPILOT</p>
+            <h2 id="agent-drawer-title">품질 업무를 어떻게<br />도와드릴까요?</h2>
+            <div class="agent-suggestions" aria-label="추천 질문">
+              <button type="button" data-agent-prompt="이상 건수 원인을 요약해줘">이상 건수 원인 요약</button>
+              <button type="button" data-agent-prompt="관련 Rule을 찾아줘">관련 Rule 찾아줘</button>
+              <button type="button" data-agent-prompt="주간 Report 초안을 작성해줘">주간 Report 초안</button>
+            </div>
+          </section>
+
+          <section class="agent-thread" aria-label="품질 Agent 예시 대화">
+            <article class="agent-message is-user">
+              <p>식각 공정 이상 건수가 증가한 이유를 분석해줘.</p>
+              <time>오전 10:24</time>
+            </article>
+            <article class="agent-message is-assistant">
+              <span class="agent-message-mark" aria-hidden="true">✦</span>
+              <div>
+                <p>분석 결과, 식각 공정의 이상 건수 증가는 다음과 같이 요약됩니다.</p>
+                <ul>
+                  <li><strong>식각 Rate 편차 증가</strong><span>최근 7일 평균 편차가 전주 대비 15.6% 증가했습니다.</span></li>
+                  <li><strong>관리 기준 강화 영향</strong><span>v2.4 적용 이후 동일 조건의 이상 판정 건수가 늘었습니다.</span></li>
+                  <li><strong>장비 A 챔버 온도 변동</strong><span>변동 폭 확대가 공정 안정성 저하와 함께 관찰됩니다.</span></li>
+                </ul>
+                <div class="agent-citations">
+                  <p>참고한 정보</p>
+                  <button type="button" data-agent-action="종합 품질 현황"><svg class="icon"><use href="#icon-activity"></use></svg><span><strong>종합 품질 현황</strong><small>Spotfire · 오늘 10:15</small></span><svg class="icon"><use href="#icon-arrow"></use></svg></button>
+                  <button type="button" data-agent-action="이상률 관리 기준 v2.4"><svg class="icon"><use href="#icon-book"></use></svg><span><strong>이상률 관리 기준 v2.4</strong><small>Rule · 등록 7일 전</small></span><svg class="icon"><use href="#icon-arrow"></use></svg></button>
+                </div>
+              </div>
+            </article>
+          </section>
+        </div>
+
+        <form class="agent-composer agent-drawer-composer" data-agent-form>
+          <label for="agent-drawer-input">품질 Agent에게 질문</label>
+          <input id="agent-drawer-input" type="text" placeholder="품질 Agent에게 질문하세요" autocomplete="off" data-agent-input />
+          <button type="submit" aria-label="질문 보내기"><svg class="icon"><use href="#icon-send"></use></svg></button>
+          <small>목업 예시이며 실제 사내 LLM과 연결되지 않았습니다.</small>
+        </form>
+      </aside>
+
+      <section class="agent-workspace" aria-label="품질 Agent 전체 작업 화면" aria-hidden="true" data-agent-workspace>
+        <aside class="agent-history" aria-label="품질 Agent 대화 기록">
+          <header><strong>대화 기록</strong><button type="button" data-agent-action="새 대화"><svg class="icon"><use href="#icon-plus"></use></svg>새 대화</button></header>
+          <div class="agent-history-group">
+            <p>오늘</p>
+            <button class="is-current" type="button"><span>식각 이상 원인 분석</span><small>오전 10:24</small></button>
+            <button type="button"><span>주간 품질 Report 초안</span><small>오전 9:15</small></button>
+            <button type="button"><span>검사 기준 비교</span><small>오전 8:47</small></button>
+          </div>
+          <div class="agent-history-group">
+            <p>지난 7일</p>
+            <button type="button"><span>불량 TOP 품목 원인 정리</span><small>8월 2일</small></button>
+            <button type="button"><span>고객 클레임 현황 요약</span><small>8월 1일</small></button>
+            <button type="button"><span>라인별 품질 지표 비교</span><small>7월 31일</small></button>
+          </div>
+        </aside>
+
+        <main class="agent-main" id="agent-main" tabindex="-1">
+          <header class="agent-main-header">
+            <div class="agent-identity">
+              <span class="agent-logo" aria-hidden="true">✦</span>
+              <span><strong>품질 Agent</strong><small><i></i> 사내 LLM · 연결됨</small></span>
+            </div>
+            <button class="agent-back-button" type="button" data-agent-collapse><svg class="icon"><use href="#icon-expand"></use></svg>패널로 돌아가기</button>
+          </header>
+
+          <section class="agent-starters" aria-labelledby="agent-main-title">
+            <p>QUALITY AGENT WORKSPACE</p>
+            <h1 id="agent-main-title">품질 업무를 함께 해결해볼까요?</h1>
+            <div>
+              <button type="button" data-agent-prompt="현재 품질 현황을 분석해줘"><svg class="icon"><use href="#icon-activity"></use></svg><span><strong>품질 현황 분석</strong><small>지표와 추이를 분석합니다</small></span></button>
+              <button type="button" data-agent-prompt="Report의 핵심 내용을 요약해줘"><svg class="icon"><use href="#icon-book"></use></svg><span><strong>Report 핵심 요약</strong><small>주요 내용을 정리합니다</small></span></button>
+              <button type="button" data-agent-prompt="관련 Rule을 검색해줘"><svg class="icon"><use href="#icon-search"></use></svg><span><strong>관련 Rule 검색</strong><small>품질 기준을 찾아드립니다</small></span></button>
+              <button type="button" data-agent-prompt="Q&A 답변 초안을 작성해줘"><svg class="icon"><use href="#icon-message"></use></svg><span><strong>Q&amp;A 답변 초안</strong><small>담당자 답변을 작성합니다</small></span></button>
+            </div>
+          </section>
+
+          <section class="agent-full-thread" aria-label="품질 Agent 상세 예시 대화">
+            <article class="agent-message is-user"><p>이번 주 주요 품질 이슈를 정리해줘.</p><time>오전 10:24</time></article>
+            <article class="agent-message is-assistant">
+              <span class="agent-message-mark" aria-hidden="true">✦</span>
+              <div>
+                <p>이번 주 주요 품질 이슈를 아래와 같이 정리했습니다.</p>
+                <ol>
+                  <li><strong>식각 공정 이상률 증가</strong><span>8월 1일 이후 이상률이 전주 대비 1.28%p 상승했습니다.</span></li>
+                  <li><strong>검사 장비 오경보 증가</strong><span>AOI 장비 오경보율이 0.45%로 높아졌습니다.</span></li>
+                  <li><strong>세정 공정 잔류물 이슈</strong><span>특정 라인에서 잔류물 검출이 증가했습니다.</span></li>
+                </ol>
+                <p class="agent-answer-note">필요하면 각 이슈별 상세 분석과 개선 Action Plan도 제공해 드릴 수 있습니다.</p>
+              </div>
+            </article>
+          </section>
+
+          <form class="agent-composer agent-full-composer" data-agent-form>
+            <label for="agent-full-input">품질 Agent에게 질문</label>
+            <input id="agent-full-input" type="text" placeholder="품질 Agent에게 질문하세요" autocomplete="off" data-agent-input />
+            <button type="submit" aria-label="질문 보내기"><svg class="icon"><use href="#icon-send"></use></svg></button>
+            <small>목업 예시이며 실제 사내 LLM과 연결되지 않았습니다.</small>
+          </form>
+        </main>
+
+        <aside class="agent-context" aria-label="품질 Agent 참조 정보">
+          <header><strong>참조 정보</strong><button type="button" data-agent-action="참조 정보 새로고침" aria-label="참조 정보 새로고침"><svg class="icon"><use href="#icon-refresh"></use></svg></button></header>
+          <section>
+            <h2>사용 중인 데이터</h2>
+            <button type="button" data-agent-action="종합 품질 현황"><span class="context-card-icon"><svg class="icon"><use href="#icon-activity"></use></svg></span><span><strong>종합 품질 현황</strong><small>품질 현황 · Spotfire</small><em>최종 업데이트 · 8분 전</em></span><i>LIVE</i></button>
+            <button type="button" data-agent-action="주간 품질 Report"><span class="context-card-icon is-slate"><svg class="icon"><use href="#icon-book"></use></svg></span><span><strong>주간 품질 Report</strong><small>정기 보고 · Spotfire</small><em>최종 업데이트 · 2시간 전</em></span><i>WEEKLY</i></button>
+            <button type="button" data-agent-action="이상률 관리 기준 v2.4"><span class="context-card-icon is-amber"><svg class="icon"><use href="#icon-grid"></use></svg></span><span><strong>이상률 관리 기준 v2.4</strong><small>품질 기준 · Rule</small><em>최종 업데이트 · 1주 전</em></span><i>RULE</i></button>
+          </section>
+          <section class="agent-context-recommended">
+            <h2>추천 Report</h2>
+            <button type="button" data-agent-action="공정 이상 분석 Report"><span class="context-card-icon"><svg class="icon"><use href="#icon-activity"></use></svg></span><span><strong>공정 이상 분석</strong><small>공정 분석 · Spotfire</small><em>현재 대화와 관련도 높음</em></span><i>OPEN</i></button>
+          </section>
+        </aside>
+      </section>
+
+      <section class="report-workspace" aria-label="각종 Report 조회" aria-hidden="true" data-report-workspace>
+        <div class="report-catalog-view" id="report-catalog-main" tabindex="-1" data-report-catalog>
+          <header class="report-page-header">
+            <div>
+              <button class="report-back-button" type="button" data-report-close><svg class="icon"><use href="#icon-arrow"></use></svg>대시보드</button>
+              <span><i>Quality Hub</i><b>/</b><strong>각종 Report 조회</strong></span>
+            </div>
+            <button class="report-help-button" type="button" data-report-action="Report 이용 안내"><svg class="icon"><use href="#icon-message"></use></svg>이용 안내</button>
+          </header>
+
+          <div class="report-catalog-content">
+            <section class="report-catalog-hero" aria-labelledby="report-catalog-title">
+              <div>
+                <p class="section-kicker">REPORT CATALOG</p>
+                <h1 id="report-catalog-title">필요한 품질 Report를<br />한곳에서 찾아보세요.</h1>
+                <p>업무 목적에 맞는 카테고리를 선택하고 Spotfire 원본 Report를 바로 조회할 수 있습니다.</p>
+              </div>
+              <div class="report-summary-card" aria-label="등록된 Report 요약">
+                <span><strong>12</strong><small>등록 Report</small></span>
+                <i></i>
+                <span><strong>4</strong><small>카테고리</small></span>
+                <i></i>
+                <span><strong>10분 전</strong><small>최근 갱신</small></span>
+              </div>
+            </section>
+
+            <section class="report-catalog-controls" aria-label="Report 검색과 카테고리 필터">
+              <label class="report-search">
+                <svg class="icon"><use href="#icon-search"></use></svg>
+                <span class="sr-only">Report 검색</span>
+                <input type="search" placeholder="Report 이름, 공정 또는 키워드 검색" data-report-search />
+                <kbd>⌘ K</kbd>
+              </label>
+              <div class="report-filter-tabs" role="group" aria-label="Report 카테고리">
+                <button class="is-selected" type="button" data-report-filter="all" aria-pressed="true">전체 <i>12</i></button>
+                <button type="button" data-report-filter="overview" aria-pressed="false">품질 현황 <i>3</i></button>
+                <button type="button" data-report-filter="process" aria-pressed="false">공정 분석 <i>3</i></button>
+                <button type="button" data-report-filter="equipment" aria-pressed="false">장비·검사 <i>3</i></button>
+                <button type="button" data-report-filter="periodic" aria-pressed="false">정기 Report <i>3</i></button>
+              </div>
+            </section>
+
+            <div class="report-groups" data-report-groups>
+              <section class="report-category-section" data-report-group="overview" aria-labelledby="report-category-overview">
+                <header><span class="report-category-icon"><svg class="icon"><use href="#icon-activity"></use></svg></span><span><h2 id="report-category-overview">품질 현황</h2><p>핵심 지표와 전반적인 품질 상태를 확인합니다.</p></span><i>3 REPORTS</i></header>
+                <div class="report-card-grid">
+                  <button class="report-catalog-card" type="button" data-report-card data-report-category="overview" data-report-title="종합 품질 현황" data-report-label="품질 현황" data-report-updated="오늘 10:15">
+                    <span class="report-card-top"><i>LIVE</i><em>즐겨찾기</em></span>
+                    <span class="report-card-preview is-line" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b></span>
+                    <span class="report-card-copy"><small>QUALITY OVERVIEW</small><strong>종합 품질 현황</strong><em>라인별 핵심 KPI와 이상 추이를 종합적으로 확인합니다.</em></span>
+                    <span class="report-card-meta"><span><i></i>오늘 10:15 갱신</span><span>Spotfire<svg class="icon"><use href="#icon-arrow"></use></svg></span></span>
+                  </button>
+                  <button class="report-catalog-card" type="button" data-report-card data-report-category="overview" data-report-title="라인별 품질 KPI" data-report-label="품질 현황" data-report-updated="오늘 09:40">
+                    <span class="report-card-top"><i>DAILY</i></span>
+                    <span class="report-card-preview is-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+                    <span class="report-card-copy"><small>LINE KPI</small><strong>라인별 품질 KPI</strong><em>생산 라인별 수율, 이상률과 목표 달성률을 비교합니다.</em></span>
+                    <span class="report-card-meta"><span><i></i>오늘 09:40 갱신</span><span>Spotfire<svg class="icon"><use href="#icon-arrow"></use></svg></span></span>
+                  </button>
+                  <button class="report-catalog-card" type="button" data-report-card data-report-category="overview" data-report-title="고객 품질 현황" data-report-label="품질 현황" data-report-updated="어제 17:30">
+                    <span class="report-card-top"><i>WEEKLY</i></span>
+                    <span class="report-card-preview is-donut" aria-hidden="true"><i></i><b></b><span></span></span>
+                    <span class="report-card-copy"><small>CUSTOMER QUALITY</small><strong>고객 품질 현황</strong><em>고객사별 클레임과 주요 품질 이슈를 추적합니다.</em></span>
+                    <span class="report-card-meta"><span><i></i>어제 17:30 갱신</span><span>Spotfire<svg class="icon"><use href="#icon-arrow"></use></svg></span></span>
+                  </button>
+                </div>
+              </section>
+
+              <section class="report-category-section" data-report-group="process" aria-labelledby="report-category-process">
+                <header><span class="report-category-icon is-amber"><svg class="icon"><use href="#icon-grid"></use></svg></span><span><h2 id="report-category-process">공정 분석</h2><p>공정별 이상 원인과 품질 변동을 깊이 분석합니다.</p></span><i>3 REPORTS</i></header>
+                <div class="report-card-grid">
+                  <button class="report-catalog-card" type="button" data-report-card data-report-category="process" data-report-title="공정 이상 분석" data-report-label="공정 분석" data-report-updated="오늘 10:05">
+                    <span class="report-card-top"><i>LIVE</i><em>추천</em></span>
+                    <span class="report-card-preview is-scatter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+                    <span class="report-card-copy"><small>PROCESS ANOMALY</small><strong>공정 이상 분석</strong><em>센서와 공정 조건의 상관관계로 이상 원인을 탐색합니다.</em></span>
+                    <span class="report-card-meta"><span><i></i>오늘 10:05 갱신</span><span>Spotfire<svg class="icon"><use href="#icon-arrow"></use></svg></span></span>
+                  </button>
+                  <button class="report-catalog-card" type="button" data-report-card data-report-category="process" data-report-title="불량 Pareto 분석" data-report-label="공정 분석" data-report-updated="오늘 08:50">
+                    <span class="report-card-top"><i>DAILY</i></span>
+                    <span class="report-card-preview is-pareto" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b></span>
+                    <span class="report-card-copy"><small>DEFECT PARETO</small><strong>불량 Pareto 분석</strong><em>불량 유형과 원인을 영향도 순으로 분석합니다.</em></span>
+                    <span class="report-card-meta"><span><i></i>오늘 08:50 갱신</span><span>Spotfire<svg class="icon"><use href="#icon-arrow"></use></svg></span></span>
+                  </button>
+                  <button class="report-catalog-card" type="button" data-report-card data-report-category="process" data-report-title="공정능력 추이" data-report-label="공정 분석" data-report-updated="어제 18:10">
+                    <span class="report-card-top"><i>DAILY</i></span>
+                    <span class="report-card-preview is-area" aria-hidden="true"><i></i><b></b><span></span></span>
+                    <span class="report-card-copy"><small>PROCESS CAPABILITY</small><strong>공정능력 추이</strong><em>Cp, Cpk 지표와 규격 이탈 추이를 확인합니다.</em></span>
+                    <span class="report-card-meta"><span><i></i>어제 18:10 갱신</span><span>Spotfire<svg class="icon"><use href="#icon-arrow"></use></svg></span></span>
+                  </button>
+                </div>
+              </section>
+
+              <section class="report-category-section" data-report-group="equipment" aria-labelledby="report-category-equipment">
+                <header><span class="report-category-icon is-slate"><svg class="icon"><use href="#icon-settings"></use></svg></span><span><h2 id="report-category-equipment">장비·검사</h2><p>설비 상태와 검사 결과를 함께 모니터링합니다.</p></span><i>3 REPORTS</i></header>
+                <div class="report-card-grid">
+                  <button class="report-catalog-card" type="button" data-report-card data-report-category="equipment" data-report-title="설비 이상 모니터링" data-report-label="장비·검사" data-report-updated="5분 전">
+                    <span class="report-card-top"><i>REALTIME</i><em>즐겨찾기</em></span>
+                    <span class="report-card-preview is-pulse" aria-hidden="true"><i></i><b></b><span></span></span>
+                    <span class="report-card-copy"><small>EQUIPMENT HEALTH</small><strong>설비 이상 모니터링</strong><em>주요 설비의 실시간 상태와 알람 발생을 확인합니다.</em></span>
+                    <span class="report-card-meta"><span><i></i>5분 전 갱신</span><span>Spotfire<svg class="icon"><use href="#icon-arrow"></use></svg></span></span>
+                  </button>
+                  <button class="report-catalog-card" type="button" data-report-card data-report-category="equipment" data-report-title="AOI 검사 분석" data-report-label="장비·검사" data-report-updated="오늘 09:20">
+                    <span class="report-card-top"><i>HOURLY</i></span>
+                    <span class="report-card-preview is-heatmap" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+                    <span class="report-card-copy"><small>AOI INSPECTION</small><strong>AOI 검사 분석</strong><em>검사 위치별 결함 분포와 오경보 패턴을 분석합니다.</em></span>
+                    <span class="report-card-meta"><span><i></i>오늘 09:20 갱신</span><span>Spotfire<svg class="icon"><use href="#icon-arrow"></use></svg></span></span>
+                  </button>
+                  <button class="report-catalog-card" type="button" data-report-card data-report-category="equipment" data-report-title="Chamber 성능 비교" data-report-label="장비·검사" data-report-updated="어제 16:45">
+                    <span class="report-card-top"><i>DAILY</i></span>
+                    <span class="report-card-preview is-columns" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                    <span class="report-card-copy"><small>CHAMBER COMPARE</small><strong>Chamber 성능 비교</strong><em>동일 공정 내 Chamber별 편차와 성능을 비교합니다.</em></span>
+                    <span class="report-card-meta"><span><i></i>어제 16:45 갱신</span><span>Spotfire<svg class="icon"><use href="#icon-arrow"></use></svg></span></span>
+                  </button>
+                </div>
+              </section>
+
+              <section class="report-category-section" data-report-group="periodic" aria-labelledby="report-category-periodic">
+                <header><span class="report-category-icon is-blue"><svg class="icon"><use href="#icon-book"></use></svg></span><span><h2 id="report-category-periodic">정기 Report</h2><p>주간·월간 품질 회의에 필요한 정기 자료를 조회합니다.</p></span><i>3 REPORTS</i></header>
+                <div class="report-card-grid">
+                  <button class="report-catalog-card" type="button" data-report-card data-report-category="periodic" data-report-title="주간 품질 Report" data-report-label="정기 Report" data-report-updated="오늘 07:00">
+                    <span class="report-card-top"><i>WEEKLY</i><em>NEW</em></span>
+                    <span class="report-card-preview is-document" aria-hidden="true"><i></i><b></b><span></span><span></span><span></span></span>
+                    <span class="report-card-copy"><small>WEEKLY QUALITY</small><strong>주간 품질 Report</strong><em>주요 지표와 이슈, 조치 현황을 주간 단위로 확인합니다.</em></span>
+                    <span class="report-card-meta"><span><i></i>오늘 07:00 갱신</span><span>Spotfire<svg class="icon"><use href="#icon-arrow"></use></svg></span></span>
+                  </button>
+                  <button class="report-catalog-card" type="button" data-report-card data-report-category="periodic" data-report-title="월간 품질 리뷰" data-report-label="정기 Report" data-report-updated="8월 1일">
+                    <span class="report-card-top"><i>MONTHLY</i></span>
+                    <span class="report-card-preview is-rings" aria-hidden="true"><i></i><i></i><i></i><b></b></span>
+                    <span class="report-card-copy"><small>MONTHLY REVIEW</small><strong>월간 품질 리뷰</strong><em>월간 실적과 목표 대비 개선 활동을 종합 리뷰합니다.</em></span>
+                    <span class="report-card-meta"><span><i></i>8월 1일 갱신</span><span>Spotfire<svg class="icon"><use href="#icon-arrow"></use></svg></span></span>
+                  </button>
+                  <button class="report-catalog-card" type="button" data-report-card data-report-category="periodic" data-report-title="품질회의 핵심 자료" data-report-label="정기 Report" data-report-updated="7월 31일">
+                    <span class="report-card-top"><i>MEETING</i></span>
+                    <span class="report-card-preview is-slides" aria-hidden="true"><i></i><i></i><i></i></span>
+                    <span class="report-card-copy"><small>QUALITY MEETING</small><strong>품질회의 핵심 자료</strong><em>정기 품질회의용 지표와 주요 의사결정 항목을 제공합니다.</em></span>
+                    <span class="report-card-meta"><span><i></i>7월 31일 갱신</span><span>Spotfire<svg class="icon"><use href="#icon-arrow"></use></svg></span></span>
+                  </button>
+                </div>
+              </section>
+
+              <div class="report-empty-state" hidden data-report-empty>
+                <svg class="icon"><use href="#icon-search"></use></svg>
+                <strong>검색 결과가 없습니다.</strong>
+                <span>다른 Report 이름이나 키워드로 다시 검색해 보세요.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="report-viewer-view" id="report-viewer-main" tabindex="-1" data-report-viewer>
+          <header class="report-page-header report-viewer-header">
+            <div>
+              <button class="report-back-button" type="button" data-report-back><svg class="icon"><use href="#icon-arrow"></use></svg>Report 목록</button>
+              <span><i>각종 Report 조회</i><b>/</b><strong data-report-viewer-title>종합 품질 현황</strong></span>
+            </div>
+            <div class="report-viewer-actions">
+              <span><i></i>Spotfire 연결 예정</span>
+              <button type="button" data-report-action="Spotfire 새 창 열기"><svg class="icon"><use href="#icon-expand"></use></svg>Spotfire에서 열기</button>
+            </div>
+          </header>
+
+          <div class="report-viewer-content">
+            <section class="report-viewer-heading">
+              <div><p class="section-kicker" data-report-viewer-category>품질 현황</p><h1 data-report-viewer-title>종합 품질 현황</h1><p>선택한 Spotfire Report의 원본 화면을 Quality Hub 안에서 그대로 조회합니다.</p></div>
+              <div><span>최근 갱신</span><strong data-report-viewer-updated>오늘 10:15</strong></div>
+            </section>
+
+            <section class="spotfire-embed-card" aria-labelledby="spotfire-embed-title">
+              <header>
+                <div><span class="spotfire-dot"></span><strong id="spotfire-embed-title">Spotfire Web Player</strong><i>원본 화면</i></div>
+                <span>Quality Hub는 Report 데이터를 별도 가공하지 않습니다.</span>
+              </header>
+              <div class="spotfire-embed-placeholder">
+                <span class="spotfire-placeholder-mark"><svg class="icon"><use href="#icon-grid"></use></svg></span>
+                <p>Spotfire 원본 화면 렌더링 영역</p>
+                <strong data-report-viewer-title>종합 품질 현황</strong>
+                <small>실제 연동 시 Spotfire Web Player가 이 영역 전체에 직접 표시됩니다.<br />필터·페이지·차트·툴바도 Spotfire에서 제공하는 화면을 그대로 사용합니다.</small>
+                <span class="spotfire-placeholder-badge">MOCK PLACEHOLDER</span>
+              </div>
+            </section>
+
+            <aside class="report-viewer-note" role="note">
+              <svg class="icon"><use href="#icon-shield"></use></svg>
+              <span><strong>Spotfire 권한을 그대로 적용합니다.</strong><small>사용자는 Spotfire에서 허용된 Report만 조회할 수 있으며, 실제 URL과 인증 방식은 연동 단계에서 설정합니다.</small></span>
+            </aside>
+          </div>
         </div>
       </section>
+
     </div>
 
     <div class="toast" role="status" aria-live="polite" aria-atomic="true" data-toast></div>

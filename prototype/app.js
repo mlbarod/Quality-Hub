@@ -1,20 +1,15 @@
 const prototype = document.querySelector(".prototype");
 const toast = document.querySelector("[data-toast]");
 const refreshButton = document.querySelector("[data-refresh]");
-const designName = document.querySelector("[data-design-name]");
+const skipLink = document.querySelector(".skip-link");
+const agentDrawer = document.querySelector("[data-agent-drawer]");
+const agentWorkspace = document.querySelector("[data-agent-workspace]");
+const reportWorkspace = document.querySelector("[data-report-workspace]");
+const reportCatalog = document.querySelector("[data-report-catalog]");
+const reportViewer = document.querySelector("[data-report-viewer]");
+const reportSearch = document.querySelector("[data-report-search]");
+const reportEmptyState = document.querySelector("[data-report-empty]");
 let toastTimer;
-
-const layouts = {
-  sidebar: {
-    name: "시안 A · 좌측 메뉴",
-    title: "Quality Hub · 시안 A 좌측 메뉴",
-  },
-  top: {
-    name: "시안 B · 상단 메뉴",
-    title: "Quality Hub · 시안 B 상단 메뉴",
-  },
-};
-const defaultLayout = layouts[prototype?.dataset.defaultLayout] ? prototype.dataset.defaultLayout : "top";
 
 const chartPeriods = {
   7: {
@@ -39,6 +34,119 @@ const showToast = (message) => {
   toastTimer = window.setTimeout(() => toast.classList.remove("is-visible"), 2400);
 };
 
+const agentModes = new Set(["closed", "drawer", "full"]);
+
+const setAgentMode = (mode, { announce = true, focus = true } = {}) => {
+  if (!prototype || !agentModes.has(mode)) return;
+
+  prototype.dataset.agentMode = mode;
+  document.body.classList.toggle("agent-full-active", mode === "full");
+  const url = new URL(window.location.href);
+  if (mode === "drawer" || (mode === "closed" && prototype.dataset.reportMode !== "closed")) {
+    url.searchParams.delete("agent");
+  } else {
+    url.searchParams.set("agent", mode);
+  }
+  window.history.replaceState({}, "", url);
+  agentDrawer?.setAttribute("aria-hidden", String(mode !== "drawer"));
+  agentWorkspace?.setAttribute("aria-hidden", String(mode !== "full"));
+  if (agentDrawer instanceof HTMLElement) agentDrawer.inert = mode !== "drawer";
+  if (agentWorkspace instanceof HTMLElement) agentWorkspace.inert = mode !== "full";
+  document.querySelectorAll("[data-agent-open]").forEach((button) => {
+    button.setAttribute("aria-expanded", String(mode !== "closed"));
+  });
+
+  if (skipLink) {
+    const reportMode = prototype.dataset.reportMode;
+    if (reportMode === "catalog") skipLink.setAttribute("href", "#report-catalog-main");
+    else if (reportMode === "viewer") skipLink.setAttribute("href", "#report-viewer-main");
+    else skipLink.setAttribute("href", mode === "full" ? "#agent-main" : "#main-content");
+  }
+
+  if (prototype.dataset.reportMode === "catalog") {
+    document.title = "Quality Hub · 각종 Report 조회";
+  } else if (prototype.dataset.reportMode === "viewer") {
+    document.title = `Quality Hub · ${document.querySelector("[data-report-viewer-title]")?.textContent ?? "Report 조회"}`;
+  } else if (mode === "full") {
+    document.title = "Quality Hub · 품질 Agent";
+  } else {
+    document.title = "Quality Hub";
+  }
+
+  if (focus) {
+    window.requestAnimationFrame(() => {
+      if (mode === "full") {
+        document.querySelector("#agent-main")?.focus();
+      } else if (mode === "drawer") {
+        document.querySelector("#agent-drawer-input")?.focus();
+      } else {
+        document.querySelector("[data-agent-open]")?.focus();
+      }
+    });
+  }
+
+  if (!announce) return;
+  if (mode === "full") showToast("품질 Agent 전용 작업 화면으로 확장했습니다.");
+  if (mode === "drawer") showToast("품질 Agent 패널을 열었습니다.");
+  if (mode === "closed") showToast("품질 Agent 패널을 닫았습니다.");
+};
+
+const reportModes = new Set(["closed", "catalog", "viewer"]);
+
+const updateReportViewer = (card) => {
+  if (!(card instanceof HTMLElement)) return;
+  const title = card.dataset.reportTitle ?? "종합 품질 현황";
+  const category = card.dataset.reportLabel ?? "품질 현황";
+  const updated = card.dataset.reportUpdated ?? "오늘 10:15";
+  document.querySelectorAll("[data-report-viewer-title]").forEach((element) => element.replaceChildren(title));
+  document.querySelectorAll("[data-report-viewer-category]").forEach((element) => element.replaceChildren(category));
+  document.querySelectorAll("[data-report-viewer-updated]").forEach((element) => element.replaceChildren(updated));
+};
+
+const setReportMode = (mode, { announce = true, focus = true, restoreAgent = true, card = null } = {}) => {
+  if (!prototype || !reportModes.has(mode)) return;
+
+  if (mode === "viewer" && card) updateReportViewer(card);
+  prototype.dataset.reportMode = mode;
+  document.body.classList.toggle("report-active", mode !== "closed");
+
+  const url = new URL(window.location.href);
+  if (mode === "closed") url.searchParams.delete("report");
+  else url.searchParams.set("report", mode);
+  window.history.replaceState({}, "", url);
+
+  reportWorkspace?.setAttribute("aria-hidden", String(mode === "closed"));
+  if (reportWorkspace instanceof HTMLElement) reportWorkspace.inert = mode === "closed";
+  if (reportCatalog instanceof HTMLElement) reportCatalog.inert = mode !== "catalog";
+  if (reportViewer instanceof HTMLElement) reportViewer.inert = mode !== "viewer";
+
+  if (mode !== "closed") {
+    setAgentMode("closed", { announce: false, focus: false });
+  } else if (restoreAgent) {
+    setAgentMode("drawer", { announce: false, focus: false });
+  }
+
+  if (skipLink) {
+    skipLink.setAttribute("href", mode === "catalog" ? "#report-catalog-main" : mode === "viewer" ? "#report-viewer-main" : "#main-content");
+  }
+
+  if (mode === "catalog") document.title = "Quality Hub · 각종 Report 조회";
+  if (mode === "viewer") document.title = `Quality Hub · ${document.querySelector("[data-report-viewer-title]")?.textContent ?? "Report 조회"}`;
+
+  if (focus) {
+    window.requestAnimationFrame(() => {
+      if (mode === "catalog") reportCatalog?.focus();
+      else if (mode === "viewer") reportViewer?.focus();
+      else document.querySelector("[data-report-open]")?.focus();
+    });
+  }
+
+  if (!announce) return;
+  if (mode === "catalog") showToast("카테고리별 Report 목록을 열었습니다.");
+  if (mode === "viewer") showToast(`${document.querySelector("[data-report-viewer-title]")?.textContent ?? "Report"} 원본 화면으로 이동했습니다.`);
+  if (mode === "closed") showToast("대시보드로 돌아왔습니다.");
+};
+
 const formatDate = (date) =>
   new Intl.DateTimeFormat("ko-KR", {
     month: "long",
@@ -52,43 +160,125 @@ const formatTime = (date) =>
     minute: "2-digit",
   }).format(date);
 
-const updateLayoutQuery = (layout) => {
-  const url = new URL(window.location.href);
-  if (layout === defaultLayout) {
-    url.searchParams.delete("design");
-  } else {
-    url.searchParams.set("design", layout);
-  }
-  window.history.replaceState({}, "", url);
-};
+document.querySelectorAll("[data-agent-open]").forEach((button) => {
+  button.addEventListener("click", () => {
+    setReportMode("closed", { announce: false, focus: false, restoreAgent: false });
+    setAgentMode("drawer");
+  });
+});
 
-const setLayout = (layout, announce = false) => {
-  if (!prototype || !layouts[layout]) return;
+document.querySelectorAll("[data-agent-expand]").forEach((button) => {
+  button.addEventListener("click", () => setAgentMode("full"));
+});
 
-  prototype.dataset.layout = layout;
-  document.title = layouts[layout].title;
-  designName?.replaceChildren(layouts[layout].name);
+document.querySelectorAll("[data-agent-collapse]").forEach((button) => {
+  button.addEventListener("click", () => setAgentMode("drawer"));
+});
 
-  document.querySelectorAll("[data-layout-switch]").forEach((button) => {
-    const isSelected = button.dataset.layoutSwitch === layout;
-    button.classList.toggle("is-selected", isSelected);
-    button.setAttribute("aria-pressed", String(isSelected));
+document.querySelectorAll("[data-agent-close]").forEach((button) => {
+  button.addEventListener("click", () => setAgentMode("closed"));
+});
+
+document.querySelectorAll("[data-agent-prompt]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const inputSelector = prototype?.dataset.agentMode === "full" ? "#agent-full-input" : "#agent-drawer-input";
+    const input = document.querySelector(inputSelector);
+    if (!(input instanceof HTMLInputElement)) return;
+    input.value = button.dataset.agentPrompt ?? "";
+    input.focus();
+  });
+});
+
+document.querySelectorAll("[data-agent-form]").forEach((form) => {
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const input = form.querySelector("[data-agent-input]");
+    if (!(input instanceof HTMLInputElement) || !input.value.trim()) {
+      input?.focus();
+      return;
+    }
+    showToast("실제 답변 생성은 사내 품질 Agent API 연동 후 동작합니다.");
+  });
+});
+
+document.querySelectorAll("[data-agent-action]").forEach((button) => {
+  button.addEventListener("click", () => {
+    showToast(`${button.dataset.agentAction} 기능은 품질 Agent API 연동 후 연결할 예정입니다.`);
+  });
+});
+
+document.querySelectorAll(".agent-history-group button").forEach((button) => {
+  button.addEventListener("click", () => {
+    document.querySelectorAll(".agent-history-group button").forEach((item) => item.classList.toggle("is-current", item === button));
+    showToast(`${button.querySelector("span")?.textContent ?? "대화"} 기록을 선택했습니다.`);
+  });
+});
+
+const initialAgentQuery = new URL(window.location.href).searchParams.get("agent");
+setAgentMode(agentModes.has(initialAgentQuery) ? initialAgentQuery : prototype?.dataset.agentMode ?? "drawer", { announce: false, focus: false });
+
+document.querySelectorAll("[data-report-open]").forEach((button) => {
+  button.addEventListener("click", () => setReportMode("catalog"));
+});
+
+document.querySelectorAll("[data-report-close]").forEach((button) => {
+  button.addEventListener("click", () => setReportMode("closed"));
+});
+
+document.querySelectorAll("[data-report-back]").forEach((button) => {
+  button.addEventListener("click", () => setReportMode("catalog"));
+});
+
+document.querySelectorAll("[data-report-card]").forEach((card) => {
+  card.addEventListener("click", () => setReportMode("viewer", { card }));
+});
+
+document.querySelectorAll("[data-report-action]").forEach((button) => {
+  button.addEventListener("click", () => showToast(`${button.dataset.reportAction} 기능은 실제 Spotfire 연동 단계에서 연결할 예정입니다.`));
+});
+
+const applyReportFilters = () => {
+  const selectedFilter = document.querySelector("[data-report-filter].is-selected")?.dataset.reportFilter ?? "all";
+  const searchTerm = reportSearch instanceof HTMLInputElement ? reportSearch.value.trim().toLocaleLowerCase("ko-KR") : "";
+  let visibleCardCount = 0;
+
+  document.querySelectorAll("[data-report-group]").forEach((group) => {
+    let visibleGroupCardCount = 0;
+    group.querySelectorAll("[data-report-card]").forEach((card) => {
+      const matchesCategory = selectedFilter === "all" || card.dataset.reportCategory === selectedFilter;
+      const matchesSearch = !searchTerm || card.textContent.toLocaleLowerCase("ko-KR").includes(searchTerm);
+      const isVisible = matchesCategory && matchesSearch;
+      card.hidden = !isVisible;
+      if (isVisible) {
+        visibleCardCount += 1;
+        visibleGroupCardCount += 1;
+      }
+    });
+    group.hidden = visibleGroupCardCount === 0;
   });
 
-  updateLayoutQuery(layout);
-
-  if (announce) {
-    showToast(`${layouts[layout].name}으로 전환했습니다.`);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+  if (reportEmptyState instanceof HTMLElement) reportEmptyState.hidden = visibleCardCount > 0;
 };
 
-const initialQuery = new URL(window.location.href).searchParams.get("design");
-setLayout(layouts[initialQuery] ? initialQuery : defaultLayout);
-
-document.querySelectorAll("[data-layout-switch]").forEach((button) => {
-  button.addEventListener("click", () => setLayout(button.dataset.layoutSwitch, true));
+document.querySelectorAll("[data-report-filter]").forEach((button) => {
+  button.addEventListener("click", () => {
+    document.querySelectorAll("[data-report-filter]").forEach((item) => {
+      const isSelected = item === button;
+      item.classList.toggle("is-selected", isSelected);
+      item.setAttribute("aria-pressed", String(isSelected));
+    });
+    applyReportFilters();
+  });
 });
+
+reportSearch?.addEventListener("input", applyReportFilters);
+
+const initialReportQuery = new URL(window.location.href).searchParams.get("report");
+if (initialReportQuery === "catalog" || initialReportQuery === "viewer") {
+  setReportMode(initialReportQuery, { announce: false, focus: false });
+} else {
+  setReportMode("closed", { announce: false, focus: false, restoreAgent: false });
+}
 
 document.querySelectorAll("[data-today]").forEach((element) => {
   element.textContent = formatDate(new Date());
@@ -99,8 +289,6 @@ document.querySelectorAll("[data-planned]").forEach((element) => {
     showToast(`${element.dataset.planned} 화면은 디자인 확정 후 연결할 예정입니다.`);
   });
 });
-
-const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
 document.querySelectorAll("[data-motion-card]").forEach((card) => {
   const visual = card.querySelector("[data-motion-visual]");
@@ -118,56 +306,6 @@ document.querySelectorAll("[data-motion-card]").forEach((card) => {
     visual.style.setProperty("--pointer-x", "50%");
     visual.style.setProperty("--pointer-y", "50%");
   });
-});
-
-const searchMotionCard = document.querySelector('[data-motion-card="search"]');
-const animatedSearchTerm = searchMotionCard?.querySelector("[data-search-term]");
-const searchTerms = ["식각 공정 이상률", "공정 품질 현황", "검사 주기 관리 Rule"];
-let searchTermIndex = 0;
-let searchHoverDelay;
-let searchCycleDelay;
-let isSearchHovered = false;
-let isSearchTyping = false;
-
-const wait = (duration) => new Promise((resolve) => window.setTimeout(resolve, duration));
-
-const animateSearchTerm = async () => {
-  if (!animatedSearchTerm || isSearchTyping || prefersReducedMotion.matches) return;
-
-  isSearchTyping = true;
-  const currentTerm = animatedSearchTerm.textContent ?? "";
-  searchTermIndex = (searchTermIndex + 1) % searchTerms.length;
-  const nextTerm = searchTerms[searchTermIndex];
-
-  for (let index = currentTerm.length; index >= 0; index -= 1) {
-    animatedSearchTerm.textContent = currentTerm.slice(0, index);
-    await wait(24);
-  }
-
-  await wait(90);
-
-  for (let index = 1; index <= nextTerm.length; index += 1) {
-    animatedSearchTerm.textContent = nextTerm.slice(0, index);
-    await wait(42);
-  }
-
-  isSearchTyping = false;
-  if (isSearchHovered) {
-    searchCycleDelay = window.setTimeout(animateSearchTerm, 1050);
-  }
-};
-
-searchMotionCard?.addEventListener("pointerenter", () => {
-  isSearchHovered = true;
-  window.clearTimeout(searchHoverDelay);
-  window.clearTimeout(searchCycleDelay);
-  searchHoverDelay = window.setTimeout(animateSearchTerm, 200);
-});
-
-searchMotionCard?.addEventListener("pointerleave", () => {
-  isSearchHovered = false;
-  window.clearTimeout(searchHoverDelay);
-  window.clearTimeout(searchCycleDelay);
 });
 
 document.querySelectorAll("[data-period]").forEach((button) => {
@@ -218,6 +356,16 @@ refreshButton?.addEventListener("click", () => {
 document.addEventListener("keydown", (event) => {
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
     event.preventDefault();
-    showToast("통합 검색 화면은 디자인 확정 후 연결할 예정입니다.");
+    if (prototype?.dataset.reportMode === "catalog" && reportSearch instanceof HTMLInputElement) {
+      reportSearch.focus();
+    } else {
+      showToast("통합 검색 화면은 디자인 확정 후 연결할 예정입니다.");
+    }
+  }
+
+  if (event.key === "Escape") {
+    if (prototype?.dataset.reportMode === "viewer") setReportMode("catalog");
+    else if (prototype?.dataset.reportMode === "catalog") setReportMode("closed");
+    else if (prototype?.dataset.agentMode === "full") setAgentMode("drawer");
   }
 });
