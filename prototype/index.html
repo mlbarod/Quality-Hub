@@ -212,7 +212,7 @@
                 </header>
                 <div class="chart-meta"><span data-period-label>최근 7일</span><span><i class="legend-dot green"></i>전체 공정 평균</span><span><i class="legend-dot gray"></i>목표 97%</span></div>
                 <div class="line-chart-wrap">
-                  <svg class="quality-line-chart" viewBox="0 0 680 250" role="img" aria-labelledby="line-chart-title line-chart-desc">
+                  <svg class="quality-line-chart" viewBox="0 0 680 125" role="img" aria-labelledby="line-chart-title line-chart-desc">
                     <title id="line-chart-title">최근 7일 공정 준수율 추이</title>
                     <desc id="line-chart-desc">준수율이 96.4퍼센트에서 98.4퍼센트로 상승한 예시 차트입니다.</desc>
                     <defs>
@@ -221,11 +221,11 @@
                         <stop offset="100%" stop-color="#239b67" stop-opacity="0" />
                       </linearGradient>
                     </defs>
-                    <g class="chart-gridlines"><path d="M42 34H654M42 86H654M42 138H654M42 190H654" /></g>
-                    <path class="target-line" d="M42 145H654" />
-                    <path class="chart-area" data-line-area d="M42 172 C90 164 112 156 142 158 S202 135 242 140 S302 116 342 120 S402 100 442 104 S502 78 542 84 S612 48 654 54 L654 216 L42 216Z" />
-                    <path class="chart-line" data-line-path d="M42 172 C90 164 112 156 142 158 S202 135 242 140 S302 116 342 120 S402 100 442 104 S502 78 542 84 S612 48 654 54" />
-                    <g class="chart-points"><circle cx="42" cy="172" r="4"/><circle cx="142" cy="158" r="4"/><circle cx="242" cy="140" r="4"/><circle cx="342" cy="120" r="4"/><circle cx="442" cy="104" r="4"/><circle cx="542" cy="84" r="4"/><circle cx="654" cy="54" r="5"/></g>
+                    <g class="chart-gridlines"><path d="M42 17H654M42 43H654M42 69H654M42 95H654" /></g>
+                    <path class="target-line" d="M42 72.5H654" />
+                    <path class="chart-area" data-line-area d="M42 86 C90 82 112 78 142 79 S202 67.5 242 70 S302 58 342 60 S402 50 442 52 S502 39 542 42 S612 24 654 27 L654 108 L42 108Z" />
+                    <path class="chart-line" data-line-path d="M42 86 C90 82 112 78 142 79 S202 67.5 242 70 S302 58 342 60 S402 50 442 52 S502 39 542 42 S612 24 654 27" />
+                    <g class="chart-points"><circle cx="42" cy="86" r="4"/><circle cx="142" cy="79" r="4"/><circle cx="242" cy="70" r="4"/><circle cx="342" cy="60" r="4"/><circle cx="442" cy="52" r="4"/><circle cx="542" cy="42" r="4"/><circle cx="654" cy="27" r="5"/></g>
                   </svg>
                   <div class="line-labels"><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span><span>일</span></div>
                 </div>
@@ -258,46 +258,53 @@
             </div>
 
             <div class="app-grid">
-              <button class="app-card app-card-featured" type="button" data-planned="통합 검색">
+              <button class="app-card app-card-featured" type="button" data-planned="통합 검색" data-motion-card="search">
                 <span class="app-card-header">
                   <span class="app-icon"><svg class="icon"><use href="#icon-search"></use></svg></span>
                   <span><strong>통합 검색</strong><small>Search workspace</small></span>
                   <i class="app-status">바로가기</i>
                 </span>
                 <span class="app-description">품질 지표, 관리 Rule과 사내 문서를<br />하나의 검색창에서 빠르게 찾습니다.</span>
-                <span class="search-illustration" aria-hidden="true">
-                  <span class="fake-search"><svg class="icon"><use href="#icon-search"></use></svg>식각 공정 이상률<kbd>⌘ K</kbd></span>
+                <span class="search-illustration" aria-hidden="true" data-motion-visual>
+                  <span class="visual-glow"></span>
+                  <span class="search-scan-line"></span>
+                  <span class="fake-search"><svg class="icon"><use href="#icon-search"></use></svg><span data-search-term>식각 공정 이상률</span><i class="typing-caret"></i><kbd>⌘ K</kbd></span>
                   <span class="result-row"><i class="result-icon">R</i><span><b>식각 공정 이상률 관리 기준</b><em>관리 Rule · v2.4</em></span><strong>97%</strong></span>
                   <span class="result-row"><i class="result-icon doc">D</i><span><b>ETCH 품질 점검 가이드</b><em>공유 문서 · 오늘 수정</em></span><strong>PDF</strong></span>
+                  <span class="result-row is-queued"><i class="result-icon qa">Q</i><span><b>식각 공정 검사 주기 문의</b><em>Q&amp;A · 답변 완료</em></span><strong>완료</strong></span>
                 </span>
                 <span class="app-card-footer"><span>Rule · 파일 · URL 본문</span><svg class="icon"><use href="#icon-arrow"></use></svg></span>
               </button>
 
-              <button class="app-card" type="button" data-planned="관리 Rule">
+              <button class="app-card" type="button" data-planned="관리 Rule" data-motion-card="rule">
                 <span class="app-card-header">
                   <span class="app-icon"><svg class="icon"><use href="#icon-book"></use></svg></span>
                   <span><strong>관리 Rule</strong><small>Rule workspace</small></span>
                   <i class="app-status">12건 변경</i>
                 </span>
                 <span class="app-description">공정별 기준을 등록하고<br />모든 개정 이력을 안전하게 보존합니다.</span>
-                <span class="rule-illustration" aria-hidden="true">
+                <span class="rule-illustration" aria-hidden="true" data-motion-visual>
+                  <span class="visual-glow"></span>
+                  <span class="rule-grid"></span>
                   <span class="revision-card"><i>v2.4</i><b>이상률 관리 기준</b><small>현재 적용 중</small></span>
-                  <span class="revision-line"></span>
+                  <span class="revision-line"><i class="version-flow-dot"></i></span>
                   <span class="revision-card is-past"><i>v2.3</i><b>판정 기준 변경</b><small>7월 28일</small></span>
                 </span>
                 <span class="app-card-footer"><span>버전 및 변경 이력</span><svg class="icon"><use href="#icon-arrow"></use></svg></span>
               </button>
 
-              <button class="app-card" type="button" data-planned="Q&A">
+              <button class="app-card" type="button" data-planned="Q&A" data-motion-card="qna">
                 <span class="app-card-header">
                   <span class="app-icon"><svg class="icon"><use href="#icon-message"></use></svg></span>
                   <span><strong>Q&amp;A</strong><small>Quality desk</small></span>
                   <i class="app-status is-attention">4건 대기</i>
                 </span>
                 <span class="app-description">공정·부서 담당자에게 질문하고<br />답변과 처리 상태를 함께 관리합니다.</span>
-                <span class="qna-illustration" aria-hidden="true">
+                <span class="qna-illustration" aria-hidden="true" data-motion-visual>
+                  <span class="visual-glow"></span>
+                  <span class="conversation-route"><i></i></span>
                   <span class="message-bubble first"><i class="mini-avatar">김</i><span><b>검사 주기 기준 문의</b><small>식각 공정 · 12분 전</small></span></span>
-                  <span class="message-track"><i></i><i></i><i></i></span>
+                  <span class="message-track"><i></i><i></i><i></i><b class="message-signal"></b></span>
                   <span class="message-bubble second"><i class="mini-avatar owner">박</i><span><b>담당자 확인 중</b><small>답변 예정 · 오늘</small></span></span>
                 </span>
                 <span class="app-card-footer"><span>질문 · 답변 · 상태 관리</span><svg class="icon"><use href="#icon-arrow"></use></svg></span>

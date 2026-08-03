@@ -20,13 +20,13 @@ const chartPeriods = {
     compliance: "98.4%",
     anomaly: "7건",
     label: "최근 7일",
-    path: "M42 172 C90 164 112 156 142 158 S202 135 242 140 S302 116 342 120 S402 100 442 104 S502 78 542 84 S612 48 654 54",
+    path: "M42 86 C90 82 112 78 142 79 S202 67.5 242 70 S302 58 342 60 S402 50 442 52 S502 39 542 42 S612 24 654 27",
   },
   30: {
     compliance: "97.9%",
     anomaly: "24건",
     label: "최근 30일",
-    path: "M42 156 C82 138 112 174 142 151 S207 166 242 143 S305 108 342 132 S406 94 442 116 S505 74 542 92 S614 68 654 61",
+    path: "M42 78 C82 69 112 87 142 75.5 S207 83 242 71.5 S305 54 342 66 S406 47 442 58 S505 37 542 46 S614 34 654 30.5",
   },
 };
 
@@ -97,6 +97,76 @@ document.querySelectorAll("[data-planned]").forEach((element) => {
   });
 });
 
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+document.querySelectorAll("[data-motion-card]").forEach((card) => {
+  const visual = card.querySelector("[data-motion-visual]");
+  if (!visual) return;
+
+  card.addEventListener("pointermove", (event) => {
+    const bounds = visual.getBoundingClientRect();
+    const x = Math.max(0, Math.min(bounds.width, event.clientX - bounds.left));
+    const y = Math.max(0, Math.min(bounds.height, event.clientY - bounds.top));
+    visual.style.setProperty("--pointer-x", `${x}px`);
+    visual.style.setProperty("--pointer-y", `${y}px`);
+  });
+
+  card.addEventListener("pointerleave", () => {
+    visual.style.setProperty("--pointer-x", "50%");
+    visual.style.setProperty("--pointer-y", "50%");
+  });
+});
+
+const searchMotionCard = document.querySelector('[data-motion-card="search"]');
+const animatedSearchTerm = searchMotionCard?.querySelector("[data-search-term]");
+const searchTerms = ["식각 공정 이상률", "공정 품질 현황", "검사 주기 관리 Rule"];
+let searchTermIndex = 0;
+let searchHoverDelay;
+let searchCycleDelay;
+let isSearchHovered = false;
+let isSearchTyping = false;
+
+const wait = (duration) => new Promise((resolve) => window.setTimeout(resolve, duration));
+
+const animateSearchTerm = async () => {
+  if (!animatedSearchTerm || isSearchTyping || prefersReducedMotion.matches) return;
+
+  isSearchTyping = true;
+  const currentTerm = animatedSearchTerm.textContent ?? "";
+  searchTermIndex = (searchTermIndex + 1) % searchTerms.length;
+  const nextTerm = searchTerms[searchTermIndex];
+
+  for (let index = currentTerm.length; index >= 0; index -= 1) {
+    animatedSearchTerm.textContent = currentTerm.slice(0, index);
+    await wait(24);
+  }
+
+  await wait(90);
+
+  for (let index = 1; index <= nextTerm.length; index += 1) {
+    animatedSearchTerm.textContent = nextTerm.slice(0, index);
+    await wait(42);
+  }
+
+  isSearchTyping = false;
+  if (isSearchHovered) {
+    searchCycleDelay = window.setTimeout(animateSearchTerm, 1050);
+  }
+};
+
+searchMotionCard?.addEventListener("pointerenter", () => {
+  isSearchHovered = true;
+  window.clearTimeout(searchHoverDelay);
+  window.clearTimeout(searchCycleDelay);
+  searchHoverDelay = window.setTimeout(animateSearchTerm, 200);
+});
+
+searchMotionCard?.addEventListener("pointerleave", () => {
+  isSearchHovered = false;
+  window.clearTimeout(searchHoverDelay);
+  window.clearTimeout(searchCycleDelay);
+});
+
 document.querySelectorAll("[data-period]").forEach((button) => {
   button.addEventListener("click", () => {
     const state = chartPeriods[button.dataset.period];
@@ -117,7 +187,7 @@ document.querySelectorAll("[data-period]").forEach((button) => {
     const linePath = document.querySelector("[data-line-path]");
     const lineArea = document.querySelector("[data-line-area]");
     linePath?.setAttribute("d", state.path);
-    lineArea?.setAttribute("d", `${state.path} L654 216 L42 216Z`);
+    lineArea?.setAttribute("d", `${state.path} L654 108 L42 108Z`);
   });
 });
 
