@@ -33,12 +33,6 @@
 
 ## 실행 방법
 
-초기 대시보드 목업은 별도 설치 없이 실행할 수 있습니다.
-
-```bash
-python3 -m http.server 4173 --directory prototype
-```
-
-브라우저에서 `http://localhost:4173`으로 접속합니다. 기본 화면은 확정한 **B · 상단 메뉴형**이며 목업 내 시안 전환 기능은 제공하지 않습니다.
+리눅스 서버에서 `python3 -m http.server 4173 --bind 0.0.0.0 --directory prototype` 실행 후 `http://<서버주소>:4173`으로 접속합니다.
 
 목업의 모든 수치와 상태는 실제 데이터가 아닌 UI 검토용 예시입니다.
