@@ -12,13 +12,14 @@
 
 ## 현재 상태
 
-현재 UI/UX 설계 준비 단계입니다. 로컬 환경에서는 테스트 데이터를 사용하며, 사내 데이터와 SSO는 아직 연결하지 않습니다.
+현재 UI/UX 설계를 진행하고 있으며 첫 대시보드 목업을 확인할 수 있습니다. 로컬 환경에서는 테스트 데이터를 사용하며, 사내 데이터와 SSO는 아직 연결하지 않습니다.
 
 ## 프로젝트 문서
 
 - [프로젝트 목표](docs/PROJECT_GOALS.md)
 - [품질 포털 요구사항](docs/QUALITY_PORTAL_REQUIREMENTS.md)
 - [개발 계획](docs/DEVELOPMENT_PLAN.md)
+- [UI/UX 설계 기준](docs/UI_UX_DESIGN.md)
 - [메인 개발자 역할](docs/MAIN_DEVELOPER_ROLE.md)
 - [작업 지침](AGENTS.md)
 
@@ -30,4 +31,10 @@
 
 ## 실행 방법
 
-애플리케이션 구현 시작 후 추가할 예정입니다.
+초기 대시보드 목업은 별도 설치 없이 실행할 수 있습니다.
+
+```bash
+python3 -m http.server 4173 --directory prototype
+```
+
+브라우저에서 `http://localhost:4173`으로 접속합니다. 목업의 모든 수치와 상태는 실제 데이터가 아닌 UI 검토용 예시입니다.

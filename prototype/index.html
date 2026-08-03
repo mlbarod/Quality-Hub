@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Quality Hub UI/UX 검토를 위한 대시보드 목업"
+    />
+    <title>Quality Hub · 대시보드 목업</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">본문으로 바로가기</a>
+
+    <svg class="svg-definitions" aria-hidden="true">
+      <symbol id="icon-grid" viewBox="0 0 24 24">
+        <rect x="3" y="3" width="7" height="7" rx="2" />
+        <rect x="14" y="3" width="7" height="7" rx="2" />
+        <rect x="3" y="14" width="7" height="7" rx="2" />
+        <rect x="14" y="14" width="7" height="7" rx="2" />
+      </symbol>
+      <symbol id="icon-search" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-4-4" />
+      </symbol>
+      <symbol id="icon-book" viewBox="0 0 24 24">
+        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z" />
+        <path d="M4 5.5v16M8 7h8M8 11h6" />
+      </symbol>
+      <symbol id="icon-message" viewBox="0 0 24 24">
+        <path d="M21 14a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+        <path d="M8 9h8M8 13h5" />
+      </symbol>
+      <symbol id="icon-bell" viewBox="0 0 24 24">
+        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
+      </symbol>
+      <symbol id="icon-users" viewBox="0 0 24 24">
+        <circle cx="9" cy="8" r="4" />
+        <path d="M3 21v-2a6 6 0 0 1 12 0v2M16 4.5a4 4 0 0 1 0 7.5M17 15a6 6 0 0 1 4 5.7" />
+      </symbol>
+      <symbol id="icon-refresh" viewBox="0 0 24 24">
+        <path d="M20 6v5h-5" />
+        <path d="M4 18v-5h5" />
+        <path d="M6.1 9a7 7 0 0 1 11.3-2.6L20 11M4 13l2.6 4.6A7 7 0 0 0 17.9 15" />
+      </symbol>
+      <symbol id="icon-arrow" viewBox="0 0 24 24">
+        <path d="M5 12h14M14 7l5 5-5 5" />
+      </symbol>
+      <symbol id="icon-chevron" viewBox="0 0 24 24">
+        <path d="m9 18 6-6-6-6" />
+      </symbol>
+      <symbol id="icon-clock" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 2" />
+      </symbol>
+      <symbol id="icon-alert" viewBox="0 0 24 24">
+        <path d="M10.3 4.2 2.7 17.5A2 2 0 0 0 4.4 20h15.2a2 2 0 0 0 1.7-2.5L13.7 4.2a2 2 0 0 0-3.4 0Z" />
+        <path d="M12 9v4M12 17h.01" />
+      </symbol>
+      <symbol id="icon-check" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" />
+        <path d="m8 12 2.6 2.6L16.5 9" />
+      </symbol>
+      <symbol id="icon-menu" viewBox="0 0 24 24">
+        <path d="M4 7h16M4 12h16M4 17h16" />
+      </symbol>
+      <symbol id="icon-close" viewBox="0 0 24 24">
+        <path d="m6 6 12 12M18 6 6 18" />
+      </symbol>
+    </svg>
+
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar" aria-label="주 메뉴">
+        <div class="brand-row">
+          <a class="brand" href="#top" aria-label="Quality Hub 홈">
+            <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span>Quality Hub</span>
+          </a>
+          <button class="icon-button sidebar-close" type="button" data-sidebar-close aria-label="메뉴 닫기">
+            <svg class="icon"><use href="#icon-close"></use></svg>
+          </button>
+        </div>
+
+        <div class="mock-label"><span></span> UI 검토용 목업</div>
+
+        <nav class="nav-list" aria-label="서비스 메뉴">
+          <p class="nav-caption">업무</p>
+          <a class="nav-item is-active" href="#dashboard" aria-current="page">
+            <svg class="icon"><use href="#icon-grid"></use></svg>
+            <span>대시보드</span>
+          </a>
+          <button class="nav-item" type="button" data-planned="통합 검색">
+            <svg class="icon"><use href="#icon-search"></use></svg>
+            <span>통합 검색</span>
+            <kbd>⌘ K</kbd>
+          </button>
+          <button class="nav-item" type="button" data-planned="관리 Rule">
+            <svg class="icon"><use href="#icon-book"></use></svg>
+            <span>관리 Rule</span>
+            <span class="nav-count">12</span>
+          </button>
+          <button class="nav-item" type="button" data-planned="Q&A">
+            <svg class="icon"><use href="#icon-message"></use></svg>
+            <span>Q&amp;A</span>
+            <span class="nav-count is-alert">4</span>
+          </button>
+
+          <p class="nav-caption nav-caption-spaced">관리</p>
+          <button class="nav-item" type="button" data-planned="알림">
+            <svg class="icon"><use href="#icon-bell"></use></svg>
+            <span>알림</span>
+            <span class="status-dot" aria-label="읽지 않은 알림 있음"></span>
+          </button>
+          <button class="nav-item" type="button" data-planned="사용자 및 권한">
+            <svg class="icon"><use href="#icon-users"></use></svg>
+            <span>사용자 및 권한</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="system-state">
+            <span class="system-state-icon is-warning"><svg class="icon"><use href="#icon-alert"></use></svg></span>
+            <div>
+              <strong>일부 원천 확인 필요</strong>
+              <span>3개 정상 · 1개 지연</span>
+            </div>
+          </div>
+          <button class="profile-card" type="button" data-planned="내 프로필">
+            <span class="avatar" aria-hidden="true">김</span>
+            <span class="profile-copy">
+              <strong>김품질</strong>
+              <span>품질 총괄</span>
+            </span>
+            <svg class="icon"><use href="#icon-chevron"></use></svg>
+          </button>
+        </div>
+      </aside>
+
+      <div class="sidebar-scrim" data-sidebar-close aria-hidden="true"></div>
+
+      <div class="workspace">
+        <header class="topbar" id="top">
+          <button class="icon-button menu-button" type="button" data-sidebar-open aria-label="메뉴 열기" aria-controls="sidebar" aria-expanded="false">
+            <svg class="icon"><use href="#icon-menu"></use></svg>
+          </button>
+          <div class="breadcrumb" aria-label="현재 위치">
+            <span>Quality Hub</span><i>/</i><strong>대시보드</strong>
+          </div>
+          <div class="topbar-actions">
+            <button class="search-trigger" type="button" data-planned="통합 검색">
+              <svg class="icon"><use href="#icon-search"></use></svg>
+              <span>지표, Rule, 문서 검색</span>
+              <kbd>⌘ K</kbd>
+            </button>
+            <button class="icon-button notification-button" type="button" data-planned="알림" aria-label="알림 3개">
+              <svg class="icon"><use href="#icon-bell"></use></svg>
+              <span>3</span>
+            </button>
+          </div>
+        </header>
+
+        <main class="main-content" id="main-content" tabindex="-1">
+          <div class="demo-banner" role="note">
+            <div>
+              <span class="demo-badge">DEMO</span>
+              <strong>UI 검토용 예시 데이터입니다.</strong>
+              <span>실제 품질 현황이나 사내 시스템과 연결되지 않습니다.</span>
+            </div>
+          </div>
+
+          <section class="page-heading" id="dashboard" aria-labelledby="dashboard-title">
+            <div>
+              <p class="eyebrow">오늘의 품질 브리핑</p>
+              <h1 id="dashboard-title">공정 품질 현황</h1>
+              <p><span data-today></span> 기준, 담당 공정의 주요 변화를 확인하세요.</p>
+            </div>
+            <div class="heading-actions">
+              <label class="select-control">
+                <span class="sr-only">조회 기간</span>
+                <select aria-label="조회 기간">
+                  <option>최근 7일</option>
+                  <option>최근 30일</option>
+                  <option>이번 분기</option>
+                </select>
+              </label>
+              <button class="primary-button" type="button" data-refresh>
+                <svg class="icon"><use href="#icon-refresh"></use></svg>
+                <span>최신 상태 확인</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="metric-grid" aria-label="핵심 품질 지표">
+            <article class="metric-card">
+              <div class="metric-topline"><span>공정 준수율</span><span class="sample-tag">예시 지표</span></div>
+              <div class="metric-value">98.4<span>%</span></div>
+              <div class="metric-footer positive"><span>↗ 1.2%</span><small>지난주 대비</small></div>
+              <div class="metric-spark" aria-hidden="true"><i style="height: 36%"></i><i style="height: 48%"></i><i style="height: 42%"></i><i style="height: 64%"></i><i style="height: 58%"></i><i style="height: 76%"></i><i style="height: 88%"></i></div>
+            </article>
+            <article class="metric-card">
+              <div class="metric-topline"><span>품질 이상 건수</span><span class="sample-tag">예시 지표</span></div>
+              <div class="metric-value">7<span>건</span></div>
+              <div class="metric-footer positive"><span>↓ 3건</span><small>지난주 대비</small></div>
+              <div class="metric-spark warning" aria-hidden="true"><i style="height: 84%"></i><i style="height: 70%"></i><i style="height: 76%"></i><i style="height: 58%"></i><i style="height: 64%"></i><i style="height: 46%"></i><i style="height: 38%"></i></div>
+            </article>
+            <article class="metric-card">
+              <div class="metric-topline"><span>이번 주 Rule 변경</span><span class="sample-tag">예시 지표</span></div>
+              <div class="metric-value">12<span>건</span></div>
+              <div class="metric-footer neutral"><span>3개 공정</span><small>변경 이력 보존</small></div>
+              <div class="stacked-avatars" aria-label="변경 담당자 4명"><i>이</i><i>박</i><i>최</i><i>+1</i></div>
+            </article>
+            <article class="metric-card accent-card">
+              <div class="metric-topline"><span>답변 대기 Q&amp;A</span><span class="sample-tag">예시 지표</span></div>
+              <div class="metric-value">4<span>건</span></div>
+              <div class="metric-footer attention"><span>1건</span><small>24시간 이상 대기</small></div>
+              <button class="card-link" type="button" data-planned="Q&A">확인하기 <svg class="icon"><use href="#icon-arrow"></use></svg></button>
+            </article>
+          </section>
+
+          <section class="dashboard-grid" aria-label="품질 상세 현황">
+            <article class="panel trend-panel">
+              <div class="panel-header">
+                <div><p class="panel-kicker">TREND</p><h2>품질 추이</h2><p>담당 공정의 최근 7일 변화입니다.</p></div>
+                <div class="segmented" role="group" aria-label="추이 지표 선택">
+                  <button class="is-selected" type="button" data-chart="compliance" aria-pressed="true">준수율</button>
+                  <button type="button" data-chart="anomaly" aria-pressed="false">이상 건수</button>
+                </div>
+              </div>
+              <div class="chart-summary">
+                <div><span data-chart-label>평균 준수율</span><strong data-chart-value>97.8%</strong></div>
+                <span class="change-badge" data-chart-change>+0.8% 개선</span>
+              </div>
+              <div class="chart-wrap">
+                <svg class="line-chart" viewBox="0 0 760 250" role="img" aria-labelledby="chart-title chart-desc">
+                  <title id="chart-title">최근 7일 공정 준수율 추이</title>
+                  <desc id="chart-desc">월요일 96.4퍼센트에서 일요일 98.4퍼센트로 점진적으로 상승한 예시 차트입니다.</desc>
+                  <defs>
+                    <linearGradient id="areaGradient" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stop-color="#1faa72" stop-opacity="0.28" />
+                      <stop offset="100%" stop-color="#1faa72" stop-opacity="0" />
+                    </linearGradient>
+                  </defs>
+                  <g class="chart-gridlines"><path d="M44 34H732M44 86H732M44 138H732M44 190H732" /></g>
+                  <path class="chart-area" data-chart-area d="M44 172 C86 164 116 154 144 156 S214 130 244 136 S314 112 344 118 S414 96 444 102 S514 74 544 82 S614 58 644 66 S704 38 732 44 L732 218 L44 218Z" />
+                  <path class="chart-line" data-chart-line d="M44 172 C86 164 116 154 144 156 S214 130 244 136 S314 112 344 118 S414 96 444 102 S514 74 544 82 S614 58 644 66 S704 38 732 44" />
+                  <g class="chart-points" data-chart-points><circle cx="44" cy="172" r="5" /><circle cx="144" cy="156" r="5" /><circle cx="244" cy="136" r="5" /><circle cx="344" cy="118" r="5" /><circle cx="444" cy="102" r="5" /><circle cx="544" cy="82" r="5" /><circle cx="644" cy="66" r="5" /><circle cx="732" cy="44" r="5" /></g>
+                </svg>
+                <div class="chart-labels" aria-hidden="true"><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span><span>일</span></div>
+              </div>
+            </article>
+
+            <article class="panel attention-panel">
+              <div class="panel-header compact">
+                <div><p class="panel-kicker">ATTENTION</p><h2>확인이 필요한 항목</h2></div>
+                <button class="text-button" type="button" data-planned="상세 현황">전체 보기 <svg class="icon"><use href="#icon-chevron"></use></svg></button>
+              </div>
+              <ul class="attention-list">
+                <li>
+                  <span class="attention-icon is-danger"><svg class="icon"><use href="#icon-alert"></use></svg></span>
+                  <div><strong>ETCH-02 이상률 상승</strong><p>기준 대비 2.1%p 높습니다.</p><small>10분 전 · 식각 공정</small></div>
+                  <span class="severity danger">주의</span>
+                </li>
+                <li>
+                  <span class="attention-icon is-warning"><svg class="icon"><use href="#icon-clock"></use></svg></span>
+                  <div><strong>PHOTO Rule 검토 필요</strong><p>개정 후 30일이 지났습니다.</p><small>2시간 전 · 포토 공정</small></div>
+                  <span class="severity warning">검토</span>
+                </li>
+                <li>
+                  <span class="attention-icon is-muted"><svg class="icon"><use href="#icon-refresh"></use></svg></span>
+                  <div><strong>공유 폴더 연결 지연</strong><p>마지막 정상 확인: 09:40</p><small>현재 재확인 중</small></div>
+                  <span class="severity muted">지연</span>
+                </li>
+              </ul>
+            </article>
+          </section>
+
+          <section class="dashboard-grid lower-grid" aria-label="업무와 데이터 상태">
+            <article class="panel process-panel">
+              <div class="panel-header compact">
+                <div><p class="panel-kicker">PROCESS</p><h2>공정별 품질 현황</h2></div>
+                <span class="last-checked"><span></span> 방금 확인</span>
+              </div>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th scope="col">공정</th><th scope="col">준수율</th><th scope="col">이상</th><th scope="col">데이터 상태</th><th scope="col"><span class="sr-only">상세</span></th></tr></thead>
+                  <tbody>
+                    <tr><th scope="row"><span class="process-dot green"></span>포토</th><td><strong>99.2%</strong></td><td>1건</td><td><span class="data-state ok">최신</span></td><td><button type="button" data-planned="포토 공정 상세" aria-label="포토 공정 상세 보기"><svg class="icon"><use href="#icon-chevron"></use></svg></button></td></tr>
+                    <tr><th scope="row"><span class="process-dot lime"></span>식각</th><td><strong>96.8%</strong></td><td><span class="danger-text">4건</span></td><td><span class="data-state ok">최신</span></td><td><button type="button" data-planned="식각 공정 상세" aria-label="식각 공정 상세 보기"><svg class="icon"><use href="#icon-chevron"></use></svg></button></td></tr>
+                    <tr><th scope="row"><span class="process-dot blue"></span>증착</th><td><strong>98.5%</strong></td><td>2건</td><td><span class="data-state delayed">10분 지연</span></td><td><button type="button" data-planned="증착 공정 상세" aria-label="증착 공정 상세 보기"><svg class="icon"><use href="#icon-chevron"></use></svg></button></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="panel source-panel">
+              <div class="panel-header compact">
+                <div><p class="panel-kicker">SOURCE</p><h2>데이터 원천 상태</h2></div>
+                <button class="text-button" type="button" data-planned="데이터 원천 관리">관리 <svg class="icon"><use href="#icon-chevron"></use></svg></button>
+              </div>
+              <ul class="source-list">
+                <li><span class="source-icon">P</span><div><strong>Parquet 저장소</strong><small>09:52 확인</small></div><span class="data-state ok">정상</span></li>
+                <li><span class="source-icon">DB</span><div><strong>품질 DB</strong><small>09:53 확인</small></div><span class="data-state ok">정상</span></li>
+                <li><span class="source-icon">F</span><div><strong>공유 폴더</strong><small>09:40 마지막 정상</small></div><span class="data-state delayed">지연</span></li>
+                <li><span class="source-icon">URL</span><div><strong>문서 URL</strong><small>09:51 확인</small></div><span class="data-state ok">정상</span></li>
+              </ul>
+            </article>
+          </section>
+
+          <section class="activity-grid" aria-label="최근 업무">
+            <article class="activity-card">
+              <div class="activity-icon rule"><svg class="icon"><use href="#icon-book"></use></svg></div>
+              <div class="activity-copy"><span>최근 변경 Rule</span><strong>식각 공정 이상률 관리 기준</strong><small>v2.4 · 이담당 · 32분 전</small></div>
+              <button type="button" data-planned="관리 Rule 상세" aria-label="최근 변경 Rule 보기"><svg class="icon"><use href="#icon-arrow"></use></svg></button>
+            </article>
+            <article class="activity-card">
+              <div class="activity-icon qna"><svg class="icon"><use href="#icon-message"></use></svg></div>
+              <div class="activity-copy"><span>최근 답변</span><strong>검사 주기 변경 기준을 알고 싶습니다.</strong><small>포토 공정 · 박담당 · 1시간 전</small></div>
+              <button type="button" data-planned="Q&A 상세" aria-label="최근 답변 보기"><svg class="icon"><use href="#icon-arrow"></use></svg></button>
+            </article>
+          </section>
+
+          <footer class="page-footer">
+            <span>Quality Hub UI Mock · 실제 데이터 아님</span>
+            <span>마지막 화면 갱신 <time data-last-updated>방금 전</time></span>
+          </footer>
+        </main>
+      </div>
+    </div>
+
+    <div class="toast" role="status" aria-live="polite" aria-atomic="true" data-toast></div>
+  </body>
+</html>
