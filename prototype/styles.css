@@ -2915,6 +2915,30 @@ kbd {
   transition: border-color 280ms ease, box-shadow 280ms ease, transform 320ms cubic-bezier(.2, .75, .2, 1);
 }
 
+.report-catalog-view.is-entering .report-catalog-card:not([hidden]) {
+  animation: report-card-surface-in 520ms cubic-bezier(.2, .72, .25, 1) both;
+  animation-delay: calc(var(--report-enter-order, 0) * 42ms);
+  will-change: opacity, transform;
+}
+
+@keyframes report-card-surface-in {
+  0% {
+    opacity: .18;
+    transform: translate3d(-4px, 10px, 0) scale(.985);
+  }
+  60% {
+    opacity: 1;
+    transform: translate3d(0, -2px, 0) scale(1.004);
+  }
+  82% {
+    transform: translate3d(0, .75px, 0) scale(.999);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
 .report-catalog-card::before {
   position: absolute;
   inset: 0;

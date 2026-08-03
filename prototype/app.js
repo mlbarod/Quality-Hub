@@ -10,6 +10,7 @@ const reportViewer = document.querySelector("[data-report-viewer]");
 const reportSearch = document.querySelector("[data-report-search]");
 const reportEmptyState = document.querySelector("[data-report-empty]");
 let toastTimer;
+let reportEntryTimer;
 
 const chartPeriods = {
   7: {
@@ -93,6 +94,20 @@ const setAgentMode = (mode, { announce = true, focus = true } = {}) => {
 
 const reportModes = new Set(["closed", "catalog", "viewer"]);
 
+const playReportCatalogEntry = () => {
+  if (!(reportCatalog instanceof HTMLElement) || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  const visibleCards = [...reportCatalog.querySelectorAll("[data-report-card]")].filter((card) => !card.hidden);
+  window.clearTimeout(reportEntryTimer);
+  reportCatalog.classList.remove("is-entering");
+  visibleCards.forEach((card, index) => card.style.setProperty("--report-enter-order", index));
+
+  reportCatalog.classList.add("is-entering");
+  reportEntryTimer = window.setTimeout(() => {
+    reportCatalog.classList.remove("is-entering");
+  }, 1050);
+};
+
 const updateReportViewer = (card) => {
   if (!(card instanceof HTMLElement)) return;
   const title = card.dataset.reportTitle ?? "종합 품질 현황";
@@ -106,6 +121,7 @@ const updateReportViewer = (card) => {
 const setReportMode = (mode, { announce = true, focus = true, restoreAgent = true, card = null } = {}) => {
   if (!prototype || !reportModes.has(mode)) return;
 
+  const previousMode = prototype.dataset.reportMode;
   if (mode === "viewer" && card) updateReportViewer(card);
   prototype.dataset.reportMode = mode;
   document.body.classList.toggle("report-active", mode !== "closed");
@@ -132,6 +148,13 @@ const setReportMode = (mode, { announce = true, focus = true, restoreAgent = tru
 
   if (mode === "catalog") document.title = "Quality Hub · 각종 Report 조회";
   if (mode === "viewer") document.title = `Quality Hub · ${document.querySelector("[data-report-viewer-title]")?.textContent ?? "Report 조회"}`;
+
+  if (mode === "catalog" && previousMode === "closed") {
+    window.requestAnimationFrame(playReportCatalogEntry);
+  } else if (mode !== "catalog") {
+    window.clearTimeout(reportEntryTimer);
+    reportCatalog?.classList.remove("is-entering");
+  }
 
   if (focus) {
     window.requestAnimationFrame(() => {
