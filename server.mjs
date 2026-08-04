@@ -4,7 +4,8 @@ import { extname, isAbsolute, join, normalize, resolve, sep } from "node:path"
 import { fileURLToPath, URL } from "node:url"
 
 const rootDir = fileURLToPath(new URL(".", import.meta.url))
-const prototypeDir = join(rootDir, "prototype")
+export const sourceStaticDir = join(rootDir, "prototype")
+export const builtStaticDir = join(rootDir, "dist")
 const defaultPort = 4173
 const defaultHost = "0.0.0.0"
 
@@ -49,7 +50,7 @@ export function parsePort(value = String(defaultPort)) {
   return port
 }
 
-export function resolveStaticPath(pathname, staticDir = prototypeDir) {
+export function resolveStaticPath(pathname, staticDir = builtStaticDir) {
   let decodedPath
   try {
     decodedPath = decodeURIComponent(pathname)
@@ -135,7 +136,7 @@ function serveStatic(req, res, staticDir) {
   stream.pipe(res)
 }
 
-export function createQualityHubServer({ staticDir = prototypeDir } = {}) {
+export function createQualityHubServer({ staticDir = builtStaticDir } = {}) {
   return createServer((req, res) => serveStatic(req, res, staticDir))
 }
 
@@ -150,6 +151,13 @@ function startServer() {
   }
 
   const host = process.env.HOST?.trim() || defaultHost
+
+  if (!existsSync(join(builtStaticDir, "index.html"))) {
+    console.error("Vite build output was not found. Run `npm run build` before `node server.mjs`.")
+    process.exitCode = 1
+    return
+  }
+
   const server = createQualityHubServer()
 
   server.on("error", (error) => {

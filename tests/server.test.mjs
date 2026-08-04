@@ -3,13 +3,15 @@ import { once } from "node:events"
 import test from "node:test"
 
 import {
+  builtStaticDir,
   createQualityHubServer,
   parsePort,
   resolveStaticPath,
+  sourceStaticDir,
 } from "../server.mjs"
 
 async function startTestServer() {
-  const server = createQualityHubServer()
+  const server = createQualityHubServer({ staticDir: sourceStaticDir })
   server.listen(0, "127.0.0.1")
   await once(server, "listening")
 
@@ -28,8 +30,12 @@ test("PORT는 유효한 포트 번호만 허용한다", () => {
 })
 
 test("정적 경로가 prototype 밖으로 벗어나지 못한다", () => {
-  assert.equal(resolveStaticPath("/%2e%2e/README.md").forbidden, true)
-  assert.equal(resolveStaticPath("/%E0%A4%A").badRequest, true)
+  assert.equal(resolveStaticPath("/%2e%2e/README.md", sourceStaticDir).forbidden, true)
+  assert.equal(resolveStaticPath("/%E0%A4%A", sourceStaticDir).badRequest, true)
+})
+
+test("실행용 정적 서버는 Vite 빌드 산출물을 기본으로 제공한다", () => {
+  assert.equal(resolveStaticPath("/index.html").filePath, `${builtStaticDir}/index.html`)
 })
 
 test("메인 화면과 정적 자산을 제공한다", async (t) => {

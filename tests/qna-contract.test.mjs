@@ -6,6 +6,7 @@ import { filterPosts, initialNotifications, initialPosts, STATUS } from "../prot
 
 const html = await readFile(new URL("../prototype/index.html", import.meta.url), "utf8")
 const script = await readFile(new URL("../prototype/app.js", import.meta.url), "utf8")
+const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"))
 
 test("기존 Quality Hub 안에 Q&A React 작업 화면 진입점을 제공한다", () => {
   assert.match(html, /data-qna-mode="closed"/)
@@ -14,6 +15,11 @@ test("기존 Quality Hub 안에 Q&A React 작업 화면 진입점을 제공한�
   assert.match(html, /id="qna-root"/)
   assert.match(script, /const setQnaMode/)
   assert.match(script, /qualityhub:qna-view/)
+})
+
+test("정적 실행 경로도 React Q&A를 빌드한 뒤 제공한다", () => {
+  assert.match(packageJson.scripts["start:static"], /npm run build/)
+  assert.match(packageJson.scripts["start:static"], /node server\.mjs/)
 })
 
 test("Q&A 목업 데이터가 합의한 상태와 알림 구조를 제공한다", () => {

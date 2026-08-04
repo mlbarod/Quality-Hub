@@ -46,7 +46,7 @@ npm start
 npm run dev
 ```
 
-배포 형태의 산출물을 확인하려면 `npm run build` 후 `npm run preview`를 실행합니다. 기존 정적 서버 확인이 필요한 경우에는 `npm run start:static`을 사용할 수 있지만 React 기반 Q&A는 Vite 개발·미리보기 서버에서 확인해야 합니다.
+배포 형태의 산출물을 확인하려면 `npm run build` 후 `npm run preview`를 실행합니다. 기존 정적 서버로 확인하려면 `npm run start:static`을 사용합니다. 이 명령은 React 기반 Q&A를 포함한 Vite 빌드를 먼저 생성한 뒤 정적 서버로 제공합니다. `node server.mjs`를 직접 실행할 때는 먼저 `npm run build`를 실행해야 합니다.
 
 다른 PC에서 접속하려면 사내 서버와 네트워크 방화벽에서 선택한 TCP 포트의 인바운드 연결이 허용되어야 합니다. 현재 서버는 목업 공유용이며 인증과 HTTPS를 제공하지 않으므로 인터넷에 직접 공개하지 않습니다.
 
