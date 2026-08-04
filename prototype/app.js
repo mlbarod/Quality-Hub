@@ -9,8 +9,14 @@ const reportCatalog = document.querySelector("[data-report-catalog]");
 const reportViewer = document.querySelector("[data-report-viewer]");
 const reportSearch = document.querySelector("[data-report-search]");
 const reportEmptyState = document.querySelector("[data-report-empty]");
+const ruleWorkspace = document.querySelector("[data-rule-workspace]");
+const rulePage = document.querySelector("[data-rule-page]");
+const ruleCardGrid = document.querySelector("[data-rule-card-grid]");
+const ruleEmptyState = document.querySelector("[data-rule-empty]");
 let toastTimer;
 let reportEntryTimer;
+let ruleArrangeTimer;
+let ruleReturnFocus;
 
 const chartPeriods = {
   7: {
@@ -59,12 +65,15 @@ const setAgentMode = (mode, { announce = true, focus = true } = {}) => {
 
   if (skipLink) {
     const reportMode = prototype.dataset.reportMode;
-    if (reportMode === "catalog") skipLink.setAttribute("href", "#report-catalog-main");
+    if (prototype.dataset.ruleMode === "open") skipLink.setAttribute("href", "#rule-main");
+    else if (reportMode === "catalog") skipLink.setAttribute("href", "#report-catalog-main");
     else if (reportMode === "viewer") skipLink.setAttribute("href", "#report-viewer-main");
     else skipLink.setAttribute("href", mode === "full" ? "#agent-main" : "#main-content");
   }
 
-  if (prototype.dataset.reportMode === "catalog") {
+  if (prototype.dataset.ruleMode === "open") {
+    document.title = "Quality Hub · Rule&SOP";
+  } else if (prototype.dataset.reportMode === "catalog") {
     document.title = "Quality Hub · 각종 Report 조회";
   } else if (prototype.dataset.reportMode === "viewer") {
     document.title = `Quality Hub · ${document.querySelector("[data-report-viewer-title]")?.textContent ?? "Report 조회"}`;
@@ -121,6 +130,10 @@ const updateReportViewer = (card) => {
 const setReportMode = (mode, { announce = true, focus = true, restoreAgent = true, card = null } = {}) => {
   if (!prototype || !reportModes.has(mode)) return;
 
+  if (mode !== "closed" && prototype.dataset.ruleMode === "open") {
+    setRuleMode("closed", { announce: false, focus: false, restoreAgent: false });
+  }
+
   const previousMode = prototype.dataset.reportMode;
   if (mode === "viewer" && card) updateReportViewer(card);
   prototype.dataset.reportMode = mode;
@@ -170,6 +183,51 @@ const setReportMode = (mode, { announce = true, focus = true, restoreAgent = tru
   if (mode === "closed") showToast("대시보드로 돌아왔습니다.");
 };
 
+const ruleModes = new Set(["closed", "open"]);
+
+const setRuleMode = (mode, { announce = true, focus = true, restoreAgent = true } = {}) => {
+  if (!prototype || !ruleModes.has(mode)) return;
+
+  if (mode === "open" && prototype.dataset.reportMode !== "closed") {
+    setReportMode("closed", { announce: false, focus: false, restoreAgent: false });
+  }
+
+  prototype.dataset.ruleMode = mode;
+  document.body.classList.toggle("rule-active", mode === "open");
+
+  const url = new URL(window.location.href);
+  if (mode === "open") url.searchParams.set("rule", "open");
+  else url.searchParams.delete("rule");
+  window.history.replaceState({}, "", url);
+
+  ruleWorkspace?.setAttribute("aria-hidden", String(mode === "closed"));
+  if (ruleWorkspace instanceof HTMLElement) ruleWorkspace.inert = mode === "closed";
+
+  if (mode === "open") {
+    setAgentMode("closed", { announce: false, focus: false });
+  } else if (restoreAgent) {
+    setAgentMode("drawer", { announce: false, focus: false });
+  }
+
+  skipLink?.setAttribute("href", mode === "open" ? "#rule-main" : "#main-content");
+  document.title = mode === "open" ? "Quality Hub · Rule&SOP" : "Quality Hub";
+
+  if (focus) {
+    window.requestAnimationFrame(() => {
+      if (mode === "open") {
+        window.requestAnimationFrame(() => rulePage?.focus());
+      } else {
+        const fallbackOpener = [...document.querySelectorAll("[data-rule-open]")].find((button) => button.getClientRects().length > 0);
+        (ruleReturnFocus ?? fallbackOpener)?.focus();
+      }
+    });
+  }
+
+  if (!announce) return;
+  if (mode === "open") showToast("Rule&SOP 분류 화면을 열었습니다.");
+  else showToast("대시보드로 돌아왔습니다.");
+};
+
 const formatDate = (date) =>
   new Intl.DateTimeFormat("ko-KR", {
     month: "long",
@@ -186,6 +244,7 @@ const formatTime = (date) =>
 document.querySelectorAll("[data-agent-open]").forEach((button) => {
   button.addEventListener("click", () => {
     setReportMode("closed", { announce: false, focus: false, restoreAgent: false });
+    setRuleMode("closed", { announce: false, focus: false, restoreAgent: false });
     setAgentMode("drawer");
   });
 });
@@ -296,12 +355,163 @@ document.querySelectorAll("[data-report-filter]").forEach((button) => {
 
 reportSearch?.addEventListener("input", applyReportFilters);
 
+const ruleFilterState = {
+  major: "all",
+  middle: "all",
+  minor: "all",
+};
+
+const ruleFilterLabels = {
+  major: "대분류",
+  middle: "중분류",
+  minor: "소분류",
+};
+
+const getRuleCards = () => [...document.querySelectorAll("[data-rule-card]")];
+
+const matchesRuleScope = (card, scope, value = ruleFilterState[scope]) =>
+  value === "all" || card.dataset[`rule${scope[0].toUpperCase()}${scope.slice(1)}`] === value;
+
+const selectRuleFilterButton = (scope, value) => {
+  document.querySelectorAll(`[data-rule-filter="${scope}"]`).forEach((button) => {
+    const isSelected = button.dataset.ruleFilterValue === value;
+    button.classList.toggle("is-selected", isSelected);
+    button.setAttribute("aria-pressed", String(isSelected));
+  });
+};
+
+const updateRuleFilterOptions = () => {
+  const cards = getRuleCards();
+  const middleCards = cards.filter((card) => matchesRuleScope(card, "major"));
+  const availableMiddleValues = new Set(middleCards.map((card) => card.dataset.ruleMiddle));
+
+  if (ruleFilterState.middle !== "all" && !availableMiddleValues.has(ruleFilterState.middle)) {
+    ruleFilterState.middle = "all";
+  }
+
+  document.querySelectorAll('[data-rule-filter="middle"]').forEach((button) => {
+    const value = button.dataset.ruleFilterValue;
+    button.hidden = value !== "all" && !availableMiddleValues.has(value);
+  });
+
+  const minorCards = middleCards.filter((card) => matchesRuleScope(card, "middle"));
+  const availableMinorValues = new Set(minorCards.map((card) => card.dataset.ruleMinor));
+
+  if (ruleFilterState.minor !== "all" && !availableMinorValues.has(ruleFilterState.minor)) {
+    ruleFilterState.minor = "all";
+  }
+
+  document.querySelectorAll('[data-rule-filter="minor"]').forEach((button) => {
+    const value = button.dataset.ruleFilterValue;
+    button.hidden = value !== "all" && !availableMinorValues.has(value);
+  });
+
+  Object.entries(ruleFilterState).forEach(([scope, value]) => selectRuleFilterButton(scope, value));
+};
+
+const playRuleCardArrangement = () => {
+  if (!(ruleCardGrid instanceof HTMLElement) || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  const visibleCards = getRuleCards().filter((card) => !card.hidden);
+  window.clearTimeout(ruleArrangeTimer);
+  ruleCardGrid.classList.remove("is-arranging");
+  visibleCards.forEach((card, index) => card.style.setProperty("--rule-card-order", index));
+
+  window.requestAnimationFrame(() => {
+    ruleCardGrid.classList.add("is-arranging");
+    ruleArrangeTimer = window.setTimeout(() => ruleCardGrid.classList.remove("is-arranging"), 800);
+  });
+};
+
+const applyRuleFilters = ({ animate = true } = {}) => {
+  updateRuleFilterOptions();
+  let visibleCardCount = 0;
+
+  getRuleCards().forEach((card) => {
+    const isVisible = Object.keys(ruleFilterState).every((scope) => matchesRuleScope(card, scope));
+    card.hidden = !isVisible;
+    if (isVisible) visibleCardCount += 1;
+  });
+
+  const activeFilterLabels = Object.entries(ruleFilterState)
+    .filter(([, value]) => value !== "all")
+    .map(([scope, value]) => {
+      const button = document.querySelector(`[data-rule-filter="${scope}"][data-rule-filter-value="${value}"]`);
+      return button?.lastElementChild?.textContent?.trim() ?? ruleFilterLabels[scope];
+    });
+
+  document.querySelector("[data-rule-result-count]")?.replaceChildren(String(visibleCardCount));
+  document.querySelector("[data-rule-filter-summary]")?.replaceChildren(activeFilterLabels.join(" · ") || "전체 분류");
+  if (ruleEmptyState instanceof HTMLElement) ruleEmptyState.hidden = visibleCardCount > 0;
+  if (ruleCardGrid instanceof HTMLElement) ruleCardGrid.hidden = visibleCardCount === 0;
+
+  if (animate) playRuleCardArrangement();
+};
+
+document.querySelectorAll("[data-rule-open]").forEach((button) => {
+  button.addEventListener("click", () => {
+    ruleReturnFocus = button;
+    setRuleMode("open");
+  });
+});
+
+document.querySelectorAll("[data-rule-close]").forEach((button) => {
+  button.addEventListener("click", () => setRuleMode("closed"));
+});
+
+document.querySelectorAll("[data-rule-action]").forEach((button) => {
+  button.addEventListener("click", () => showToast(`${button.dataset.ruleAction} 기능은 실제 데이터 연결 단계에서 제공할 예정입니다.`));
+});
+
+document.querySelectorAll("[data-rule-card]").forEach((card) => {
+  card.addEventListener("click", () => showToast(`${card.dataset.ruleTitle ?? "선택한 문서"}는 UI 검토용 예시입니다.`));
+});
+
+document.querySelectorAll("[data-rule-filter]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const scope = button.dataset.ruleFilter;
+    const value = button.dataset.ruleFilterValue;
+    if (!(scope in ruleFilterState) || !value) return;
+
+    ruleFilterState[scope] = value;
+    if (scope === "major") {
+      ruleFilterState.middle = "all";
+      ruleFilterState.minor = "all";
+    } else if (scope === "middle") {
+      ruleFilterState.minor = "all";
+    }
+    applyRuleFilters();
+  });
+});
+
+document.querySelector("[data-rule-filter-reset]")?.addEventListener("click", () => {
+  Object.keys(ruleFilterState).forEach((scope) => {
+    ruleFilterState[scope] = "all";
+  });
+  applyRuleFilters();
+  showToast("Rule&SOP 분류 필터를 초기화했습니다.");
+});
+
+document.querySelector("[data-rule-category-toggle]")?.addEventListener("click", (event) => {
+  const button = event.currentTarget;
+  const panel = document.querySelector("[data-rule-category-panel]");
+  if (!(button instanceof HTMLButtonElement) || !(panel instanceof HTMLElement)) return;
+
+  const isExpanded = button.getAttribute("aria-expanded") === "true";
+  button.setAttribute("aria-expanded", String(!isExpanded));
+  panel.hidden = isExpanded;
+});
+
 const initialReportQuery = new URL(window.location.href).searchParams.get("report");
 if (initialReportQuery === "catalog" || initialReportQuery === "viewer") {
   setReportMode(initialReportQuery, { announce: false, focus: false });
 } else {
   setReportMode("closed", { announce: false, focus: false, restoreAgent: false });
 }
+
+applyRuleFilters({ animate: false });
+const initialRuleQuery = new URL(window.location.href).searchParams.get("rule");
+setRuleMode(initialRuleQuery === "open" ? "open" : "closed", { announce: false, focus: false, restoreAgent: false });
 
 document.querySelectorAll("[data-today]").forEach((element) => {
   element.textContent = formatDate(new Date());
@@ -387,7 +597,8 @@ document.addEventListener("keydown", (event) => {
   }
 
   if (event.key === "Escape") {
-    if (prototype?.dataset.reportMode === "viewer") setReportMode("catalog");
+    if (prototype?.dataset.ruleMode === "open") setRuleMode("closed");
+    else if (prototype?.dataset.reportMode === "viewer") setReportMode("catalog");
     else if (prototype?.dataset.reportMode === "catalog") setReportMode("closed");
     else if (prototype?.dataset.agentMode === "full") setAgentMode("drawer");
   }

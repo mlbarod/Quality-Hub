@@ -8,7 +8,7 @@
 - 카테고리별 Spotfire Report 조회
 - 사내 LLM 기반 품질 Agent
 - 문서 및 Rule 통합 검색
-- 관리 Rule 등록과 개정 이력
+- Rule&SOP 분류별 조회·관리와 개정 이력
 - 공정·부서별 Q&A
 - 사용자 역할과 담당 공정별 권한 관리
 
