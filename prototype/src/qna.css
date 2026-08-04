@@ -7,7 +7,7 @@
   z-index: 62;
   visibility: hidden;
   overflow: hidden;
-  background: #f8faf9;
+  background: #f1f6f9;
   opacity: 0;
   pointer-events: none;
   transform: translateY(8px);
@@ -40,7 +40,7 @@
 .qna-scope .qna-write-button {
   position: relative;
   overflow: hidden;
-  background: #187a50;
+  background: #0673bc;
   color: #fff;
   font-size: 16px;
   box-shadow: none;
@@ -49,7 +49,7 @@
 
 .qna-scope .qna-write-button:hover,
 .qna-scope .qna-write-button:focus-visible {
-  background: #12623f;
+  background: #055f9e;
   box-shadow: none;
   transform: translateY(-2px);
 }
@@ -81,7 +81,7 @@
 .qna-prosemirror {
   min-height: 230px;
   padding: 18px 20px 26px;
-  color: #30343a;
+  color: #263b4a;
   font-size: 13px;
   line-height: 1.75;
   outline: none;
@@ -107,7 +107,7 @@
 .qna-rendered-content h2,
 .qna-rendered-content h3 {
   margin: 22px 0 10px;
-  color: #202327;
+  color: #172c3c;
   font-weight: 680;
   line-height: 1.35;
 }
@@ -134,22 +134,22 @@
 .qna-rendered-content blockquote {
   margin: 18px 0;
   padding: 12px 15px;
-  border-left: 3px solid #66b38e;
+  border-left: 3px solid #6ec0f7;
   border-radius: 0 8px 8px 0;
-  background: #f2f8f5;
-  color: #476052;
+  background: #eef6fc;
+  color: #567286;
 }
 
 .qna-prosemirror a,
 .qna-rendered-content a {
-  color: #187a50;
+  color: #0673bc;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 .qna-prosemirror .is-editor-empty:first-child::before {
   height: 0;
-  color: #a0a6a2;
+  color: #8295a3;
   content: attr(data-placeholder);
   float: left;
   pointer-events: none;
@@ -176,7 +176,7 @@
 .qna-rendered-content table td {
   min-width: 90px;
   padding: 9px 10px;
-  border: 1px solid #dfe3e1;
+  border: 1px solid #d5e3ec;
   vertical-align: top;
   text-align: left;
 }
@@ -184,7 +184,7 @@
 .qna-editor-table th,
 .qna-prosemirror table th,
 .qna-rendered-content table th {
-  background: #f2f5f3;
+  background: #eef6fc;
   font-weight: 650;
 }
 
@@ -192,7 +192,7 @@
   position: absolute;
   inset: 0;
   z-index: 2;
-  background: rgb(35 155 103 / 10%);
+  background: hsl(204 94% 45% / 10%);
   content: "";
   pointer-events: none;
 }
@@ -204,13 +204,13 @@
   max-width: min(100%, 760px);
   max-height: 420px;
   margin: 18px auto;
-  border: 1px solid #dfe3e1;
+  border: 1px solid #d5e3ec;
   border-radius: 10px;
   object-fit: contain;
 }
 
 .qna-rendered-content {
-  color: #43494e;
+  color: #405665;
   font-size: 13px;
   line-height: 1.8;
 }

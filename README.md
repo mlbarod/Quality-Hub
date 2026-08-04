@@ -40,13 +40,15 @@ npm install
 npm start
 ```
 
-같은 PC에서는 `http://localhost:4173`, 다른 PC에서는 `http://<서버주소>:4173`으로 접속합니다. `npm start`는 사내 공유 검토를 위해 `0.0.0.0`에 바인딩합니다. 로컬 PC에서만 확인하려면 아래 명령을 사용합니다.
+같은 PC에서는 `http://localhost:4173`, 다른 PC에서는 `http://<서버주소>:4173`으로 접속합니다. `npm start` 또는 `node server.mjs`는 사내 공유 검토를 위해 `0.0.0.0`에 바인딩하며, 실행 중에는 소스 변경을 자동으로 반영합니다. 코드를 수정한 뒤 별도로 빌드하거나 서버를 다시 시작하지 않고 브라우저를 새로고침하면 최신 화면을 확인할 수 있습니다.
+
+로컬 PC에서만 확인하려면 아래 명령을 사용합니다.
 
 ```bash
 npm run dev
 ```
 
-배포 형태의 산출물을 확인하려면 `npm run build` 후 `npm run preview`를 실행합니다. 기존 정적 서버로 확인하려면 `npm run start:static`을 사용합니다. 이 명령은 React 기반 Q&A를 포함한 Vite 빌드를 먼저 생성한 뒤 정적 서버로 제공합니다. `node server.mjs`를 직접 실행할 때는 먼저 `npm run build`를 실행해야 합니다.
+배포 형태의 고정 산출물을 확인하려면 `npm run build` 후 `npm run preview`를 실행합니다. 자체 정적 서버로 확인하려면 `npm run start:static`을 사용합니다. 이 명령은 React 기반 Q&A를 포함한 Vite 빌드를 먼저 생성한 뒤 `node server.mjs --built`로 정적 파일을 제공합니다. 정적 모드에서는 소스 변경 후 다시 빌드해야 합니다.
 
 다른 PC에서 접속하려면 사내 서버와 네트워크 방화벽에서 선택한 TCP 포트의 인바운드 연결이 허용되어야 합니다. 현재 서버는 목업 공유용이며 인증과 HTTPS를 제공하지 않으므로 인터넷에 직접 공개하지 않습니다.
 

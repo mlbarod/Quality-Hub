@@ -16,6 +16,11 @@ export default defineConfig({
     host: "127.0.0.1",
     port: 4173,
     strictPort: true,
+    headers: {
+      "Referrer-Policy": "no-referrer",
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "SAMEORIGIN",
+    },
   },
   preview: {
     host: "127.0.0.1",

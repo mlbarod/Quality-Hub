@@ -9,7 +9,7 @@ const Avatar = React.forwardRef(({ className, ...props }, ref) => (
 Avatar.displayName = AvatarPrimitive.Root.displayName
 
 const AvatarFallback = React.forwardRef(({ className, ...props }, ref) => (
-  <AvatarPrimitive.Fallback ref={ref} className={cn("flex size-full items-center justify-center bg-[#eaf7f1] text-[12px] font-bold text-[#187a50]", className)} {...props} />
+  <AvatarPrimitive.Fallback ref={ref} className={cn("flex size-full items-center justify-center bg-[#e2f2fd] text-[12px] font-bold text-[#0673bc]", className)} {...props} />
 ))
 AvatarFallback.displayName = AvatarPrimitive.Fallback.displayName
 

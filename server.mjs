@@ -1,5 +1,5 @@
 import { createReadStream, existsSync, statSync } from "node:fs"
-import { createServer } from "node:http"
+import { createServer as createHttpServer } from "node:http"
 import { extname, isAbsolute, join, normalize, resolve, sep } from "node:path"
 import { fileURLToPath, URL } from "node:url"
 
@@ -137,10 +137,56 @@ function serveStatic(req, res, staticDir) {
 }
 
 export function createQualityHubServer({ staticDir = builtStaticDir } = {}) {
-  return createServer((req, res) => serveStatic(req, res, staticDir))
+  return createHttpServer((req, res) => serveStatic(req, res, staticDir))
 }
 
-function startServer() {
+export function resolveServeMode(args = []) {
+  return args.includes("--built") ? "built" : "source"
+}
+
+function reportServerError(error, host, port) {
+  if (error.code === "EADDRINUSE") {
+    console.error(`Port ${port} is already in use. Use a different port, for example PORT=${port + 1} node server.mjs.`)
+  } else if (error.code === "EACCES") {
+    console.error(`Permission denied while opening ${host}:${port}. Choose a port above 1024.`)
+  } else {
+    console.error(error)
+  }
+
+  process.exitCode = 1
+}
+
+async function startSourceServer({ host, port }) {
+  const { createServer: createViteServer } = await import("vite")
+  const server = await createViteServer({
+    configFile: join(rootDir, "vite.config.mjs"),
+    server: {
+      host,
+      port,
+      strictPort: true,
+    },
+  })
+
+  await server.listen()
+  console.log("Quality Hub source server: changes are reflected without rebuilding.")
+  server.printUrls()
+}
+
+function startBuiltServer({ host, port }) {
+  if (!existsSync(join(builtStaticDir, "index.html"))) {
+    console.error("Vite build output was not found. Run `npm run build` before `node server.mjs --built`.")
+    process.exitCode = 1
+    return
+  }
+
+  const server = createQualityHubServer()
+  server.on("error", (error) => reportServerError(error, host, port))
+  server.listen(port, host, () => {
+    console.log(`Quality Hub built server listening on http://${host}:${port}`)
+  })
+}
+
+async function startServer() {
   let port
   try {
     port = parsePort(process.env.PORT ?? String(defaultPort))
@@ -151,33 +197,21 @@ function startServer() {
   }
 
   const host = process.env.HOST?.trim() || defaultHost
+  const mode = resolveServeMode(process.argv.slice(2))
 
-  if (!existsSync(join(builtStaticDir, "index.html"))) {
-    console.error("Vite build output was not found. Run `npm run build` before `node server.mjs`.")
-    process.exitCode = 1
+  if (mode === "built") {
+    startBuiltServer({ host, port })
     return
   }
 
-  const server = createQualityHubServer()
-
-  server.on("error", (error) => {
-    if (error.code === "EADDRINUSE") {
-      console.error(`Port ${port} is already in use. Use a different port, for example PORT=${port + 1} node server.mjs.`)
-    } else if (error.code === "EACCES") {
-      console.error(`Permission denied while opening ${host}:${port}. Choose a port above 1024.`)
-    } else {
-      console.error(error)
-    }
-
-    process.exitCode = 1
-  })
-
-  server.listen(port, host, () => {
-    console.log(`Quality Hub server listening on http://${host}:${port}`)
-  })
+  try {
+    await startSourceServer({ host, port })
+  } catch (error) {
+    reportServerError(error, host, port)
+  }
 }
 
 const entryPath = process.argv[1] ? resolve(process.argv[1]) : ""
 if (entryPath === fileURLToPath(import.meta.url)) {
-  startServer()
+  void startServer()
 }

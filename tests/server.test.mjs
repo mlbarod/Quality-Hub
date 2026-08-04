@@ -6,6 +6,7 @@ import {
   builtStaticDir,
   createQualityHubServer,
   parsePort,
+  resolveServeMode,
   resolveStaticPath,
   sourceStaticDir,
 } from "../server.mjs"
@@ -36,6 +37,11 @@ test("정적 경로가 prototype 밖으로 벗어나지 못한다", () => {
 
 test("실행용 정적 서버는 Vite 빌드 산출물을 기본으로 제공한다", () => {
   assert.equal(resolveStaticPath("/index.html").filePath, `${builtStaticDir}/index.html`)
+})
+
+test("server.mjs는 기본적으로 소스를 실시간 제공하고 정적 모드는 명시적으로 선택한다", () => {
+  assert.equal(resolveServeMode([]), "source")
+  assert.equal(resolveServeMode(["--built"]), "built")
 })
 
 test("메인 화면과 정적 자산을 제공한다", async (t) => {

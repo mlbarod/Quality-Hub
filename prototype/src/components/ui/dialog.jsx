@@ -29,14 +29,14 @@ const DialogContent = React.forwardRef(({ className, children, showClose = true,
       ref={ref}
       data-qna-modal
       className={cn(
-        "fixed left-1/2 top-1/2 z-[91] grid max-h-[calc(100vh-48px)] w-[min(1040px,calc(100vw-64px))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[16px] border border-[#dfe3e1] bg-white shadow-[0_24px_70px_rgba(15,23,18,.18)] outline-none data-[state=closed]:animate-[qna-dialog-out_160ms_ease-in] data-[state=open]:animate-[qna-dialog-in_200ms_ease-out]",
+        "fixed left-1/2 top-1/2 z-[91] grid max-h-[calc(100vh-48px)] w-[min(1040px,calc(100vw-64px))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[16px] border border-[#d5e3ec] bg-white shadow-[0_24px_70px_rgba(15,23,42,.18)] outline-none data-[state=closed]:animate-[qna-dialog-out_160ms_ease-in] data-[state=open]:animate-[qna-dialog-in_200ms_ease-out]",
         className,
       )}
       {...props}
     >
       {children}
       {showClose ? (
-        <DialogPrimitive.Close className="absolute right-5 top-5 z-10 grid size-9 place-items-center rounded-[8px] text-[#676c73] transition hover:bg-[#f1f4f2] hover:text-[#17191c] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[rgba(35,155,103,.22)]">
+        <DialogPrimitive.Close className="absolute right-5 top-5 z-10 grid size-9 place-items-center rounded-[8px] text-[#676c73] transition hover:bg-[#edf3f7] hover:text-[#0f2233] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[rgba(7,136,223,.22)]">
           <X className="size-4" aria-hidden="true" />
           <span className="sr-only">닫기</span>
         </DialogPrimitive.Close>

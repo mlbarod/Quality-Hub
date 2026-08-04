@@ -30,8 +30,8 @@ function ToolbarButton({ label, active = false, disabled = false, onClick, child
         <button
           type="button"
           className={cn(
-            "grid size-8 place-items-center rounded-[6px] bg-transparent text-[#5f666c] outline-none transition hover:bg-[#edf4f0] hover:text-[#187a50] focus-visible:ring-[3px] focus-visible:ring-[rgba(35,155,103,.18)] disabled:opacity-35",
-            active && "bg-[#e2f2ea] text-[#187a50]",
+            "grid size-8 place-items-center rounded-[6px] bg-transparent text-[#5f666c] outline-none transition hover:bg-[#eef6fc] hover:text-[#0673bc] focus-visible:ring-[3px] focus-visible:ring-[rgba(7,136,223,.18)] disabled:opacity-35",
+            active && "bg-[#e2f2fd] text-[#0673bc]",
           )}
           aria-label={label}
           aria-pressed={active}
@@ -109,28 +109,28 @@ export function RichTextEditor({ initialContent = "", onChange, error }) {
   }
 
   return (
-    <div className={cn("overflow-hidden rounded-[10px] border bg-white transition", error ? "border-[#c96861]" : "border-[#dfe3e1] focus-within:border-[#7fbea2] focus-within:ring-[3px] focus-within:ring-[rgba(35,155,103,.1)]")}>
+    <div className={cn("overflow-hidden rounded-[10px] border bg-white transition", error ? "border-[#c96861]" : "border-[#d5e3ec] focus-within:border-[#6ec0f7] focus-within:ring-[3px] focus-within:ring-[rgba(7,136,223,.1)]")}>
       <TooltipProvider delayDuration={350}>
-        <div className="flex min-h-11 flex-wrap items-center gap-0.5 border-b border-[#e7eae8] bg-[#fafbfa] px-2 py-1.5" role="toolbar" aria-label="본문 서식 도구">
+        <div className="flex min-h-11 flex-wrap items-center gap-0.5 border-b border-[#e3ebf0] bg-[#fafbfa] px-2 py-1.5" role="toolbar" aria-label="본문 서식 도구">
           <ToolbarButton label="굵게" active={editorState.bold} onClick={() => editor?.chain().focus().toggleBold().run()}><Bold className="size-4" /></ToolbarButton>
           <ToolbarButton label="기울임" active={editorState.italic} onClick={() => editor?.chain().focus().toggleItalic().run()}><Italic className="size-4" /></ToolbarButton>
-          <span className="mx-1 h-5 w-px bg-[#dfe3e1]" aria-hidden="true" />
+          <span className="mx-1 h-5 w-px bg-[#d5e3ec]" aria-hidden="true" />
           <ToolbarButton label="글머리 기호" active={editorState.bulletList} onClick={() => editor?.chain().focus().toggleBulletList().run()}><List className="size-4" /></ToolbarButton>
           <ToolbarButton label="번호 목록" active={editorState.orderedList} onClick={() => editor?.chain().focus().toggleOrderedList().run()}><ListOrdered className="size-4" /></ToolbarButton>
           <ToolbarButton label="인용" active={editorState.blockquote} onClick={() => editor?.chain().focus().toggleBlockquote().run()}><Quote className="size-4" /></ToolbarButton>
-          <span className="mx-1 h-5 w-px bg-[#dfe3e1]" aria-hidden="true" />
+          <span className="mx-1 h-5 w-px bg-[#d5e3ec]" aria-hidden="true" />
           <ToolbarButton label="링크" active={editorState.link} onClick={() => setShowLinkInput((current) => !current)}><Link2 className="size-4" /></ToolbarButton>
           <ToolbarButton label="3×3 표 삽입" onClick={() => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: false }).run()}><Table2 className="size-4" /></ToolbarButton>
           <ToolbarButton label="이미지 삽입" onClick={() => imageInputRef.current?.click()}><ImagePlus className="size-4" /></ToolbarButton>
           <input ref={imageInputRef} type="file" accept="image/*" className="sr-only" tabIndex={-1} aria-label="본문 이미지 선택" onChange={handleImage} />
-          <span className="mx-1 h-5 w-px bg-[#dfe3e1]" aria-hidden="true" />
+          <span className="mx-1 h-5 w-px bg-[#d5e3ec]" aria-hidden="true" />
           <ToolbarButton label="실행 취소" disabled={!editorState.canUndo} onClick={() => editor?.chain().focus().undo().run()}><Undo2 className="size-4" /></ToolbarButton>
           <ToolbarButton label="다시 실행" disabled={!editorState.canRedo} onClick={() => editor?.chain().focus().redo().run()}><Redo2 className="size-4" /></ToolbarButton>
         </div>
       </TooltipProvider>
 
       {showLinkInput ? (
-        <div className="flex items-center gap-2 border-b border-[#e7eae8] bg-[#f7faf8] px-3 py-2">
+        <div className="flex items-center gap-2 border-b border-[#e3ebf0] bg-[#f1f6f9] px-3 py-2">
           <Input
             value={linkValue}
             onChange={(event) => setLinkValue(event.target.value)}
