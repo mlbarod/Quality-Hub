@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, test } from "vitest"
 
@@ -49,5 +49,15 @@ describe("Q&A 프로토타입", () => {
     expect(await screen.findByLabelText("질문 본문 편집기")).toHaveAttribute("aria-multiline", "true")
     await user.click(screen.getByRole("button", { name: "취소" }))
     expect(screen.queryByRole("dialog", { name: "새 질문 작성" })).not.toBeInTheDocument()
+  })
+
+  test("질문 작성 버튼을 게시판 우측 상단에서 제공한다", () => {
+    render(<QnaApp />)
+
+    const board = screen.getByRole("region", { name: "Q&A 게시글 목록" })
+    const writeButton = within(board).getByRole("button", { name: "질문 작성" })
+    expect(writeButton).toHaveClass("qna-write-button")
+    expect(writeButton.querySelector(".qna-write-icon")).toBeInTheDocument()
+    expect(writeButton.querySelector(".qna-write-label")).toBeInTheDocument()
   })
 })

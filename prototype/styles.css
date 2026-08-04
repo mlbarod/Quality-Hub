@@ -3437,7 +3437,7 @@ kbd {
 
 .report-page-header > div:first-child > span i,
 .report-page-header > div:first-child > span b {
-  color: var(--faint-foreground);
+  color: var(--muted-foreground);
   font-style: normal;
   font-weight: 500;
 }
@@ -3535,7 +3535,7 @@ kbd {
 }
 
 .report-summary-card small {
-  color: var(--faint-foreground);
+  color: var(--muted-foreground);
   font-size: 8px;
 }
 
@@ -3718,7 +3718,7 @@ kbd {
 
 .report-card-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
 }
 

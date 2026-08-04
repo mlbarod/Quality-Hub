@@ -53,7 +53,7 @@ function StatusBadge({ status }) {
   return <Badge variant={config.variant}><span className="size-1.5 rounded-full bg-current opacity-70" />{config.label}</Badge>
 }
 
-function QnaTopBar({ view, unreadCount, onNavigate, onWrite }) {
+function QnaTopBar({ view, unreadCount, onNavigate }) {
   const currentLabel = view === "detail" ? "질문 상세" : view === "notifications" ? "알림" : "Q&A"
   return (
     <div className="flex h-[66px] items-center justify-between border-b border-[#e5e7e9] bg-white px-9">
@@ -68,7 +68,6 @@ function QnaTopBar({ view, unreadCount, onNavigate, onWrite }) {
           <Bell className="size-4" />알림
           {unreadCount ? <span className="grid min-w-5 place-items-center rounded-full bg-[#b64c45] px-1 text-[10px] font-bold text-white">{unreadCount}</span> : null}
         </Button>
-        <Button type="button" onClick={onWrite}><PenLine className="size-4" />질문 작성</Button>
         <Button type="button" variant="outline" onClick={() => window.dispatchEvent(new CustomEvent("qualityhub:qna-close"))}><X className="size-4" />대시보드로</Button>
       </div>
     </div>
@@ -111,6 +110,16 @@ function PostListView({ posts, allPosts, filters, setFilters, onSelect, onWrite 
         </section>
 
         <section className="overflow-hidden rounded-[14px] border border-[#e2e6e3] bg-white shadow-[0_1px_2px_rgba(15,23,18,.03)]" aria-label="Q&A 게시글 목록">
+          <div className="flex items-center justify-between border-b border-[#e7eae8] px-5 py-4">
+            <div>
+              <h2 className="m-0 text-[17px] font-[680] tracking-[-.025em] text-[#24272b]">Q&amp;A 게시판</h2>
+              <p className="mt-1 text-[11px] text-[#69716c]">질문을 등록하고 담당자와 답변을 이어가세요.</p>
+            </div>
+            <Button type="button" size="lg" className="qna-write-button h-12 min-w-[150px] px-6 text-[15px]" onClick={onWrite}>
+              <span className="qna-write-icon" aria-hidden="true"><PenLine className="size-[18px]" /></span>
+              <span className="qna-write-label">질문 작성</span>
+            </Button>
+          </div>
           <div className="border-b border-[#e7eae8] px-5 py-4">
             <div className="flex flex-wrap items-center gap-2">
               <label className="relative min-w-[300px] flex-1">
@@ -416,7 +425,7 @@ export function QnaApp({ initialView = "list" }) {
 
   return (
     <div className="qna-scope h-full text-[#17191c] antialiased">
-      <QnaTopBar view={view} unreadCount={unreadCount} onNavigate={navigate} onWrite={() => setWriteOpen(true)} />
+      <QnaTopBar view={view} unreadCount={unreadCount} onNavigate={navigate} />
       {view === "list" ? <PostListView posts={filteredPosts} allPosts={posts} filters={filters} setFilters={setFilters} onSelect={selectPost} onWrite={() => setWriteOpen(true)} /> : null}
       {view === "detail" ? <PostDetailView post={selectedPost} onBack={() => navigate("list")} onUpdatePost={updatePost} announce={announce} /> : null}
       {view === "notifications" ? <NotificationsView notifications={notifications} onReadAll={() => { setNotifications((current) => current.map((item) => ({ ...item, read: true }))); announce("모든 알림을 읽음 처리했습니다.") }} onOpenPost={openNotification} /> : null}

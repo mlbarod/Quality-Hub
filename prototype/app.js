@@ -44,6 +44,17 @@ const showToast = (message) => {
   toastTimer = window.setTimeout(() => toast.classList.remove("is-visible"), 2400);
 };
 
+document.querySelectorAll("[data-home-refresh]").forEach((link) => {
+  link.addEventListener("click", (event) => {
+    event.preventDefault();
+    const homeUrl = new URL(window.location.href);
+    homeUrl.search = "";
+    homeUrl.hash = "dashboard";
+    window.history.replaceState({}, "", homeUrl);
+    window.location.reload();
+  });
+});
+
 const agentModes = new Set(["closed", "drawer", "full"]);
 
 const setAgentMode = (mode, { announce = true, focus = true } = {}) => {
