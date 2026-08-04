@@ -16,7 +16,10 @@ export default defineConfig({
     host: "127.0.0.1",
     port: 4173,
     strictPort: true,
-    allowedHosts: ["mem-etch-common.samsungds.net"],
+    allowedHosts: [
+      "mem-etch-common.samsungds.net",
+      "sanghyun--sanghyun-dev.cdep1.samsungds.net",
+    ],
     headers: {
       "Referrer-Policy": "no-referrer",
       "X-Content-Type-Options": "nosniff",

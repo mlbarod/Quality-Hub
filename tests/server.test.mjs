@@ -2,6 +2,8 @@ import assert from "node:assert/strict"
 import { once } from "node:events"
 import test from "node:test"
 
+import viteConfig from "../vite.config.mjs"
+
 import {
   builtStaticDir,
   createQualityHubServer,
@@ -51,6 +53,10 @@ test("실행용 정적 서버는 Vite 빌드 산출물을 기본으로 제공한
 test("server.mjs는 기본적으로 소스를 실시간 제공하고 정적 모드는 명시적으로 선택한다", () => {
   assert.equal(resolveServeMode([]), "source")
   assert.equal(resolveServeMode(["--built"]), "built")
+})
+
+test("외부 개발 도메인을 Vite 서버에서 허용한다", () => {
+  assert.ok(viteConfig.server.allowedHosts.includes("sanghyun--sanghyun-dev.cdep1.samsungds.net"))
 })
 
 test("메인 화면과 정적 자산을 제공한다", async (t) => {
