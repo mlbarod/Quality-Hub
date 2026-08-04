@@ -50,6 +50,21 @@ export function parsePort(value = String(defaultPort)) {
   return port
 }
 
+export function resolvePort(args = [], environmentPort = process.env.PORT) {
+  const inlinePortArg = args.find((arg) => arg.startsWith("--port="))
+  const portArgIndex = args.indexOf("--port")
+
+  if (inlinePortArg) {
+    return parsePort(inlinePortArg.slice("--port=".length))
+  }
+
+  if (portArgIndex !== -1) {
+    return parsePort(args[portArgIndex + 1] ?? "")
+  }
+
+  return parsePort(environmentPort ?? String(defaultPort))
+}
+
 export function resolveStaticPath(pathname, staticDir = builtStaticDir) {
   let decodedPath
   try {
@@ -187,9 +202,10 @@ function startBuiltServer({ host, port }) {
 }
 
 async function startServer() {
+  const args = process.argv.slice(2)
   let port
   try {
-    port = parsePort(process.env.PORT ?? String(defaultPort))
+    port = resolvePort(args)
   } catch (error) {
     console.error(error.message)
     process.exitCode = 1
@@ -197,7 +213,7 @@ async function startServer() {
   }
 
   const host = process.env.HOST?.trim() || defaultHost
-  const mode = resolveServeMode(process.argv.slice(2))
+  const mode = resolveServeMode(args)
 
   if (mode === "built") {
     startBuiltServer({ host, port })

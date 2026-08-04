@@ -6,6 +6,7 @@ import {
   builtStaticDir,
   createQualityHubServer,
   parsePort,
+  resolvePort,
   resolveServeMode,
   resolveStaticPath,
   sourceStaticDir,
@@ -25,9 +26,17 @@ async function startTestServer() {
 
 test("PORT는 유효한 포트 번호만 허용한다", () => {
   assert.equal(parsePort("4173"), 4173)
+  assert.equal(parsePort("5500"), 5500)
   assert.throws(() => parsePort("0"), /between 1 and 65535/)
   assert.throws(() => parsePort("65536"), /between 1 and 65535/)
   assert.throws(() => parsePort("abc"), /between 1 and 65535/)
+})
+
+test("명령행에서 5500 포트를 선택할 수 있다", () => {
+  assert.equal(resolvePort(["--port", "5500"], "4173"), 5500)
+  assert.equal(resolvePort(["--port=5500"], "4173"), 5500)
+  assert.equal(resolvePort([], "4173"), 4173)
+  assert.throws(() => resolvePort(["--port"], "4173"), /between 1 and 65535/)
 })
 
 test("정적 경로가 prototype 밖으로 벗어나지 못한다", () => {
