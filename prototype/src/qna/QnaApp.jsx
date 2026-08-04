@@ -115,8 +115,8 @@ function PostListView({ posts, allPosts, filters, setFilters, onSelect, onWrite 
               <h2 className="m-0 text-[17px] font-[680] tracking-[-.025em] text-[#24272b]">Q&amp;A 게시판</h2>
               <p className="mt-1 text-[11px] text-[#69716c]">질문을 등록하고 담당자와 답변을 이어가세요.</p>
             </div>
-            <Button type="button" size="lg" className="qna-write-button h-12 min-w-[150px] px-6 text-[15px]" onClick={onWrite}>
-              <span className="qna-write-icon" aria-hidden="true"><PenLine className="size-[18px]" /></span>
+            <Button type="button" size="lg" className="qna-write-button h-[52px] min-w-[168px] px-7" onClick={onWrite}>
+              <span className="qna-write-icon" aria-hidden="true"><PenLine /></span>
               <span className="qna-write-label">질문 작성</span>
             </Button>
           </div>

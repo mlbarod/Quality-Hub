@@ -37,19 +37,20 @@
   font: inherit;
 }
 
-.qna-write-button {
+.qna-scope .qna-write-button {
   position: relative;
   overflow: hidden;
   background: #187a50;
   color: #fff;
-  box-shadow: 0 8px 20px rgb(35 155 103 / 18%);
-  transition: background-color 180ms ease, box-shadow 220ms ease, transform 220ms ease;
+  font-size: 16px;
+  box-shadow: none;
+  transition: background-color 180ms ease, transform 220ms ease;
 }
 
-.qna-write-button:hover,
-.qna-write-button:focus-visible {
+.qna-scope .qna-write-button:hover,
+.qna-scope .qna-write-button:focus-visible {
   background: #12623f;
-  box-shadow: 0 11px 26px rgb(24 122 80 / 24%);
+  box-shadow: none;
   transform: translateY(-2px);
 }
 
@@ -60,6 +61,11 @@
   display: inline-flex;
   align-items: center;
   will-change: transform;
+}
+
+.qna-write-button .qna-write-icon svg {
+  width: 21px;
+  height: 21px;
 }
 
 .qna-write-button:hover .qna-write-icon,

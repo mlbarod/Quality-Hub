@@ -57,6 +57,7 @@ describe("Q&A 프로토타입", () => {
     const board = screen.getByRole("region", { name: "Q&A 게시글 목록" })
     const writeButton = within(board).getByRole("button", { name: "질문 작성" })
     expect(writeButton).toHaveClass("qna-write-button")
+    expect(writeButton).toHaveClass("h-[52px]", "min-w-[168px]")
     expect(writeButton.querySelector(".qna-write-icon")).toBeInTheDocument()
     expect(writeButton.querySelector(".qna-write-label")).toBeInTheDocument()
   })
