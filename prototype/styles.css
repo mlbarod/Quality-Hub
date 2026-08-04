@@ -55,7 +55,8 @@ body {
 
 body.agent-full-active,
 body.report-active,
-body.rule-active {
+body.rule-active,
+body.qna-active {
   overflow: hidden;
 }
 

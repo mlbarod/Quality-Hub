@@ -1,4 +1,5 @@
 const prototype = document.querySelector(".prototype");
+const dashboardWorkspace = document.querySelector(".workspace");
 const toast = document.querySelector("[data-toast]");
 const refreshButton = document.querySelector("[data-refresh]");
 const skipLink = document.querySelector(".skip-link");
@@ -13,10 +14,12 @@ const ruleWorkspace = document.querySelector("[data-rule-workspace]");
 const rulePage = document.querySelector("[data-rule-page]");
 const ruleCardGrid = document.querySelector("[data-rule-card-grid]");
 const ruleEmptyState = document.querySelector("[data-rule-empty]");
+const qnaWorkspace = document.querySelector("[data-qna-workspace]");
 let toastTimer;
 let reportEntryTimer;
 let ruleArrangeTimer;
 let ruleReturnFocus;
+let qnaReturnFocus;
 
 const chartPeriods = {
   7: {
@@ -65,13 +68,16 @@ const setAgentMode = (mode, { announce = true, focus = true } = {}) => {
 
   if (skipLink) {
     const reportMode = prototype.dataset.reportMode;
-    if (prototype.dataset.ruleMode === "open") skipLink.setAttribute("href", "#rule-main");
+    if (prototype.dataset.qnaMode === "open") skipLink.setAttribute("href", "#qna-main");
+    else if (prototype.dataset.ruleMode === "open") skipLink.setAttribute("href", "#rule-main");
     else if (reportMode === "catalog") skipLink.setAttribute("href", "#report-catalog-main");
     else if (reportMode === "viewer") skipLink.setAttribute("href", "#report-viewer-main");
     else skipLink.setAttribute("href", mode === "full" ? "#agent-main" : "#main-content");
   }
 
-  if (prototype.dataset.ruleMode === "open") {
+  if (prototype.dataset.qnaMode === "open") {
+    document.title = "Quality Hub · Q&A";
+  } else if (prototype.dataset.ruleMode === "open") {
     document.title = "Quality Hub · Rule&SOP";
   } else if (prototype.dataset.reportMode === "catalog") {
     document.title = "Quality Hub · 각종 Report 조회";
@@ -133,6 +139,9 @@ const setReportMode = (mode, { announce = true, focus = true, restoreAgent = tru
   if (mode !== "closed" && prototype.dataset.ruleMode === "open") {
     setRuleMode("closed", { announce: false, focus: false, restoreAgent: false });
   }
+  if (mode !== "closed" && prototype.dataset.qnaMode === "open") {
+    setQnaMode("closed", { announce: false, focus: false, restoreAgent: false });
+  }
 
   const previousMode = prototype.dataset.reportMode;
   if (mode === "viewer" && card) updateReportViewer(card);
@@ -191,6 +200,9 @@ const setRuleMode = (mode, { announce = true, focus = true, restoreAgent = true 
   if (mode === "open" && prototype.dataset.reportMode !== "closed") {
     setReportMode("closed", { announce: false, focus: false, restoreAgent: false });
   }
+  if (mode === "open" && prototype.dataset.qnaMode === "open") {
+    setQnaMode("closed", { announce: false, focus: false, restoreAgent: false });
+  }
 
   prototype.dataset.ruleMode = mode;
   document.body.classList.toggle("rule-active", mode === "open");
@@ -228,6 +240,61 @@ const setRuleMode = (mode, { announce = true, focus = true, restoreAgent = true 
   else showToast("대시보드로 돌아왔습니다.");
 };
 
+const qnaModes = new Set(["closed", "open"]);
+
+const setQnaMode = (mode, { announce = true, focus = true, restoreAgent = true, view = "list" } = {}) => {
+  if (!prototype || !qnaModes.has(mode)) return;
+
+  if (mode === "open") {
+    if (prototype.dataset.reportMode !== "closed") {
+      setReportMode("closed", { announce: false, focus: false, restoreAgent: false });
+    }
+    if (prototype.dataset.ruleMode === "open") {
+      setRuleMode("closed", { announce: false, focus: false, restoreAgent: false });
+    }
+    setAgentMode("closed", { announce: false, focus: false });
+  } else if (restoreAgent) {
+    setAgentMode("drawer", { announce: false, focus: false });
+  }
+
+  prototype.dataset.qnaMode = mode;
+  document.body.classList.toggle("qna-active", mode === "open");
+  qnaWorkspace?.setAttribute("aria-hidden", String(mode === "closed"));
+  if (qnaWorkspace instanceof HTMLElement) qnaWorkspace.inert = mode === "closed";
+  if (dashboardWorkspace instanceof HTMLElement) dashboardWorkspace.inert = mode === "open";
+
+  const url = new URL(window.location.href);
+  if (mode === "open") url.searchParams.set("qna", "open");
+  else url.searchParams.delete("qna");
+  window.history.replaceState({}, "", url);
+
+  document.querySelectorAll("[data-qna-open]").forEach((button) => {
+    button.classList.toggle("is-active", mode === "open");
+    button.setAttribute("aria-expanded", String(mode === "open"));
+  });
+  skipLink?.setAttribute("href", mode === "open" ? "#qna-main" : "#main-content");
+  document.title = mode === "open" ? "Quality Hub · Q&A" : "Quality Hub";
+
+  if (mode === "open") {
+    window.dispatchEvent(new CustomEvent("qualityhub:qna-view", { detail: { view } }));
+  }
+
+  if (focus) {
+    window.requestAnimationFrame(() => {
+      if (mode === "open") {
+        window.requestAnimationFrame(() => document.querySelector("#qna-main")?.focus());
+      } else {
+        const fallbackOpener = [...document.querySelectorAll("[data-qna-open]")].find((button) => button.getClientRects().length > 0);
+        (qnaReturnFocus ?? fallbackOpener)?.focus();
+      }
+    });
+  }
+
+  if (!announce) return;
+  if (mode === "open") showToast(view === "notifications" ? "Q&A 알림을 열었습니다." : "Q&A 게시판을 열었습니다.");
+  else showToast("대시보드로 돌아왔습니다.");
+};
+
 const formatDate = (date) =>
   new Intl.DateTimeFormat("ko-KR", {
     month: "long",
@@ -245,9 +312,26 @@ document.querySelectorAll("[data-agent-open]").forEach((button) => {
   button.addEventListener("click", () => {
     setReportMode("closed", { announce: false, focus: false, restoreAgent: false });
     setRuleMode("closed", { announce: false, focus: false, restoreAgent: false });
+    setQnaMode("closed", { announce: false, focus: false, restoreAgent: false });
     setAgentMode("drawer");
   });
 });
+
+document.querySelectorAll("[data-qna-open]").forEach((button) => {
+  button.addEventListener("click", (event) => {
+    qnaReturnFocus = event.currentTarget;
+    setQnaMode("open", { view: "list" });
+  });
+});
+
+document.querySelectorAll("[data-qna-notifications]").forEach((button) => {
+  button.addEventListener("click", (event) => {
+    qnaReturnFocus = event.currentTarget;
+    setQnaMode("open", { view: "notifications" });
+  });
+});
+
+window.addEventListener("qualityhub:qna-close", () => setQnaMode("closed"));
 
 document.querySelectorAll("[data-agent-expand]").forEach((button) => {
   button.addEventListener("click", () => setAgentMode("full"));
@@ -513,6 +597,9 @@ applyRuleFilters({ animate: false });
 const initialRuleQuery = new URL(window.location.href).searchParams.get("rule");
 setRuleMode(initialRuleQuery === "open" ? "open" : "closed", { announce: false, focus: false, restoreAgent: false });
 
+const initialQnaQuery = new URL(window.location.href).searchParams.get("qna");
+setQnaMode(initialQnaQuery === "open" ? "open" : "closed", { announce: false, focus: false, restoreAgent: false });
+
 document.querySelectorAll("[data-today]").forEach((element) => {
   element.textContent = formatDate(new Date());
 });
@@ -597,7 +684,9 @@ document.addEventListener("keydown", (event) => {
   }
 
   if (event.key === "Escape") {
-    if (prototype?.dataset.ruleMode === "open") setRuleMode("closed");
+    if (document.querySelector("[data-qna-modal]")) return;
+    if (prototype?.dataset.qnaMode === "open") setQnaMode("closed");
+    else if (prototype?.dataset.ruleMode === "open") setRuleMode("closed");
     else if (prototype?.dataset.reportMode === "viewer") setReportMode("catalog");
     else if (prototype?.dataset.reportMode === "catalog") setReportMode("closed");
     else if (prototype?.dataset.agentMode === "full") setAgentMode("drawer");

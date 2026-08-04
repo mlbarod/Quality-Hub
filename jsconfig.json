@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["prototype/src/*"]
+    }
+  },
+  "include": ["prototype/src"]
+}

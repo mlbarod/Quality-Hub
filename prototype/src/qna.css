@@ -1,0 +1,203 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+.qna-workspace {
+  position: fixed;
+  inset: var(--header-height) 0 0 0;
+  z-index: 62;
+  visibility: hidden;
+  overflow: hidden;
+  background: #f8faf9;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+  transition: opacity 200ms ease, transform 240ms ease, visibility 0s linear 240ms;
+}
+
+.prototype[data-qna-mode="open"] .qna-workspace {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+  transition-delay: 0s;
+}
+
+#qna-root,
+.qna-scope {
+  height: 100%;
+}
+
+.qna-scope {
+  font-family: "Pretendard Variable", Inter, Pretendard, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.qna-scope button,
+.qna-scope input,
+.qna-scope textarea {
+  font: inherit;
+}
+
+.qna-prosemirror {
+  min-height: 230px;
+  padding: 18px 20px 26px;
+  color: #30343a;
+  font-size: 13px;
+  line-height: 1.75;
+  outline: none;
+}
+
+.qna-prosemirror > *:first-child,
+.qna-rendered-content > *:first-child {
+  margin-top: 0;
+}
+
+.qna-prosemirror > *:last-child,
+.qna-rendered-content > *:last-child {
+  margin-bottom: 0;
+}
+
+.qna-prosemirror p,
+.qna-rendered-content p {
+  margin: 0 0 14px;
+}
+
+.qna-prosemirror h2,
+.qna-prosemirror h3,
+.qna-rendered-content h2,
+.qna-rendered-content h3 {
+  margin: 22px 0 10px;
+  color: #202327;
+  font-weight: 680;
+  line-height: 1.35;
+}
+
+.qna-prosemirror h2,
+.qna-rendered-content h2 { font-size: 18px; }
+.qna-prosemirror h3,
+.qna-rendered-content h3 { font-size: 15px; }
+
+.qna-prosemirror ul,
+.qna-prosemirror ol,
+.qna-rendered-content ul,
+.qna-rendered-content ol {
+  margin: 12px 0;
+  padding-left: 24px;
+}
+
+.qna-prosemirror ul,
+.qna-rendered-content ul { list-style: disc; }
+.qna-prosemirror ol,
+.qna-rendered-content ol { list-style: decimal; }
+
+.qna-prosemirror blockquote,
+.qna-rendered-content blockquote {
+  margin: 18px 0;
+  padding: 12px 15px;
+  border-left: 3px solid #66b38e;
+  border-radius: 0 8px 8px 0;
+  background: #f2f8f5;
+  color: #476052;
+}
+
+.qna-prosemirror a,
+.qna-rendered-content a {
+  color: #187a50;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.qna-prosemirror .is-editor-empty:first-child::before {
+  height: 0;
+  color: #a0a6a2;
+  content: attr(data-placeholder);
+  float: left;
+  pointer-events: none;
+}
+
+.qna-prosemirror .tableWrapper {
+  margin: 18px 0;
+  overflow-x: auto;
+}
+
+.qna-editor-table,
+.qna-prosemirror table,
+.qna-rendered-content table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.qna-editor-table th,
+.qna-editor-table td,
+.qna-prosemirror table th,
+.qna-prosemirror table td,
+.qna-rendered-content table th,
+.qna-rendered-content table td {
+  min-width: 90px;
+  padding: 9px 10px;
+  border: 1px solid #dfe3e1;
+  vertical-align: top;
+  text-align: left;
+}
+
+.qna-editor-table th,
+.qna-prosemirror table th,
+.qna-rendered-content table th {
+  background: #f2f5f3;
+  font-weight: 650;
+}
+
+.qna-prosemirror .selectedCell::after {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: rgb(35 155 103 / 10%);
+  content: "";
+  pointer-events: none;
+}
+
+.qna-editor-image,
+.qna-prosemirror img,
+.qna-rendered-content img {
+  display: block;
+  max-width: min(100%, 760px);
+  max-height: 420px;
+  margin: 18px auto;
+  border: 1px solid #dfe3e1;
+  border-radius: 10px;
+  object-fit: contain;
+}
+
+.qna-rendered-content {
+  color: #43494e;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+@keyframes qna-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes qna-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes qna-dialog-in {
+  from { opacity: 0; scale: .985; }
+  to { opacity: 1; scale: 1; }
+}
+
+@keyframes qna-dialog-out {
+  from { opacity: 1; scale: 1; }
+  to { opacity: 0; scale: .985; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qna-workspace,
+  [data-qna-modal] {
+    transition: none !important;
+    animation: none !important;
+  }
+}

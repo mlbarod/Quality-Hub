@@ -9,7 +9,8 @@
     />
     <title>Quality Hub</title>
     <link rel="stylesheet" href="./styles.css" />
-    <script src="./app.js" defer></script>
+    <script type="module" src="./app.js"></script>
+    <script type="module" src="./src/main.jsx"></script>
   </head>
   <body>
     <a class="skip-link" href="#main-content">본문으로 바로가기</a>
@@ -89,7 +90,7 @@
       </symbol>
     </svg>
 
-    <div class="prototype" data-layout="top" data-agent-mode="drawer" data-report-mode="closed" data-rule-mode="closed">
+    <div class="prototype" data-layout="top" data-agent-mode="drawer" data-report-mode="closed" data-rule-mode="closed" data-qna-mode="closed">
       <aside class="sidebar" aria-label="좌측 서비스 메뉴">
         <a class="brand sidebar-brand" href="#dashboard" aria-label="Quality Hub 홈">
           <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -119,14 +120,14 @@
             <span>Rule&amp;SOP</span>
             <span class="nav-count">12</span>
           </button>
-          <button class="side-nav-item" type="button" data-planned="Q&A">
+          <button class="side-nav-item" type="button" data-qna-open>
             <svg class="icon"><use href="#icon-message"></use></svg>
             <span>Q&amp;A</span>
             <span class="nav-count is-alert">4</span>
           </button>
 
           <p class="nav-caption nav-caption-spaced">Management</p>
-          <button class="side-nav-item" type="button" data-planned="알림">
+          <button class="side-nav-item" type="button" data-qna-notifications>
             <svg class="icon"><use href="#icon-bell"></use></svg>
             <span>알림</span>
             <span class="status-dot" aria-label="읽지 않은 알림 있음"></span>
@@ -169,7 +170,7 @@
             <div class="top-nav-menu">
               <button type="button" data-planned="통합 검색"><svg class="icon"><use href="#icon-search"></use></svg><span><strong>통합 검색</strong><small>지표·Rule·문서를 한 번에 검색</small></span></button>
               <button type="button" data-rule-open><svg class="icon"><use href="#icon-book"></use></svg><span><strong>Rule&amp;SOP</strong><small>분류별 Rule·SOP 조회</small></span></button>
-              <button type="button" data-planned="Q&A"><svg class="icon"><use href="#icon-message"></use></svg><span><strong>Q&amp;A</strong><small>공정별 문의와 답변</small></span></button>
+              <button type="button" data-qna-open><svg class="icon"><use href="#icon-message"></use></svg><span><strong>Q&amp;A</strong><small>공정별 문의와 답변</small></span></button>
             </div>
           </div>
           <div class="top-nav-group">
@@ -191,7 +192,7 @@
           <button class="header-search" type="button" data-planned="통합 검색" aria-label="통합 검색">
             <svg class="icon"><use href="#icon-search"></use></svg><span>검색</span><kbd>⌘ K</kbd>
           </button>
-          <button class="icon-button" type="button" data-planned="알림" aria-label="알림 3개">
+          <button class="icon-button" type="button" data-qna-notifications aria-label="Q&A 알림 3개">
             <svg class="icon"><use href="#icon-bell"></use></svg><i>3</i>
           </button>
           <button class="header-profile" type="button" data-planned="내 프로필"><span class="avatar">김</span><span>김품질</span></button>
@@ -203,7 +204,7 @@
           <div class="breadcrumb"><span>Quality Hub</span><i>/</i><strong>대시보드</strong></div>
           <div class="workspace-actions">
             <button type="button" data-planned="통합 검색"><svg class="icon"><use href="#icon-search"></use></svg>지표, Rule, 문서 검색<kbd>⌘ K</kbd></button>
-            <button class="icon-button" type="button" data-planned="알림" aria-label="알림 3개"><svg class="icon"><use href="#icon-bell"></use></svg><i>3</i></button>
+            <button class="icon-button" type="button" data-qna-notifications aria-label="Q&A 알림 3개"><svg class="icon"><use href="#icon-bell"></use></svg><i>3</i></button>
           </div>
         </header>
 
@@ -348,7 +349,7 @@
                 <span class="app-card-footer"><span>Category · 대분류 · 중분류 · 소분류</span><svg class="icon"><use href="#icon-arrow"></use></svg></span>
               </button>
 
-              <button class="app-card" type="button" data-planned="Q&A" data-motion-card="qna">
+              <button class="app-card" type="button" data-qna-open data-motion-card="qna">
                 <span class="app-card-header">
                   <span class="app-icon"><svg class="icon"><use href="#icon-message"></use></svg></span>
                   <span><strong>Q&amp;A</strong><small>Quality desk</small></span>
@@ -508,6 +509,10 @@
           </section>
         </aside>
       </section>
+
+      <div class="qna-workspace" aria-hidden="true" data-qna-workspace>
+        <div id="qna-root"></div>
+      </div>
 
       <section class="rule-workspace" aria-label="Rule&SOP" aria-hidden="true" data-rule-workspace>
         <div class="rule-page" id="rule-main" tabindex="-1" data-rule-page>

@@ -1,6 +1,6 @@
 # Quality Hub 개발 계획
 
-**현재 상태:** 1단계 진행 중 · [B 상단 메뉴형 목업](../prototype/index.html)에 대시보드, Report 조회와 품질 Agent 주요 흐름 반영
+**현재 상태:** 1단계 진행 중 · [B 상단 메뉴형 목업](../prototype/index.html)에 대시보드, Report 조회, 품질 Agent와 Q&A 주요 흐름 반영
 
 ## 1단계: UI/UX 설계
 
