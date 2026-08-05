@@ -31,7 +31,7 @@
 ## 실행 조건
 
 - Linux 권장
-- Python 3.11 이상
+- Python 3.10 이상
 - Node.js, npm, Git
 - 저장소 의존성이 설치된 `node_modules`
 - 브라우저 검사 시 Chromium 또는 Chrome

@@ -13,6 +13,7 @@ class ModelTests(unittest.TestCase):
     def test_finding_serializes_status_as_string(self) -> None:
         finding = Finding("TEST", "테스트", Status.PASS, "통과", "자체 검사")
         self.assertEqual(finding.as_dict()["status"], "PASS")
+        self.assertEqual(str(Status.PASS), "PASS")
 
     def test_json_safe_converts_paths_and_tuples(self) -> None:
         value = _json_safe({"path": Path("a/b"), "cpus": (1, 2)})

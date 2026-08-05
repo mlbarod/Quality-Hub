@@ -2,17 +2,20 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
-from enum import StrEnum
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
 
-class Status(StrEnum):
+class Status(str, Enum):
     PASS = "PASS"
     FAIL = "FAIL"
     WARN = "WARN"
     SKIP = "SKIP"
     ERROR = "ERROR"
+
+    def __str__(self) -> str:
+        return self.value
 
 
 @dataclass(slots=True)
@@ -76,4 +79,3 @@ class AuditReport:
     @property
     def exit_code(self) -> int:
         return 1 if any(item.status in {Status.FAIL, Status.ERROR} for item in self.findings) else 0
-
