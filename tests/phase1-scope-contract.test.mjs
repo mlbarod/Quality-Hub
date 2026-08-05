@@ -69,6 +69,16 @@ test("확정한 역할별 콘텐츠와 Q&A 권한을 요구사항에 기록한�
   assert.match(memo, /### 4\. 역할별 권한 확정\s+[\s\S]*?\[x\] 마스터:/)
 })
 
+test("확정한 공통 화면 상태와 역할별 문의 대상을 문서에 기록한다", () => {
+  assert.match(memo, /\[x\] 로딩:.*회전형 로딩 아이콘.*`처리 중`/)
+  assert.match(memo, /\[x\] 데이터 없음:.*`데이터가 없습니다\.`/)
+  assert.match(memo, /\[x\] 조회 오류와 다시 시도:.*경고 아이콘.*`다시 시도` 버튼/)
+  assert.match(memo, /\[x\] 오래된 데이터와 마지막 정상 시각:.*오늘 09:40 \(목업\)/)
+  assert.match(memo, /일반유저에게는.*관리자에게 문의해 주세요.*관리자에게는.*마스터에게 문의해 주세요/)
+  assert.match(requirements, /데이터가 없으면 작은 비차단 팝업/)
+  assert.match(requirements, /실제 연동 전 목업 시각은 목업임을 명시/)
+})
+
 test("사용자 및 권한 화면의 표와 조작 요소를 읽기 쉬운 크기로 제공한다", () => {
   const reportCardTitleSize = styles.match(/\.report-card-copy strong \{[^}]*font-size: (\d+px);/s)?.[1]
   const accessTableBodySize = styles.match(/\.user-table-row \{[^}]*font-size: (\d+px);/s)?.[1]
