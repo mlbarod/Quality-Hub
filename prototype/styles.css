@@ -3998,7 +3998,7 @@ kbd {
   min-height: 88px;
   border-bottom: 1px solid #e8eef2;
   color: var(--muted-foreground);
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.4;
 }
 
@@ -4015,7 +4015,7 @@ kbd {
 
 .access-role-badge.is-admin { background: var(--primary-soft); color: hsl(204 94% 34%); }
 .access-role-badge.is-general { background: #eff2f4; color: #59636c; }
-.access-value { color: var(--foreground); font-size: 16px; font-weight: 650; }
+.access-value { color: var(--foreground); font-size: 14px; font-weight: 650; }
 
 .admin-remove-button {
   min-width: 94px;

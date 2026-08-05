@@ -57,11 +57,15 @@ test("마스터가 유저 ID와 소속부서 기준의 관리자·일반 접근 
 })
 
 test("사용자 및 권한 화면의 표와 조작 요소를 읽기 쉬운 크기로 제공한다", () => {
+  const reportCardTitleSize = styles.match(/\.report-card-copy strong \{[^}]*font-size: (\d+px);/s)?.[1]
+  const accessTableBodySize = styles.match(/\.user-table-row \{[^}]*font-size: (\d+px);/s)?.[1]
+
   assert.match(styles, /\.role-summary-card small \{[^}]*font-size: 14px;/s)
   assert.match(styles, /\.user-search input \{[^}]*font-size: 15px;/s)
   assert.match(styles, /\.admin-add-button \{[^}]*height: 48px;[^}]*font-size: 15px;/s)
   assert.match(styles, /\.user-table-header \{[^}]*min-height: 54px;[^}]*font-size: 14px;/s)
-  assert.match(styles, /\.user-table-row \{[^}]*min-height: 88px;[^}]*font-size: 16px;/s)
+  assert.equal(accessTableBodySize, reportCardTitleSize)
+  assert.match(styles, /\.access-value \{[^}]*font-size: 14px;/s)
   assert.match(styles, /\.access-role-badge \{[^}]*font-size: 14px;/s)
   assert.match(styles, /\.admin-remove-button \{[^}]*height: 44px;[^}]*font-size: 14px;/s)
   assert.match(styles, /\.admin-add-form > footer button \{[^}]*height: 46px;[^}]*font-size: 14px;/s)
