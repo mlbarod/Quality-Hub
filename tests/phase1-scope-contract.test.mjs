@@ -8,6 +8,8 @@ const styles = await readFile(new URL("../prototype/styles.css", import.meta.url
 const qnaApp = await readFile(new URL("../prototype/src/qna/QnaApp.jsx", import.meta.url), "utf8")
 const memo = await readFile(new URL("../docs/PHASE1_REMAINING_TASKS.md", import.meta.url), "utf8")
 const requirements = await readFile(new URL("../docs/QUALITY_PORTAL_REQUIREMENTS.md", import.meta.url), "utf8")
+const developmentPlan = await readFile(new URL("../docs/DEVELOPMENT_PLAN.md", import.meta.url), "utf8")
+const completionReport = await readFile(new URL("../docs/PHASE1_COMPLETION_REPORT.md", import.meta.url), "utf8")
 
 test("데이터 원천 관리 진입점을 제거하고 1단계 범위에 기록한다", () => {
   assert.doesNotMatch(html, /data-planned="데이터 원천"/)
@@ -108,4 +110,17 @@ test("품질 Agent UI 확정과 실제 연동 후속 처리를 메모에 명시�
   assert.match(memo, /품질 Agent의 UI와 사용 흐름은 현재 안으로 완료 처리한다/)
   assert.match(memo, /품질 Agent의 실제 사내 LLM API 연동은 1단계에 포함하지 않는다/)
   assert.match(memo, /\[x\] 품질 Agent UI 설계 완료 및 실제 연동 후속 처리 명시/)
+})
+
+test("1단계 완료 판정과 2단계 구현 경계를 문서와 화면에 일치시킨다", () => {
+  assert.match(memo, /\[x\] 요구사항·개발 계획·UI\/UX 설계 문서와 현재 화면 대조/)
+  assert.match(memo, /1단계 UI\/UX 설계를 종료한다/)
+  assert.match(developmentPlan, /현재 상태:\*\* 1단계 UI\/UX 설계 완료/)
+  assert.match(developmentPlan, /2단계: UI 프로토타입 구현 · 다음 단계/)
+  assert.match(completionReport, /최종 판정:\*\* 완료/)
+  assert.match(completionReport, /실제 인증, 권한 집행, 운영 저장/)
+  assert.match(completionReport, /## 6\. 2단계 인계 항목/)
+  assert.match(html, /예시 원천 상태/)
+  assert.match(html, /사내 LLM · 연동 예정/)
+  assert.doesNotMatch(html, /사내 LLM · 연결됨/)
 })
