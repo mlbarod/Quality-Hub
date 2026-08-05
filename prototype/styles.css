@@ -3864,10 +3864,6 @@ kbd {
   margin-bottom: 18px;
 }
 
-.role-summary-grid.is-admin-only {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
 .role-summary-card {
   display: flex;
   min-height: 108px;
@@ -3961,7 +3957,7 @@ kbd {
   gap: 7px;
   padding: 0 13px;
   border-radius: 8px;
-  background: var(--primary);
+  background: var(--primary-dark);
   color: white;
   cursor: pointer;
   font-size: 9px;
@@ -3971,14 +3967,14 @@ kbd {
   transition: background 180ms ease, transform 180ms ease, box-shadow 180ms ease;
 }
 
-.admin-add-button:hover { background: var(--primary-dark); box-shadow: 0 8px 20px hsl(204 94% 45% / 21%); transform: translateY(-1px); }
+.admin-add-button:hover { background: hsl(204 94% 32%); box-shadow: 0 8px 20px hsl(204 94% 45% / 21%); transform: translateY(-1px); }
 .admin-add-button .icon { width: 14px; height: 14px; }
 
 .user-table { width: 100%; }
 .user-table-header,
 .user-table-row {
   display: grid;
-  grid-template-columns: minmax(210px, 1.5fr) minmax(150px, 1fr) minmax(120px, .8fr) minmax(120px, .8fr) minmax(100px, .6fr);
+  grid-template-columns: minmax(94px, .65fr) minmax(110px, .75fr) minmax(110px, .75fr) minmax(180px, 1.35fr) minmax(100px, .7fr) minmax(86px, .55fr);
   align-items: center;
   gap: 16px;
   padding: 0 24px;
@@ -3988,7 +3984,7 @@ kbd {
   min-height: 38px;
   border-bottom: 1px solid var(--border);
   background: #f8fbfd;
-  color: var(--faint-foreground);
+  color: var(--muted-foreground);
   font-size: 8px;
   font-weight: 700;
   letter-spacing: .04em;
@@ -4002,13 +3998,19 @@ kbd {
 }
 
 .user-table-row:last-child { border-bottom: 0; }
-.user-identity { display: flex; align-items: center; gap: 10px; }
-.user-identity > .avatar { width: 34px; height: 34px; font-style: normal; }
-.user-identity > span { display: grid; gap: 2px; }
-.user-identity strong { color: var(--foreground); font-size: 11px; }
-.user-identity small { color: var(--faint-foreground); font-size: 8px; }
+.access-role-badge {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 750;
+}
 
-.admin-id { color: var(--foreground); font-size: 9px; font-weight: 620; }
+.access-role-badge.is-admin { background: var(--primary-soft); color: hsl(204 94% 34%); }
+.access-role-badge.is-general { background: #eff2f4; color: #59636c; }
+.access-value { color: var(--foreground); font-size: 9px; font-weight: 650; }
 
 .admin-remove-button {
   height: 31px;
@@ -4030,7 +4032,7 @@ kbd {
 }
 
 .admin-add-dialog {
-  width: min(520px, calc(100vw - 48px));
+  width: min(570px, calc(100vw - 48px));
   max-width: none;
   padding: 0;
   overflow: hidden;
@@ -4096,6 +4098,28 @@ kbd {
 
 .admin-add-body { padding: 22px 22px 20px; }
 .admin-add-body > label { display: block; margin-bottom: 7px; color: var(--foreground); font-size: 10px; font-weight: 680; }
+.access-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.access-form-grid label { display: grid; gap: 7px; color: var(--foreground); font-size: 10px; font-weight: 680; }
+.access-form-grid select {
+  width: 100%;
+  height: 42px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  outline: 0;
+  background: #f8fbfd;
+  color: var(--foreground);
+  font: inherit;
+  font-weight: 550;
+}
+
+.access-form-grid select:focus { border-color: hsl(204 94% 45% / 48%); box-shadow: 0 0 0 4px hsl(204 94% 45% / 8%); }
 .admin-id-input {
   display: flex;
   height: 44px;
@@ -4112,6 +4136,33 @@ kbd {
 .admin-id-input input { width: 100%; height: 100%; padding: 0 12px; border: 0; outline: 0; background: transparent; color: var(--foreground); font-size: 11px; }
 .admin-add-body > small { display: block; margin-top: 6px; color: var(--faint-foreground); font-size: 8px; }
 .admin-add-body > p { margin: 7px 0 0; color: var(--danger); font-size: 9px; }
+.access-role-options {
+  display: flex;
+  gap: 8px;
+  margin: 17px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.access-role-options legend { margin-bottom: 7px; color: var(--foreground); font-size: 10px; font-weight: 680; }
+.access-role-options label {
+  display: inline-flex;
+  min-width: 108px;
+  height: 36px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #f8fbfd;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 650;
+}
+
+.access-role-options label:has(input:checked) { border-color: hsl(204 94% 45% / 42%); background: var(--primary-soft); color: var(--primary-dark); }
+.access-role-options input { accent-color: var(--primary); }
 .admin-add-body > aside { display: flex; align-items: center; gap: 9px; margin-top: 18px; padding: 12px; border: 1px solid #dce7ee; border-radius: 9px; background: var(--surface-soft); }
 .admin-add-body > aside .icon { width: 28px; height: 28px; padding: 6px; border-radius: 7px; background: white; color: var(--primary-dark); }
 .admin-add-body > aside > span { display: grid; gap: 2px; }

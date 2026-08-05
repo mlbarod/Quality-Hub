@@ -175,7 +175,7 @@
               관리 <svg class="icon"><use href="#icon-chevron-down"></use></svg>
             </button>
             <div class="top-nav-menu compact-menu">
-              <button type="button" data-user-open><svg class="icon"><use href="#icon-users"></use></svg><span><strong>사용자 및 권한</strong><small>관리자 권한 추가·삭제</small></span></button>
+              <button type="button" data-user-open><svg class="icon"><use href="#icon-users"></use></svg><span><strong>사용자 및 권한</strong><small>접근 권한 규칙 관리</small></span></button>
             </div>
           </div>
           <button class="top-nav-link agent-nav-button" type="button" data-agent-open aria-expanded="true">
@@ -652,62 +652,68 @@
             <section class="user-page-hero" aria-labelledby="user-page-title">
               <div>
                 <p class="section-kicker">ACCESS MANAGEMENT</p>
-                <h1 id="user-page-title">관리자 권한을<br />간단하게 관리합니다.</h1>
-                <p>마스터 권한자가 사내 ID를 기준으로 관리자 권한을 추가하거나 삭제합니다.</p>
+                <h1 id="user-page-title">포털 접근 권한을<br />규칙으로 관리합니다.</h1>
+                <p>유저 ID와 소속부서 조건을 기준으로 관리자 또는 일반 권한을 부여합니다.</p>
               </div>
               <aside class="user-security-note" role="note">
                 <svg class="icon"><use href="#icon-shield"></use></svg>
-                <span><strong>일반유저는 이 화면에서 관리하지 않습니다.</strong><small>일반유저는 사내 인증을 통해 기본 접근하며 수천 명의 사용자 목록을 별도로 표시하지 않습니다.</small></span>
+                <span><strong>등록된 권한이 없으면 접근할 수 없습니다.</strong><small>향후 SSO에서 받은 유저 ID와 소속부서가 마스터 계정 또는 아래 규칙과 일치할 때만 포털 접근을 허용합니다.</small></span>
               </aside>
             </section>
 
-            <section class="role-summary-grid is-admin-only" aria-label="마스터와 관리자 권한 요약">
+            <section class="role-summary-grid" aria-label="역할별 접근 권한 요약">
               <article class="role-summary-card is-master">
                 <span><svg class="icon"><use href="#icon-shield"></use></svg></span>
-                <div><strong>현재 마스터 · 김품질</strong><small>quality.kim · 관리자 권한을 추가하거나 삭제할 수 있습니다.</small></div>
+                <div><strong>현재 마스터 · 김품질</strong><small>quality.kim · 접근 권한 규칙을 추가하거나 삭제할 수 있습니다.</small></div>
                 <b>MASTER</b>
               </article>
               <article class="role-summary-card is-admin">
                 <span><svg class="icon"><use href="#icon-settings"></use></svg></span>
-                <div><strong>관리자</strong><small>Report·Rule&amp;SOP·Q&amp;A 콘텐츠를 관리합니다.</small></div>
-                <b data-admin-count>2명</b>
+                <div><strong>관리자 규칙</strong><small>일치한 사용자는 콘텐츠 관리 기능을 사용할 수 있습니다.</small></div>
+                <b data-access-count="admin">2개</b>
+              </article>
+              <article class="role-summary-card is-user">
+                <span><svg class="icon"><use href="#icon-users"></use></svg></span>
+                <div><strong>일반 규칙</strong><small>일치한 사용자는 허용된 포털 콘텐츠를 조회할 수 있습니다.</small></div>
+                <b data-access-count="general">1개</b>
               </article>
             </section>
 
             <section class="user-management-card" aria-labelledby="user-list-title">
               <header>
-                <div><p class="section-kicker">ADMIN ACCESS</p><h2 id="user-list-title">관리자 권한 목록</h2><span>관리자만 표시하며 일반유저는 목록과 검색 대상에서 제외합니다.</span></div>
+                <div><p class="section-kicker">ACCESS RULES</p><h2 id="user-list-title">접근 권한 규칙</h2><span>여러 규칙에 일치하면 관리자 권한을 우선 적용합니다.</span></div>
                 <div class="user-management-actions">
-                  <label class="user-search"><svg class="icon"><use href="#icon-search"></use></svg><span class="sr-only">관리자 검색</span><input type="search" placeholder="이름 또는 사내 ID 검색" data-user-search /></label>
-                  <button class="admin-add-button" type="button" data-admin-add-open><svg class="icon"><use href="#icon-plus"></use></svg>관리자 권한 추가</button>
+                  <label class="user-search"><svg class="icon"><use href="#icon-search"></use></svg><span class="sr-only">권한 규칙 검색</span><input type="search" placeholder="조건 값 또는 권한 검색" data-user-search /></label>
+                  <button class="admin-add-button" type="button" data-access-add-open><svg class="icon"><use href="#icon-plus"></use></svg>권한 규칙 추가</button>
                 </div>
               </header>
 
-              <div class="user-table" role="table" aria-label="관리자 권한 목록">
+              <div class="user-table" role="table" aria-label="접근 권한 규칙 목록">
                 <div class="user-table-header" role="row">
-                  <span role="columnheader">관리자</span><span role="columnheader">사내 ID</span><span role="columnheader">소속</span><span role="columnheader">추가 일시</span><span role="columnheader">관리</span>
+                  <span role="columnheader">부여 권한</span><span role="columnheader">기준 항목</span><span role="columnheader">적용 방식</span><span role="columnheader">조건 값</span><span role="columnheader">등록일</span><span role="columnheader">관리</span>
                 </div>
-                <div class="user-table-row" role="row" data-admin-row data-admin-name="박담당" data-admin-id="process.park">
-                  <span class="user-identity" role="cell"><i class="avatar">박</i><span><strong>박담당</strong><small>최근 접속 · 오늘 09:51</small></span></span>
-                  <span role="cell"><strong class="admin-id">process.park</strong></span><span role="cell">공정기술</span><span role="cell">2026-08-05</span>
-                  <span role="cell"><button class="admin-remove-button" type="button" data-admin-remove>권한 삭제</button></span>
+                <div class="user-table-row" role="row" data-access-row data-access-role="admin" data-access-field="user-id" data-access-match="exact" data-access-value="process.park">
+                  <span role="cell"><b class="access-role-badge is-admin">관리자</b></span><span role="cell">유저 ID</span><span role="cell">직접 일치</span><span role="cell"><strong class="access-value">process.park</strong></span><span role="cell">2026-08-05</span>
+                  <span role="cell"><button class="admin-remove-button" type="button" data-access-remove>권한 삭제</button></span>
                 </div>
-                <div class="user-table-row" role="row" data-admin-row data-admin-name="정품질" data-admin-id="quality.jung">
-                  <span class="user-identity" role="cell"><i class="avatar">정</i><span><strong>정품질</strong><small>최근 접속 · 어제 17:14</small></span></span>
-                  <span role="cell"><strong class="admin-id">quality.jung</strong></span><span role="cell">품질기획</span><span role="cell">2026-08-04</span>
-                  <span role="cell"><button class="admin-remove-button" type="button" data-admin-remove>권한 삭제</button></span>
+                <div class="user-table-row" role="row" data-access-row data-access-role="admin" data-access-field="department" data-access-match="contains" data-access-value="품질관리">
+                  <span role="cell"><b class="access-role-badge is-admin">관리자</b></span><span role="cell">소속부서</span><span role="cell">텍스트 포함</span><span role="cell"><strong class="access-value">품질관리</strong></span><span role="cell">2026-08-05</span>
+                  <span role="cell"><button class="admin-remove-button" type="button" data-access-remove>권한 삭제</button></span>
+                </div>
+                <div class="user-table-row" role="row" data-access-row data-access-role="general" data-access-field="department" data-access-match="contains" data-access-value="품질">
+                  <span role="cell"><b class="access-role-badge is-general">일반</b></span><span role="cell">소속부서</span><span role="cell">텍스트 포함</span><span role="cell"><strong class="access-value">품질</strong></span><span role="cell">2026-08-05</span>
+                  <span role="cell"><button class="admin-remove-button" type="button" data-access-remove>권한 삭제</button></span>
                 </div>
               </div>
 
-              <template data-admin-row-template>
-                <div class="user-table-row" role="row" data-admin-row>
-                  <span class="user-identity" role="cell"><i class="avatar" data-admin-avatar>신</i><span><strong data-admin-name>신규 관리자</strong><small>사내 사용자 정보 확인 예정</small></span></span>
-                  <span role="cell"><strong class="admin-id" data-admin-id></strong></span><span role="cell">확인 예정</span><span role="cell">방금 전</span>
-                  <span role="cell"><button class="admin-remove-button" type="button" data-admin-remove>권한 삭제</button></span>
+              <template data-access-row-template>
+                <div class="user-table-row" role="row" data-access-row>
+                  <span role="cell"><b class="access-role-badge" data-access-role-label></b></span><span role="cell" data-access-field-label></span><span role="cell" data-access-match-label></span><span role="cell"><strong class="access-value" data-access-value-label></strong></span><span role="cell">방금 전</span>
+                  <span role="cell"><button class="admin-remove-button" type="button" data-access-remove>권한 삭제</button></span>
                 </div>
               </template>
 
-              <div class="user-empty-state" hidden data-user-empty><svg class="icon"><use href="#icon-search"></use></svg><strong>일치하는 관리자가 없습니다.</strong><span>다른 이름 또는 사내 ID로 검색해 보세요.</span></div>
+              <div class="user-empty-state" hidden data-user-empty><svg class="icon"><use href="#icon-search"></use></svg><strong>일치하는 권한 규칙이 없습니다.</strong><span>다른 조건 값 또는 권한으로 검색해 보세요.</span></div>
             </section>
           </div>
         </div>
@@ -896,21 +902,26 @@
 
     </div>
 
-    <dialog class="admin-add-dialog" aria-labelledby="admin-add-title" aria-describedby="admin-add-description" data-admin-add-dialog>
-      <form class="admin-add-form" data-admin-add-form novalidate>
-        <header>
+    <dialog class="admin-add-dialog" aria-labelledby="access-add-title" aria-describedby="access-add-description" data-access-add-dialog>
+      <form class="admin-add-form" data-access-add-form novalidate>
+        <header role="presentation">
           <span class="admin-add-mark"><svg class="icon"><use href="#icon-users"></use></svg></span>
-          <span><strong id="admin-add-title">관리자 권한 추가</strong><small id="admin-add-description">관리자로 지정할 사용자의 사내 ID를 입력하세요.</small></span>
-          <button type="button" aria-label="관리자 권한 추가 닫기" data-admin-add-close><svg class="icon"><use href="#icon-close"></use></svg></button>
+          <span><strong id="access-add-title">접근 권한 규칙 추가</strong><small id="access-add-description">SSO에서 받을 항목과 비교할 조건을 설정하세요.</small></span>
+          <button type="button" aria-label="접근 권한 규칙 추가 닫기" data-access-add-close><svg class="icon"><use href="#icon-close"></use></svg></button>
         </header>
         <div class="admin-add-body">
-          <label for="admin-company-id">사내 ID</label>
-          <div class="admin-id-input"><span>ID</span><input id="admin-company-id" type="text" placeholder="예: quality.hong" autocomplete="off" maxlength="40" aria-describedby="admin-id-help admin-id-error" data-admin-id-input /></div>
-          <small id="admin-id-help">영문, 숫자, 마침표(.), 밑줄(_), 하이픈(-)을 사용할 수 있습니다.</small>
-          <p id="admin-id-error" role="alert" hidden data-admin-id-error></p>
-          <aside role="note"><svg class="icon"><use href="#icon-shield"></use></svg><span><strong>사내 사용자 확인 후 관리자 권한이 부여됩니다.</strong><small>현재 목업에서는 입력한 ID가 목록에 즉시 추가되며 새로고침하면 초기화됩니다.</small></span></aside>
+          <div class="access-form-grid">
+            <label>기준 항목<select data-access-field-input><option value="user-id">유저 ID</option><option value="department">소속부서</option></select></label>
+            <label>적용 방식<select data-access-match-input><option value="exact">직접 일치</option><option value="contains">텍스트 포함</option></select></label>
+          </div>
+          <label for="access-condition-value">조건 값</label>
+          <div class="admin-id-input"><span data-access-input-prefix>ID</span><input id="access-condition-value" type="text" placeholder="예: quality.hong" autocomplete="off" maxlength="80" aria-describedby="access-value-help access-value-error" data-access-value-input /></div>
+          <small id="access-value-help" data-access-value-help>SSO에서 받은 유저 ID 값이 입력값과 정확히 같을 때 적용합니다.</small>
+          <fieldset class="access-role-options"><legend>부여 권한</legend><label><input type="radio" name="access-role" value="admin" checked data-access-role />관리자</label><label><input type="radio" name="access-role" value="general" data-access-role />일반</label></fieldset>
+          <p id="access-value-error" role="alert" hidden data-access-value-error></p>
+          <aside role="note"><svg class="icon"><use href="#icon-shield"></use></svg><span><strong>일치하는 규칙이 없는 사용자는 접근이 차단됩니다.</strong><small>현재 목업의 규칙은 새로고침하면 초기화되며, 실제 SSO 조회와 저장은 아직 연결하지 않았습니다.</small></span></aside>
         </div>
-        <footer><button type="button" class="admin-dialog-cancel" data-admin-add-close>취소</button><button type="submit" class="admin-dialog-submit"><svg class="icon"><use href="#icon-plus"></use></svg>관리자 권한 추가</button></footer>
+        <footer><button type="button" class="admin-dialog-cancel" data-access-add-close>취소</button><button type="submit" class="admin-dialog-submit"><svg class="icon"><use href="#icon-plus"></use></svg>권한 규칙 추가</button></footer>
       </form>
     </dialog>
 

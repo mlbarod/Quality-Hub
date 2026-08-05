@@ -19,11 +19,15 @@ const userWorkspace = document.querySelector("[data-user-workspace]");
 const userPage = document.querySelector("[data-user-page]");
 const userSearch = document.querySelector("[data-user-search]");
 const userEmptyState = document.querySelector("[data-user-empty]");
-const adminAddDialog = document.querySelector("[data-admin-add-dialog]");
-const adminAddForm = document.querySelector("[data-admin-add-form]");
-const adminIdInput = document.querySelector("[data-admin-id-input]");
-const adminIdError = document.querySelector("[data-admin-id-error]");
-const adminRowTemplate = document.querySelector("[data-admin-row-template]");
+const accessAddDialog = document.querySelector("[data-access-add-dialog]");
+const accessAddForm = document.querySelector("[data-access-add-form]");
+const accessFieldInput = document.querySelector("[data-access-field-input]");
+const accessMatchInput = document.querySelector("[data-access-match-input]");
+const accessValueInput = document.querySelector("[data-access-value-input]");
+const accessValueHelp = document.querySelector("[data-access-value-help]");
+const accessValueError = document.querySelector("[data-access-value-error]");
+const accessInputPrefix = document.querySelector("[data-access-input-prefix]");
+const accessRowTemplate = document.querySelector("[data-access-row-template]");
 const globalSearch = document.querySelector("[data-global-search]");
 const globalSearchInput = document.querySelector("[data-global-search-input]");
 const globalSearchEmpty = document.querySelector("[data-global-search-empty]");
@@ -33,7 +37,7 @@ let ruleArrangeTimer;
 let ruleReturnFocus;
 let qnaReturnFocus;
 let userReturnFocus;
-let adminAddReturnFocus;
+let accessAddReturnFocus;
 let globalSearchReturnFocus;
 
 const chartPeriods = {
@@ -383,7 +387,7 @@ const setUserMode = (mode, { announce = true, focus = true, restoreAgent = true 
   }
 
   if (!announce) return;
-  if (mode === "open") showToast("사용자별 권한 관리 화면을 열었습니다.");
+  if (mode === "open") showToast("접근 권한 규칙 관리 화면을 열었습니다.");
   else showToast("대시보드로 돌아왔습니다.");
 };
 
@@ -437,18 +441,34 @@ document.querySelectorAll("[data-user-close]").forEach((button) => {
   button.addEventListener("click", () => setUserMode("closed"));
 });
 
-const getAdminRows = () => [...document.querySelectorAll("[data-admin-row]")];
+const getAccessRows = () => [...document.querySelectorAll("[data-access-row]")];
 
-const updateAdminCount = () => {
-  document.querySelector("[data-admin-count]")?.replaceChildren(`${getAdminRows().length}명`);
+const updateAccessCounts = () => {
+  ["admin", "general"].forEach((role) => {
+    const count = getAccessRows().filter((row) => row.dataset.accessRole === role).length;
+    document.querySelector(`[data-access-count="${role}"]`)?.replaceChildren(`${count}개`);
+  });
 };
 
-const applyAdminSearch = () => {
+const applyAccessSearch = () => {
   if (!(userSearch instanceof HTMLInputElement)) return;
   const searchTerm = userSearch.value.trim().toLocaleLowerCase("ko-KR");
   let visibleCount = 0;
-  getAdminRows().forEach((row) => {
-    const searchTarget = [row.dataset.adminName, row.dataset.adminId].join(" ").toLocaleLowerCase("ko-KR");
+  getAccessRows().forEach((row) => {
+    const labels = {
+      admin: "관리자",
+      general: "일반",
+      "user-id": "유저 ID",
+      department: "소속부서",
+      exact: "직접 일치",
+      contains: "텍스트 포함",
+    };
+    const searchTarget = [
+      labels[row.dataset.accessRole],
+      labels[row.dataset.accessField],
+      labels[row.dataset.accessMatch],
+      row.dataset.accessValue,
+    ].join(" ").toLocaleLowerCase("ko-KR");
     const isVisible = !searchTerm || searchTarget.includes(searchTerm);
     row.hidden = !isVisible;
     if (isVisible) visibleCount += 1;
@@ -456,77 +476,112 @@ const applyAdminSearch = () => {
   if (userEmptyState instanceof HTMLElement) userEmptyState.hidden = visibleCount > 0;
 };
 
-userSearch?.addEventListener("input", applyAdminSearch);
+userSearch?.addEventListener("input", applyAccessSearch);
 
 userWorkspace?.addEventListener("click", (event) => {
-  const removeButton = event.target.closest("[data-admin-remove]");
+  const removeButton = event.target.closest("[data-access-remove]");
   if (!(removeButton instanceof HTMLButtonElement)) return;
-  const row = removeButton.closest("[data-admin-row]");
+  const row = removeButton.closest("[data-access-row]");
   if (!(row instanceof HTMLElement)) return;
 
-  const adminId = row.dataset.adminId;
+  const accessValue = row.dataset.accessValue;
   row.remove();
-  updateAdminCount();
-  applyAdminSearch();
-  showToast(`${adminId}의 관리자 권한을 삭제했습니다. (목업)`);
+  updateAccessCounts();
+  applyAccessSearch();
+  showToast(`${accessValue} 조건의 권한 규칙을 삭제했습니다. (목업)`);
 });
 
-document.querySelectorAll("[data-admin-add-open]").forEach((button) => {
+const updateAccessFormGuide = () => {
+  if (!(accessFieldInput instanceof HTMLSelectElement) || !(accessMatchInput instanceof HTMLSelectElement)) return;
+  const isUserId = accessFieldInput.value === "user-id";
+  const isExact = accessMatchInput.value === "exact";
+  accessInputPrefix?.replaceChildren(isUserId ? "ID" : "부서");
+  if (accessValueInput instanceof HTMLInputElement) {
+    accessValueInput.placeholder = isUserId ? "예: quality.hong" : "예: 품질관리";
+  }
+  if (accessValueHelp instanceof HTMLElement) {
+    const fieldLabel = isUserId ? "유저 ID" : "소속부서";
+    const comparisonLabel = isExact ? "입력값과 정확히 같을" : "입력한 텍스트를 포함할";
+    accessValueHelp.replaceChildren(`SSO에서 받은 ${fieldLabel} 값이 ${comparisonLabel} 때 적용합니다.`);
+  }
+};
+
+accessFieldInput?.addEventListener("change", updateAccessFormGuide);
+accessMatchInput?.addEventListener("change", updateAccessFormGuide);
+
+document.querySelectorAll("[data-access-add-open]").forEach((button) => {
   button.addEventListener("click", () => {
-    if (!(adminAddDialog instanceof HTMLDialogElement) || adminAddDialog.open) return;
-    adminAddReturnFocus = button;
-    adminAddForm?.reset();
-    adminIdInput?.removeAttribute("aria-invalid");
-    if (adminIdError instanceof HTMLElement) adminIdError.hidden = true;
-    adminAddDialog.showModal();
-    window.requestAnimationFrame(() => adminIdInput?.focus());
+    if (!(accessAddDialog instanceof HTMLDialogElement) || accessAddDialog.open) return;
+    accessAddReturnFocus = button;
+    accessAddForm?.reset();
+    accessValueInput?.removeAttribute("aria-invalid");
+    if (accessValueError instanceof HTMLElement) accessValueError.hidden = true;
+    updateAccessFormGuide();
+    accessAddDialog.showModal();
+    window.requestAnimationFrame(() => accessValueInput?.focus());
   });
 });
 
-document.querySelectorAll("[data-admin-add-close]").forEach((button) => {
-  button.addEventListener("click", () => adminAddDialog?.close());
+document.querySelectorAll("[data-access-add-close]").forEach((button) => {
+  button.addEventListener("click", () => accessAddDialog?.close());
 });
 
-adminAddDialog?.addEventListener("click", (event) => {
-  if (event.target === adminAddDialog) adminAddDialog.close();
+accessAddDialog?.addEventListener("click", (event) => {
+  if (event.target === accessAddDialog) accessAddDialog.close();
 });
 
-adminAddDialog?.addEventListener("close", () => adminAddReturnFocus?.focus());
+accessAddDialog?.addEventListener("close", () => accessAddReturnFocus?.focus());
 
-adminAddForm?.addEventListener("submit", (event) => {
+accessAddForm?.addEventListener("submit", (event) => {
   event.preventDefault();
-  if (!(adminIdInput instanceof HTMLInputElement) || !(adminIdError instanceof HTMLElement)) return;
+  if (!(accessFieldInput instanceof HTMLSelectElement) || !(accessMatchInput instanceof HTMLSelectElement) || !(accessValueInput instanceof HTMLInputElement) || !(accessValueError instanceof HTMLElement)) return;
 
-  const companyId = adminIdInput.value.trim().toLocaleLowerCase("en-US");
-  const isValidFormat = /^[a-z0-9][a-z0-9._-]{2,39}$/i.test(companyId);
-  const isDuplicate = getAdminRows().some((row) => row.dataset.adminId?.toLocaleLowerCase("en-US") === companyId);
+  const accessField = accessFieldInput.value;
+  const accessMatch = accessMatchInput.value;
+  const accessRole = accessAddForm.querySelector("[data-access-role]:checked")?.value;
+  const rawValue = accessValueInput.value.trim();
+  const accessValue = accessField === "user-id" ? rawValue.toLocaleLowerCase("en-US") : rawValue;
+  const isValidFormat = accessField === "user-id"
+    ? /^[a-z0-9][a-z0-9._-]{1,79}$/i.test(accessValue)
+    : accessValue.length >= 2 && accessValue.length <= 80;
+  const isDuplicate = getAccessRows().some((row) =>
+    row.dataset.accessField === accessField &&
+    row.dataset.accessMatch === accessMatch &&
+    row.dataset.accessValue?.toLocaleLowerCase("ko-KR") === accessValue.toLocaleLowerCase("ko-KR")
+  );
 
   if (!isValidFormat || isDuplicate) {
-    adminIdInput.setAttribute("aria-invalid", "true");
-    adminIdError.hidden = false;
-    adminIdError.replaceChildren(isDuplicate ? "이미 관리자 권한이 있는 사내 ID입니다." : "올바른 사내 ID 형식으로 입력해 주세요.");
-    adminIdInput.focus();
+    accessValueInput.setAttribute("aria-invalid", "true");
+    accessValueError.hidden = false;
+    accessValueError.replaceChildren(isDuplicate ? "같은 기준 항목, 적용 방식, 조건 값의 규칙이 이미 있습니다." : "조건 값을 두 글자 이상 올바른 형식으로 입력해 주세요.");
+    accessValueInput.focus();
     return;
   }
 
-  if (!(adminRowTemplate instanceof HTMLTemplateElement)) return;
-  const row = adminRowTemplate.content.firstElementChild?.cloneNode(true);
+  if (!(accessRowTemplate instanceof HTMLTemplateElement) || !["admin", "general"].includes(accessRole)) return;
+  const row = accessRowTemplate.content.firstElementChild?.cloneNode(true);
   const table = document.querySelector(".user-table");
   if (!(row instanceof HTMLElement) || !(table instanceof HTMLElement)) return;
 
-  row.dataset.adminId = companyId;
-  row.dataset.adminName = companyId;
-  row.querySelector("[data-admin-name]")?.replaceChildren(companyId);
-  row.querySelector("[data-admin-id]")?.replaceChildren(companyId);
-  row.querySelector("[data-admin-avatar]")?.replaceChildren(companyId.slice(0, 1).toLocaleUpperCase("en-US"));
+  const roleLabel = accessRole === "admin" ? "관리자" : "일반";
+  row.dataset.accessRole = accessRole;
+  row.dataset.accessField = accessField;
+  row.dataset.accessMatch = accessMatch;
+  row.dataset.accessValue = accessValue;
+  const roleBadge = row.querySelector("[data-access-role-label]");
+  roleBadge?.replaceChildren(roleLabel);
+  roleBadge?.classList.add(accessRole === "admin" ? "is-admin" : "is-general");
+  row.querySelector("[data-access-field-label]")?.replaceChildren(accessField === "user-id" ? "유저 ID" : "소속부서");
+  row.querySelector("[data-access-match-label]")?.replaceChildren(accessMatch === "exact" ? "직접 일치" : "텍스트 포함");
+  row.querySelector("[data-access-value-label]")?.replaceChildren(accessValue);
   table.append(row);
-  adminAddDialog.close();
-  updateAdminCount();
-  applyAdminSearch();
-  showToast(`${companyId}에 관리자 권한을 추가했습니다. (목업)`);
+  accessAddDialog.close();
+  updateAccessCounts();
+  applyAccessSearch();
+  showToast(`${accessValue} 조건에 ${roleLabel} 권한 규칙을 추가했습니다. (목업)`);
 });
 
-updateAdminCount();
+updateAccessCounts();
 
 document.querySelectorAll("[data-agent-expand]").forEach((button) => {
   button.addEventListener("click", () => setAgentMode("full"));
