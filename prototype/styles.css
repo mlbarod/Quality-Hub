@@ -3758,6 +3758,332 @@ kbd {
 .rule-empty-state strong { margin-top: 4px; font-size: 11px; }
 .rule-empty-state span { color: var(--faint-foreground); font-size: 8px; }
 
+body:not(.rule-manager) .rule-admin-only { display: none !important; }
+
+.rule-document-create-card {
+  display: flex;
+  min-height: 226px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  padding: 24px;
+  border: 1px dashed hsl(204 40% 72%);
+  border-radius: 11px;
+  background: linear-gradient(145deg, #f8fbfd, #fff);
+  color: var(--muted-foreground);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 200ms ease, background 200ms ease, color 200ms ease, transform 220ms ease, box-shadow 220ms ease;
+}
+
+.rule-document-create-card:hover {
+  border-color: hsl(204 94% 45% / 48%);
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  box-shadow: 0 12px 26px hsl(204 94% 45% / 10%);
+  transform: translateY(-4px);
+}
+
+.rule-create-icon {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  margin-bottom: 4px;
+  place-items: center;
+  border: 1px solid hsl(204 94% 45% / 18%);
+  border-radius: 16px;
+  background: white;
+  color: var(--primary);
+  box-shadow: 0 8px 20px hsl(204 94% 45% / 9%);
+}
+
+.rule-create-icon .icon { width: 25px; height: 25px; }
+.rule-document-create-card > strong { color: var(--foreground); font-size: 15px; }
+.rule-document-create-card > small { max-width: 210px; font-size: 12px; line-height: 1.55; }
+.rule-document-create-card > em {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--primary-dark);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.rule-detail-dialog,
+.rule-editor-dialog,
+.rule-delete-dialog {
+  max-width: none;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  color: var(--foreground);
+  box-shadow: 0 30px 90px rgb(15 23 42 / 24%);
+}
+
+.rule-detail-dialog { width: min(820px, calc(100vw - 64px)); border-radius: 17px; }
+.rule-editor-dialog { width: min(900px, calc(100vw - 64px)); border-radius: 17px; }
+.rule-delete-dialog { width: min(440px, calc(100vw - 48px)); border-radius: 15px; }
+
+.rule-detail-dialog::backdrop,
+.rule-editor-dialog::backdrop,
+.rule-delete-dialog::backdrop {
+  background: rgb(15 23 42 / 46%);
+  backdrop-filter: blur(3px);
+}
+
+.rule-detail-dialog[open],
+.rule-editor-dialog[open],
+.rule-delete-dialog[open] { animation: global-search-in 180ms cubic-bezier(.2, .72, .25, 1) both; }
+
+.rule-detail-panel,
+.rule-editor-form,
+.rule-delete-panel {
+  overflow: hidden;
+  border: 1px solid hsl(204 30% 80% / 78%);
+  border-radius: inherit;
+  background: white;
+}
+
+.rule-detail-panel > header,
+.rule-editor-form > header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 21px 23px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.rule-dialog-mark {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+}
+
+.rule-dialog-mark .icon { width: 22px; height: 22px; }
+.rule-detail-panel > header > span:nth-child(2),
+.rule-editor-form > header > span:nth-child(2) { display: grid; min-width: 0; gap: 2px; }
+.rule-detail-panel > header small { color: var(--primary-dark); font-size: 11px; font-weight: 750; letter-spacing: .05em; }
+.rule-detail-panel > header strong,
+.rule-editor-form > header strong { overflow: hidden; font-size: 20px; text-overflow: ellipsis; white-space: nowrap; }
+.rule-detail-panel > header em,
+.rule-editor-form > header small { color: var(--muted-foreground); font-size: 13px; font-style: normal; }
+
+.rule-detail-panel > header > button,
+.rule-editor-form > header > button {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  margin-left: auto;
+  place-items: center;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.rule-detail-panel > header > button:hover,
+.rule-editor-form > header > button:hover { background: var(--surface-muted); color: var(--foreground); }
+.rule-detail-panel > header > button .icon,
+.rule-editor-form > header > button .icon { width: 19px; height: 19px; }
+
+.rule-detail-body {
+  display: grid;
+  gap: 18px;
+  max-height: min(650px, calc(100vh - 220px));
+  padding: 22px 24px 25px;
+  overflow-y: auto;
+}
+
+.rule-detail-classification {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.rule-detail-classification > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 13px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #f8fbfd;
+}
+
+.rule-detail-classification dt { color: var(--faint-foreground); font-size: 11px; font-weight: 650; }
+.rule-detail-classification dd { margin: 0; overflow: hidden; font-size: 14px; font-weight: 680; text-overflow: ellipsis; white-space: nowrap; }
+
+.rule-source-link {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #dce7ee;
+  border-radius: 11px;
+  background: var(--surface-soft);
+}
+
+.rule-source-link > span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 9px;
+  background: white;
+  color: var(--primary-dark);
+}
+
+.rule-source-link > span .icon { width: 18px; height: 18px; }
+.rule-source-link > div { display: grid; min-width: 0; gap: 2px; }
+.rule-source-link strong { font-size: 14px; }
+.rule-source-link small { overflow: hidden; color: var(--muted-foreground); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.rule-source-link > button {
+  display: inline-flex;
+  height: 40px;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  padding: 0 14px;
+  border: 1px solid hsl(204 94% 45% / 20%);
+  border-radius: 9px;
+  background: white;
+  color: var(--primary-dark);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 680;
+}
+.rule-source-link > button:hover { background: var(--primary-soft); }
+.rule-source-link > button .icon { width: 16px; height: 16px; }
+
+.rule-revision-section {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.rule-revision-section > header {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  background: #f8fbfd;
+}
+
+.rule-revision-section > header > span { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 9px; background: var(--primary-soft); color: var(--primary-dark); }
+.rule-revision-section > header > span .icon { width: 17px; height: 17px; }
+.rule-revision-section > header > div { display: grid; gap: 2px; }
+.rule-revision-section > header strong { font-size: 14px; }
+.rule-revision-section > header small { color: var(--muted-foreground); font-size: 12px; }
+.rule-revision-section ol { display: grid; max-height: 210px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.rule-revision-section li { display: flex; align-items: flex-start; gap: 12px; padding: 13px 16px; border-bottom: 1px solid #e8eef2; }
+.rule-revision-section li:last-child { border-bottom: 0; }
+.rule-revision-section li > b { min-width: 48px; padding: 4px 7px; border-radius: 999px; background: var(--primary-soft); color: var(--primary-dark); font-size: 11px; text-align: center; }
+.rule-revision-section li > span { display: grid; gap: 2px; }
+.rule-revision-section li strong { font-size: 13px; }
+.rule-revision-section li small { color: var(--muted-foreground); font-size: 11px; }
+
+.rule-detail-panel > footer {
+  display: flex;
+  min-height: 68px;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 22px;
+  border-top: 1px solid var(--border);
+  background: #f8fbfd;
+}
+
+.rule-detail-panel > footer > span { color: var(--faint-foreground); font-size: 11px; }
+.rule-admin-actions { display: flex; gap: 9px; margin-left: auto; }
+.rule-admin-actions button,
+.rule-editor-form > footer button {
+  display: inline-flex;
+  height: 42px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 15px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 680;
+}
+.rule-admin-actions .icon,
+.rule-editor-form > footer .icon { width: 16px; height: 16px; }
+.rule-detail-delete { border: 1px solid #ead7d5; background: #fffafa; color: var(--danger); }
+.rule-detail-delete:hover { background: #fff1f0; }
+.rule-detail-edit { background: var(--primary); color: white; }
+.rule-detail-edit:hover { background: var(--primary-dark); }
+
+.rule-editor-body {
+  display: grid;
+  gap: 19px;
+  max-height: min(690px, calc(100vh - 220px));
+  padding: 23px 25px 25px;
+  overflow-y: auto;
+}
+
+.rule-editor-basic-grid { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 14px; }
+.rule-editor-body label { display: grid; gap: 7px; color: var(--foreground); font-size: 13px; font-weight: 680; }
+.rule-editor-body input,
+.rule-editor-body select,
+.rule-editor-body textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  outline: 0;
+  background: #f8fbfd;
+  color: var(--foreground);
+  font: inherit;
+  font-weight: 550;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.rule-editor-body input,
+.rule-editor-body select { height: 46px; padding: 0 12px; }
+.rule-editor-body textarea { min-height: 82px; padding: 11px 12px; resize: vertical; }
+.rule-editor-body input:focus,
+.rule-editor-body select:focus,
+.rule-editor-body textarea:focus { border-color: hsl(204 94% 45% / 48%); box-shadow: 0 0 0 4px hsl(204 94% 45% / 8%); }
+
+.rule-editor-taxonomy { margin: 0; padding: 16px; border: 1px solid #dce7ee; border-radius: 11px; background: var(--surface-soft); }
+.rule-editor-taxonomy legend { padding: 0 5px; font-size: 14px; font-weight: 720; }
+.rule-editor-taxonomy legend small { margin-left: 6px; color: var(--muted-foreground); font-size: 11px; font-weight: 500; }
+.rule-editor-taxonomy > div { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.rule-editor-taxonomy label > span { display: flex; align-items: center; gap: 6px; }
+.rule-editor-taxonomy label > span i { display: grid; width: 22px; height: 22px; place-items: center; border-radius: 6px; background: var(--foreground); color: white; font-size: 9px; font-style: normal; }
+.rule-editor-url small { color: var(--muted-foreground); font-size: 11px; font-weight: 500; }
+.rule-editor-error { margin: -4px 0 0; color: var(--danger); font-size: 12px; }
+
+.rule-editor-form > footer { display: flex; justify-content: flex-end; gap: 9px; padding: 15px 23px; border-top: 1px solid var(--border); background: #f8fbfd; }
+.rule-editor-cancel { border: 1px solid var(--border); background: white; color: var(--muted-foreground); }
+.rule-editor-submit { background: var(--primary); color: white; }
+.rule-editor-submit:hover { background: var(--primary-dark); }
+
+.rule-delete-panel { display: grid; justify-items: center; padding: 30px 28px 25px; text-align: center; }
+.rule-delete-mark { display: grid; width: 54px; height: 54px; margin-bottom: 14px; place-items: center; border-radius: 15px; background: #fff1f0; color: var(--danger); }
+.rule-delete-mark .icon { width: 24px; height: 24px; }
+.rule-delete-panel > strong { font-size: 19px; }
+.rule-delete-panel > p { margin: 7px 0 22px; color: var(--muted-foreground); font-size: 13px; line-height: 1.55; }
+.rule-delete-panel > p b { color: var(--foreground); }
+.rule-delete-panel > div { display: grid; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.rule-delete-panel > div button { height: 43px; border-radius: 9px; cursor: pointer; font-size: 13px; font-weight: 680; }
+.rule-delete-panel > div button:first-child { border: 1px solid var(--border); background: white; color: var(--muted-foreground); }
+.rule-delete-panel > div button:last-child { background: var(--danger); color: white; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rule-document-create-card:hover { transform: none; }
+}
+
 /* 사용자 및 권한: 인원별 3단계 역할 관리 */
 .user-workspace {
   position: fixed;

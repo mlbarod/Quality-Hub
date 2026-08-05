@@ -13,7 +13,21 @@ const reportEmptyState = document.querySelector("[data-report-empty]");
 const ruleWorkspace = document.querySelector("[data-rule-workspace]");
 const rulePage = document.querySelector("[data-rule-page]");
 const ruleCardGrid = document.querySelector("[data-rule-card-grid]");
+const ruleCardTemplate = document.querySelector("[data-rule-card-template]");
 const ruleEmptyState = document.querySelector("[data-rule-empty]");
+const ruleDetailDialog = document.querySelector("[data-rule-detail-dialog]");
+const ruleEditorDialog = document.querySelector("[data-rule-editor-dialog]");
+const ruleEditorForm = document.querySelector("[data-rule-editor-form]");
+const ruleDeleteDialog = document.querySelector("[data-rule-delete-dialog]");
+const ruleEditorType = document.querySelector("[data-rule-editor-type]");
+const ruleEditorName = document.querySelector("[data-rule-editor-name]");
+const ruleEditorMajor = document.querySelector("[data-rule-editor-major]");
+const ruleEditorMiddle = document.querySelector("[data-rule-editor-middle]");
+const ruleEditorMinor = document.querySelector("[data-rule-editor-minor]");
+const ruleEditorProcess = document.querySelector("[data-rule-editor-process]");
+const ruleEditorUrl = document.querySelector("[data-rule-editor-url]");
+const ruleEditorNote = document.querySelector("[data-rule-editor-note]");
+const ruleEditorError = document.querySelector("[data-rule-editor-error]");
 const qnaWorkspace = document.querySelector("[data-qna-workspace]");
 const userWorkspace = document.querySelector("[data-user-workspace]");
 const userPage = document.querySelector("[data-user-page]");
@@ -35,6 +49,10 @@ let toastTimer;
 let reportEntryTimer;
 let ruleArrangeTimer;
 let ruleReturnFocus;
+let ruleDialogReturnFocus;
+let ruleEditorReturnFocus;
+let activeRuleCard;
+let ruleEditorMode = "create";
 let qnaReturnFocus;
 let userReturnFocus;
 let accessAddReturnFocus;
@@ -701,6 +719,176 @@ const ruleFilterLabels = {
   minor: "소분류",
 };
 
+const ruleTaxonomyLabels = {
+  major: {
+    "major-a": "예시 대분류 A",
+    "major-b": "예시 대분류 B",
+    "major-c": "예시 대분류 C",
+  },
+  middle: {
+    "middle-a1": "예시 중분류 A-1",
+    "middle-a2": "예시 중분류 A-2",
+    "middle-b1": "예시 중분류 B-1",
+    "middle-b2": "예시 중분류 B-2",
+    "middle-c1": "예시 중분류 C-1",
+    "middle-c2": "예시 중분류 C-2",
+  },
+  minor: {
+    "minor-01": "예시 소분류 01",
+    "minor-02": "예시 소분류 02",
+    "minor-03": "예시 소분류 03",
+    "minor-04": "예시 소분류 04",
+  },
+};
+
+const ruleMiddleByMajor = {
+  "major-a": ["middle-a1", "middle-a2"],
+  "major-b": ["middle-b1", "middle-b2"],
+  "major-c": ["middle-c1", "middle-c2"],
+};
+
+const ruleMinorByMiddle = {
+  "middle-a1": ["minor-01", "minor-02"],
+  "middle-a2": ["minor-03"],
+  "middle-b1": ["minor-01", "minor-04"],
+  "middle-b2": ["minor-02"],
+  "middle-c1": ["minor-03"],
+  "middle-c2": ["minor-04"],
+};
+
+const ruleProcessesByMinor = {
+  "minor-01": ["식각", "확산"],
+  "minor-02": ["세정", "포토"],
+  "minor-03": ["검사", "증착"],
+  "minor-04": ["식각", "세정"],
+};
+
+const ruleRevisionHistory = new Map();
+const canManageRuleDocuments = prototype?.dataset.canManageRules === "true";
+document.body.classList.toggle("rule-manager", canManageRuleDocuments);
+
+const replaceRuleSelectOptions = (select, values, labels, preferredValue) => {
+  if (!(select instanceof HTMLSelectElement)) return;
+  select.replaceChildren(...values.map((value) => new Option(labels?.[value] ?? value, value)));
+  if (preferredValue && values.includes(preferredValue)) select.value = preferredValue;
+};
+
+const syncRuleEditorTaxonomy = ({ middle, minor, process } = {}) => {
+  if (!(ruleEditorMajor instanceof HTMLSelectElement)) return;
+  const middleValues = ruleMiddleByMajor[ruleEditorMajor.value] ?? [];
+  replaceRuleSelectOptions(ruleEditorMiddle, middleValues, ruleTaxonomyLabels.middle, middle);
+
+  const minorValues = ruleMinorByMiddle[ruleEditorMiddle?.value] ?? [];
+  replaceRuleSelectOptions(ruleEditorMinor, minorValues, ruleTaxonomyLabels.minor, minor);
+
+  const processValues = ruleProcessesByMinor[ruleEditorMinor?.value] ?? [];
+  replaceRuleSelectOptions(ruleEditorProcess, processValues, null, process);
+};
+
+const getRuleRevisionHistory = (card) => {
+  if (!(card instanceof HTMLElement)) return [];
+  const ruleId = card.dataset.ruleId;
+  if (!ruleId) return [];
+  if (!ruleRevisionHistory.has(ruleId)) {
+    ruleRevisionHistory.set(ruleId, [{
+      version: `v${card.dataset.ruleVersion ?? "0.1"}`,
+      date: card.dataset.ruleUpdated ?? "2026-08-05",
+      author: "김품질",
+      note: "초기 문서 등록",
+    }]);
+  }
+  return ruleRevisionHistory.get(ruleId);
+};
+
+const renderRuleRevisionHistory = (card) => {
+  const list = document.querySelector("[data-rule-revision-list]");
+  if (!(list instanceof HTMLOListElement)) return;
+  const items = getRuleRevisionHistory(card).map((revision) => {
+    const item = document.createElement("li");
+    const version = document.createElement("b");
+    const copy = document.createElement("span");
+    const note = document.createElement("strong");
+    const meta = document.createElement("small");
+    version.textContent = revision.version;
+    note.textContent = revision.note;
+    meta.textContent = `${revision.date} · ${revision.author}`;
+    copy.append(note, meta);
+    item.append(version, copy);
+    return item;
+  });
+  list.replaceChildren(...items);
+};
+
+const getRuleClassificationText = (card) => [
+  ruleTaxonomyLabels.major[card.dataset.ruleMajor],
+  ruleTaxonomyLabels.middle[card.dataset.ruleMiddle],
+  ruleTaxonomyLabels.minor[card.dataset.ruleMinor],
+  `${card.dataset.ruleProcess} 공정`,
+].filter(Boolean).join(" · ");
+
+const renderRuleCard = (card) => {
+  if (!(card instanceof HTMLElement)) return;
+  const type = card.dataset.ruleType === "sop" ? "SOP" : "RULE";
+  const visual = card.querySelector(".rule-document-visual");
+  visual?.classList.toggle("is-rule", type === "RULE");
+  visual?.classList.toggle("is-sop", type === "SOP");
+  card.querySelector(".rule-document-type > i")?.replaceChildren(type);
+  (card.querySelector("[data-rule-card-title]") ?? card.querySelector(":scope > strong"))?.replaceChildren(card.dataset.ruleTitle ?? "제목 없음");
+  (card.querySelector("[data-rule-card-classification]") ?? card.querySelector(":scope > small"))?.replaceChildren(getRuleClassificationText(card));
+  (card.querySelector("[data-rule-card-version]") ?? card.querySelector(".rule-document-meta > i"))?.replaceChildren(`v${card.dataset.ruleVersion ?? "0.1"} MOCK`);
+};
+
+const populateRuleDetail = (card) => {
+  if (!(card instanceof HTMLElement)) return;
+  const type = card.dataset.ruleType === "sop" ? "SOP" : "RULE";
+  document.querySelector("[data-rule-detail-type]")?.replaceChildren(`${type} · v${card.dataset.ruleVersion ?? "0.1"}`);
+  document.querySelector("[data-rule-detail-title]")?.replaceChildren(card.dataset.ruleTitle ?? "Rule&SOP 문서");
+  document.querySelector("[data-rule-detail-major]")?.replaceChildren(ruleTaxonomyLabels.major[card.dataset.ruleMajor] ?? "미분류");
+  document.querySelector("[data-rule-detail-middle]")?.replaceChildren(ruleTaxonomyLabels.middle[card.dataset.ruleMiddle] ?? "미분류");
+  document.querySelector("[data-rule-detail-minor]")?.replaceChildren(ruleTaxonomyLabels.minor[card.dataset.ruleMinor] ?? "미분류");
+  document.querySelector("[data-rule-detail-process]")?.replaceChildren(card.dataset.ruleProcess ?? "미지정");
+  document.querySelector("[data-rule-detail-url]")?.replaceChildren(card.dataset.ruleUrl ?? "URL 미등록");
+  renderRuleRevisionHistory(card);
+};
+
+const openRuleDetail = (card, returnFocus = card) => {
+  if (!(card instanceof HTMLElement) || !(ruleDetailDialog instanceof HTMLDialogElement)) return;
+  activeRuleCard = card;
+  ruleDialogReturnFocus = returnFocus;
+  populateRuleDetail(card);
+  if (!ruleDetailDialog.open) ruleDetailDialog.showModal();
+};
+
+const closeRuleEditor = () => {
+  if (ruleEditorDialog instanceof HTMLDialogElement && ruleEditorDialog.open) ruleEditorDialog.close();
+};
+
+const openRuleEditor = (mode, card = null, returnFocus = null) => {
+  if (!canManageRuleDocuments || !(ruleEditorDialog instanceof HTMLDialogElement) || !(ruleEditorForm instanceof HTMLFormElement)) return;
+  ruleEditorMode = mode;
+  ruleEditorReturnFocus = returnFocus ?? card ?? document.querySelector("[data-rule-create-open]");
+  ruleEditorForm.reset();
+  if (ruleEditorError instanceof HTMLElement) ruleEditorError.hidden = true;
+  document.querySelector("[data-rule-editor-title]")?.replaceChildren(mode === "edit" ? "Rule&SOP 문서 수정" : "Rule&SOP 신규 등록");
+  document.querySelector("[data-rule-editor-submit-label]")?.replaceChildren(mode === "edit" ? "수정 완료" : "신규 등록");
+
+  if (mode === "edit" && card instanceof HTMLElement) {
+    activeRuleCard = card;
+    if (ruleEditorType instanceof HTMLSelectElement) ruleEditorType.value = card.dataset.ruleType ?? "rule";
+    if (ruleEditorName instanceof HTMLInputElement) ruleEditorName.value = card.dataset.ruleTitle ?? "";
+    if (ruleEditorMajor instanceof HTMLSelectElement) ruleEditorMajor.value = card.dataset.ruleMajor ?? "major-a";
+    syncRuleEditorTaxonomy({ middle: card.dataset.ruleMiddle, minor: card.dataset.ruleMinor, process: card.dataset.ruleProcess });
+    if (ruleEditorUrl instanceof HTMLInputElement) ruleEditorUrl.value = card.dataset.ruleUrl ?? "";
+    if (ruleEditorNote instanceof HTMLTextAreaElement) ruleEditorNote.value = "";
+  } else {
+    activeRuleCard = null;
+    syncRuleEditorTaxonomy();
+  }
+
+  ruleEditorDialog.showModal();
+  window.requestAnimationFrame(() => ruleEditorName?.focus());
+};
+
 const getRuleCards = () => [...document.querySelectorAll("[data-rule-card]")];
 
 const matchesRuleScope = (card, scope, value = ruleFilterState[scope]) =>
@@ -777,7 +965,7 @@ const applyRuleFilters = ({ animate = true } = {}) => {
   document.querySelector("[data-rule-result-count]")?.replaceChildren(String(visibleCardCount));
   document.querySelector("[data-rule-filter-summary]")?.replaceChildren(activeFilterLabels.join(" · ") || "전체 분류");
   if (ruleEmptyState instanceof HTMLElement) ruleEmptyState.hidden = visibleCardCount > 0;
-  if (ruleCardGrid instanceof HTMLElement) ruleCardGrid.hidden = visibleCardCount === 0;
+  if (ruleCardGrid instanceof HTMLElement) ruleCardGrid.hidden = visibleCardCount === 0 && !canManageRuleDocuments;
 
   if (animate) playRuleCardArrangement();
 };
@@ -797,8 +985,133 @@ document.querySelectorAll("[data-rule-action]").forEach((button) => {
   button.addEventListener("click", () => showToast(`${button.dataset.ruleAction} 기능은 실제 데이터 연결 단계에서 제공할 예정입니다.`));
 });
 
-document.querySelectorAll("[data-rule-card]").forEach((card) => {
-  card.addEventListener("click", () => showToast(`${card.dataset.ruleTitle ?? "선택한 문서"}는 UI 검토용 예시입니다.`));
+ruleCardGrid?.addEventListener("click", (event) => {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+  const createButton = target.closest("[data-rule-create-open]");
+  if (createButton) {
+    openRuleEditor("create", null, createButton);
+    return;
+  }
+  const card = target.closest("[data-rule-card]");
+  if (card instanceof HTMLElement) openRuleDetail(card, card);
+});
+
+document.querySelectorAll("[data-rule-detail-close]").forEach((button) => {
+  button.addEventListener("click", () => ruleDetailDialog?.close());
+});
+
+ruleDetailDialog?.addEventListener("close", () => {
+  if (ruleDialogReturnFocus instanceof HTMLElement && ruleEditorDialog instanceof HTMLDialogElement && !ruleEditorDialog.open) {
+    ruleDialogReturnFocus.focus();
+  }
+});
+
+document.querySelector("[data-rule-view]")?.addEventListener("click", () => {
+  if (!(activeRuleCard instanceof HTMLElement)) return;
+  showToast(`${activeRuleCard.dataset.ruleUrl ?? "원문 URL"} · 실제 DB 연동 후 원문을 엽니다.`);
+});
+
+document.querySelector("[data-rule-edit-open]")?.addEventListener("click", () => {
+  if (!canManageRuleDocuments || !(activeRuleCard instanceof HTMLElement)) return;
+  const card = activeRuleCard;
+  if (ruleDetailDialog instanceof HTMLDialogElement && ruleDetailDialog.open) ruleDetailDialog.close();
+  window.requestAnimationFrame(() => openRuleEditor("edit", card, card));
+});
+
+document.querySelector("[data-rule-delete-open]")?.addEventListener("click", () => {
+  if (!canManageRuleDocuments || !(activeRuleCard instanceof HTMLElement) || !(ruleDeleteDialog instanceof HTMLDialogElement)) return;
+  document.querySelector("[data-rule-delete-name]")?.replaceChildren(activeRuleCard.dataset.ruleTitle ?? "선택한 문서");
+  if (ruleDetailDialog instanceof HTMLDialogElement && ruleDetailDialog.open) ruleDetailDialog.close();
+  window.requestAnimationFrame(() => ruleDeleteDialog.showModal());
+});
+
+document.querySelectorAll("[data-rule-delete-close]").forEach((button) => {
+  button.addEventListener("click", () => ruleDeleteDialog?.close());
+});
+
+ruleDeleteDialog?.addEventListener("close", () => activeRuleCard?.focus());
+
+document.querySelector("[data-rule-delete-confirm]")?.addEventListener("click", () => {
+  if (!(activeRuleCard instanceof HTMLElement)) return;
+  const deletedTitle = activeRuleCard.dataset.ruleTitle ?? "선택한 문서";
+  const deletedId = activeRuleCard.dataset.ruleId;
+  activeRuleCard.remove();
+  if (deletedId) ruleRevisionHistory.delete(deletedId);
+  activeRuleCard = null;
+  ruleDeleteDialog?.close();
+  applyRuleFilters({ animate: false });
+  document.querySelector("[data-rule-create-open]")?.focus();
+  showToast(`${deletedTitle} 문서를 삭제했습니다. (목업)`);
+});
+
+document.querySelectorAll("[data-rule-editor-close]").forEach((button) => {
+  button.addEventListener("click", closeRuleEditor);
+});
+
+ruleEditorDialog?.addEventListener("close", () => {
+  if (ruleEditorReturnFocus instanceof HTMLElement && !(ruleDetailDialog instanceof HTMLDialogElement && ruleDetailDialog.open)) {
+    ruleEditorReturnFocus.focus();
+  }
+});
+
+ruleEditorMajor?.addEventListener("change", () => syncRuleEditorTaxonomy());
+ruleEditorMiddle?.addEventListener("change", () => syncRuleEditorTaxonomy({ middle: ruleEditorMiddle.value }));
+ruleEditorMinor?.addEventListener("change", () => {
+  const processValues = ruleProcessesByMinor[ruleEditorMinor.value] ?? [];
+  replaceRuleSelectOptions(ruleEditorProcess, processValues);
+});
+
+ruleEditorForm?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (!(ruleEditorForm instanceof HTMLFormElement)) return;
+  if (!ruleEditorForm.checkValidity()) {
+    if (ruleEditorError instanceof HTMLElement) {
+      ruleEditorError.textContent = "문서 제목, 분류와 원문 링크를 모두 입력해 주세요.";
+      ruleEditorError.hidden = false;
+    }
+    ruleEditorForm.reportValidity();
+    return;
+  }
+
+  let card = ruleEditorMode === "edit" ? activeRuleCard : null;
+  if (!(card instanceof HTMLElement)) {
+    const fragment = ruleCardTemplate?.content.cloneNode(true);
+    card = fragment?.querySelector("[data-rule-card]");
+    if (!(card instanceof HTMLElement) || !(ruleCardGrid instanceof HTMLElement)) return;
+    ruleCardGrid.append(card);
+    card.dataset.ruleId = `rule-${Date.now()}`;
+    card.dataset.ruleVersion = "0.1";
+  }
+
+  const isEdit = ruleEditorMode === "edit";
+  const nextVersion = isEdit ? (Number.parseFloat(card.dataset.ruleVersion ?? "0.1") + 0.1).toFixed(1) : "0.1";
+  const today = new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()).replace(/\. /g, "-").replace(".", "");
+  card.dataset.ruleType = ruleEditorType.value;
+  card.dataset.ruleTitle = ruleEditorName.value.trim();
+  card.dataset.ruleMajor = ruleEditorMajor.value;
+  card.dataset.ruleMiddle = ruleEditorMiddle.value;
+  card.dataset.ruleMinor = ruleEditorMinor.value;
+  card.dataset.ruleProcess = ruleEditorProcess.value;
+  card.dataset.ruleUrl = ruleEditorUrl.value.trim();
+  card.dataset.ruleVersion = nextVersion;
+  card.dataset.ruleUpdated = today;
+  renderRuleCard(card);
+
+  const revisions = getRuleRevisionHistory(card);
+  if (!isEdit) revisions.length = 0;
+  revisions.unshift({
+    version: `v${nextVersion}`,
+    date: today,
+    author: "김품질",
+    note: ruleEditorNote.value.trim() || (isEdit ? "문서 정보 수정" : "신규 문서 등록"),
+  });
+
+  activeRuleCard = card;
+  closeRuleEditor();
+  applyRuleFilters();
+  showToast(`${card.dataset.ruleTitle} 문서를 ${isEdit ? "수정" : "등록"}했습니다. (목업)`);
+  window.requestAnimationFrame(() => openRuleDetail(card, card));
 });
 
 document.querySelectorAll("[data-rule-filter]").forEach((button) => {
@@ -1023,6 +1336,7 @@ document.addEventListener("keydown", (event) => {
 
   if (event.key === "Escape") {
     if (globalSearch instanceof HTMLDialogElement && globalSearch.open) return;
+    if ([ruleDetailDialog, ruleEditorDialog, ruleDeleteDialog].some((dialog) => dialog instanceof HTMLDialogElement && dialog.open)) return;
     if (document.querySelector("[data-qna-modal]")) return;
     if (prototype?.dataset.qnaMode === "open") setQnaMode("closed");
     else if (prototype?.dataset.userMode === "open") setUserMode("closed");
