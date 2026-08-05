@@ -4746,6 +4746,8 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
   color: var(--faint-foreground);
 }
 
+.report-search kbd { color: hsl(204 35% 32%); }
+
 .report-filter-tabs {
   display: flex;
   gap: 4px;
@@ -4822,7 +4824,7 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
 
 .report-category-section > header > i {
   margin-left: auto;
-  color: var(--faint-foreground);
+  color: hsl(204 35% 32%);
   font-size: 7px;
   font-style: normal;
   font-weight: 700;
@@ -5316,6 +5318,45 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
   font-size: 9px;
 }
 
+body:not(.report-manager) .report-admin-only { display: none !important; }
+
+.report-create-card {
+  display: flex;
+  min-height: 176px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  padding: 24px;
+  border: 1px dashed hsl(204 40% 72%);
+  border-radius: 11px;
+  background: linear-gradient(145deg, #f8fbfd, #fff);
+  color: var(--muted-foreground);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 200ms ease, background 200ms ease, color 200ms ease, transform 220ms ease, box-shadow 220ms ease;
+}
+
+.report-create-card:hover {
+  border-color: hsl(204 94% 45% / 48%);
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  box-shadow: 0 12px 26px hsl(204 94% 45% / 10%);
+  transform: translateY(-4px);
+}
+
+.report-create-card > strong { color: var(--foreground); font-size: 15px; }
+.report-create-card > small { max-width: 420px; font-size: 12px; line-height: 1.55; }
+.report-create-card > em {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--primary-dark);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+}
+
 /* 선택된 Spotfire Report 원본 화면 */
 .report-viewer-view {
   background: #f1f6f9;
@@ -5331,7 +5372,7 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--faint-foreground);
+  color: hsl(204 35% 32%);
   font-size: 8px;
 }
 
@@ -5341,6 +5382,35 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
   border-radius: 50%;
   background: #d39942;
   box-shadow: 0 0 0 4px rgb(211 153 66 / 11%);
+}
+
+.report-viewer-actions .report-viewer-delete {
+  border-color: #ead7d5;
+  background: #fffafa;
+  color: var(--danger);
+}
+
+.report-viewer-actions .report-viewer-delete:hover { background: #fff1f0; }
+.report-viewer-actions .report-viewer-edit { border-color: hsl(204 94% 45% / 22%); background: var(--primary-soft); color: hsl(204 75% 27%); }
+
+.report-editor-body > label > small { color: var(--muted-foreground); font-size: 11px; font-weight: 500; }
+.report-permission-note {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 13px 14px;
+  border: 1px solid hsl(204 94% 45% / 16%);
+  border-radius: 10px;
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+}
+.report-permission-note .icon { width: 19px; height: 19px; flex: 0 0 auto; }
+.report-permission-note > span { display: grid; gap: 2px; }
+.report-permission-note strong { font-size: 13px; }
+.report-permission-note small { color: var(--muted-foreground); font-size: 11px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .report-create-card:hover { transform: none; }
 }
 
 .report-viewer-content {
@@ -5377,7 +5447,7 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
 }
 
 .report-viewer-heading > div:last-child span {
-  color: var(--faint-foreground);
+  color: hsl(204 35% 32%);
   font-size: 8px;
 }
 
@@ -5419,14 +5489,14 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
   padding: 3px 6px;
   border-radius: 999px;
   background: var(--primary-soft);
-  color: var(--primary-dark);
+  color: hsl(204 75% 27%);
   font-size: 6px;
   font-style: normal;
   font-weight: 700;
 }
 
 .spotfire-embed-card > header > span {
-  color: var(--faint-foreground);
+  color: hsl(204 35% 32%);
   font-size: 8px;
 }
 
@@ -5497,7 +5567,7 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--surface);
-  color: var(--faint-foreground);
+  color: hsl(204 35% 32%);
   font-size: 6px;
   font-weight: 750;
   letter-spacing: .08em;

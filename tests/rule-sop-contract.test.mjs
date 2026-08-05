@@ -99,5 +99,5 @@ test("1단계 문서에 Rule&SOP 설계 완료와 실제 DB 연동 경계를 기
   assert.match(phase1Memo, /\[x\] 대분류·중분류·소분류·담당 공정 드릴다운 설정 흐름/)
   assert.match(phase1Memo, /이전 버전 조회 미제공 원칙 확정/)
   assert.match(phase1Memo, /Rule&SOP 분류·원문 URL의 실제 DB 연동과 운영 저장/)
-  assert.match(phase1Memo, /`3\. Report 관리 흐름 설계`부터/)
+  assert.match(phase1Memo, /`4\. 역할별 권한 확정`부터/)
 })

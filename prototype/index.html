@@ -106,7 +106,7 @@
       </symbol>
     </svg>
 
-    <div class="prototype" data-layout="top" data-agent-mode="drawer" data-report-mode="closed" data-rule-mode="closed" data-qna-mode="closed" data-user-mode="closed" data-can-manage-rules="true">
+    <div class="prototype" data-layout="top" data-agent-mode="drawer" data-report-mode="closed" data-rule-mode="closed" data-qna-mode="closed" data-user-mode="closed" data-can-manage-rules="true" data-can-manage-reports="true">
       <aside class="sidebar" aria-label="좌측 서비스 메뉴">
         <a class="brand sidebar-brand" href="#dashboard" aria-label="Quality Hub 홈" data-home-refresh>
           <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -767,7 +767,7 @@
                 <p>업무 목적에 맞는 카테고리를 선택하고 Spotfire 원본 Report를 바로 조회할 수 있습니다.</p>
               </div>
               <div class="report-summary-card" role="group" aria-label="등록된 Report 요약">
-                <span><strong>12</strong><small>등록 Report</small></span>
+                <span><strong data-report-total-count>12</strong><small>등록 Report</small></span>
                 <i></i>
                 <span><strong>3</strong><small>카테고리</small></span>
                 <i></i>
@@ -783,36 +783,36 @@
                 <kbd>⌘ K</kbd>
               </label>
               <div class="report-filter-tabs" role="group" aria-label="Report 카테고리">
-                <button class="is-selected" type="button" data-report-filter="all" aria-pressed="true">전체 <i>12</i></button>
-                <button type="button" data-report-filter="fdc" aria-pressed="false">FDC <i>4</i></button>
-                <button type="button" data-report-filter="spc" aria-pressed="false">SPC <i>4</i></button>
-                <button type="button" data-report-filter="vm" aria-pressed="false">VM <i>4</i></button>
+                <button class="is-selected" type="button" data-report-filter="all" aria-pressed="true">전체 <i data-report-filter-count>12</i></button>
+                <button type="button" data-report-filter="fdc" aria-pressed="false">FDC <i data-report-filter-count>4</i></button>
+                <button type="button" data-report-filter="spc" aria-pressed="false">SPC <i data-report-filter-count>4</i></button>
+                <button type="button" data-report-filter="vm" aria-pressed="false">VM <i data-report-filter-count>4</i></button>
               </div>
             </section>
 
             <div class="report-groups" data-report-groups>
               <section class="report-category-section" data-report-group="fdc" aria-labelledby="report-category-fdc">
-                <header><span class="report-category-icon"><svg class="icon"><use href="#icon-activity"></use></svg></span><span><h2 id="report-category-fdc">FDC</h2><p>설비 센서와 공정 조건의 이상 징후를 모니터링합니다.</p></span><i>4 REPORTS</i></header>
+                <header><span class="report-category-icon"><svg class="icon"><use href="#icon-activity"></use></svg></span><span><h2 id="report-category-fdc">FDC</h2><p>설비 센서와 공정 조건의 이상 징후를 모니터링합니다.</p></span><i data-report-group-count>4 REPORTS</i></header>
                 <div class="report-card-grid">
-                  <button class="report-catalog-card" type="button" data-report-card data-report-category="fdc" data-report-title="종합 품질 현황" data-report-label="FDC" data-report-updated="오늘 10:15">
+                  <button class="report-catalog-card" type="button" data-report-card data-report-category="fdc" data-report-title="종합 품질 현황" data-report-label="FDC" data-report-updated="오늘 10:15" data-report-url="https://spotfire.internal/reports/quality-overview">
                     <span class="report-card-top"><i>LIVE</i><em>즐겨찾기</em></span>
                     <span class="report-card-preview is-line" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b></span>
                     <span class="report-card-copy"><small>QUALITY OVERVIEW</small><strong>종합 품질 현황</strong><em>라인별 핵심 KPI와 이상 추이를 종합적으로 확인합니다.</em></span>
                     <span class="report-card-meta"><span><i></i>오늘 10:15 갱신</span><span>Spotfire<svg class="icon"><use href="#icon-arrow"></use></svg></span></span>
                   </button>
-                  <button class="report-catalog-card" type="button" data-report-card data-report-category="fdc" data-report-title="라인별 품질 KPI" data-report-label="FDC" data-report-updated="오늘 09:40">
+                  <button class="report-catalog-card" type="button" data-report-card data-report-category="fdc" data-report-title="라인별 품질 KPI" data-report-label="FDC" data-report-updated="오늘 09:40" data-report-url="https://spotfire.internal/reports/line-kpi">
                     <span class="report-card-top"><i>DAILY</i></span>
                     <span class="report-card-preview is-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
                     <span class="report-card-copy"><small>LINE KPI</small><strong>라인별 품질 KPI</strong><em>생산 라인별 수율, 이상률과 목표 달성률을 비교합니다.</em></span>
                     <span class="report-card-meta"><span><i></i>오늘 09:40 갱신</span><span>Spotfire<svg class="icon"><use href="#icon-arrow"></use></svg></span></span>
                   </button>
-                  <button class="report-catalog-card" type="button" data-report-card data-report-category="fdc" data-report-title="고객 품질 현황" data-report-label="FDC" data-report-updated="어제 17:30">
+                  <button class="report-catalog-card" type="button" data-report-card data-report-category="fdc" data-report-title="고객 품질 현황" data-report-label="FDC" data-report-updated="어제 17:30" data-report-url="https://spotfire.internal/reports/customer-quality">
                     <span class="report-card-top"><i>WEEKLY</i></span>
                     <span class="report-card-preview is-donut" aria-hidden="true"><i></i><b></b><span></span></span>
                     <span class="report-card-copy"><small>CUSTOMER QUALITY</small><strong>고객 품질 현황</strong><em>고객사별 클레임과 주요 품질 이슈를 추적합니다.</em></span>
                     <span class="report-card-meta"><span><i></i>어제 17:30 갱신</span><span>Spotfire<svg class="icon"><use href="#icon-arrow"></use></svg></span></span>
                   </button>
-                  <button class="report-catalog-card" type="button" data-report-card data-report-category="fdc" data-report-title="주간 품질 Report" data-report-label="FDC" data-report-updated="오늘 07:00">
+                  <button class="report-catalog-card" type="button" data-report-card data-report-category="fdc" data-report-title="주간 품질 Report" data-report-label="FDC" data-report-updated="오늘 07:00" data-report-url="https://spotfire.internal/reports/weekly-quality">
                     <span class="report-card-top"><i>WEEKLY</i><em>NEW</em></span>
                     <span class="report-card-preview is-document" aria-hidden="true"><i></i><b></b><span></span><span></span><span></span></span>
                     <span class="report-card-copy"><small>WEEKLY QUALITY</small><strong>주간 품질 Report</strong><em>주요 지표와 이슈, 조치 현황을 주간 단위로 확인합니다.</em></span>
@@ -822,27 +822,27 @@
               </section>
 
               <section class="report-category-section" data-report-group="spc" aria-labelledby="report-category-spc">
-                <header><span class="report-category-icon is-amber"><svg class="icon"><use href="#icon-grid"></use></svg></span><span><h2 id="report-category-spc">SPC</h2><p>관리도와 공정능력으로 품질 변동을 분석합니다.</p></span><i>4 REPORTS</i></header>
+                <header><span class="report-category-icon is-amber"><svg class="icon"><use href="#icon-grid"></use></svg></span><span><h2 id="report-category-spc">SPC</h2><p>관리도와 공정능력으로 품질 변동을 분석합니다.</p></span><i data-report-group-count>4 REPORTS</i></header>
                 <div class="report-card-grid">
-                  <button class="report-catalog-card" type="button" data-report-card data-report-category="spc" data-report-title="공정 이상 분석" data-report-label="SPC" data-report-updated="오늘 10:05">
+                  <button class="report-catalog-card" type="button" data-report-card data-report-category="spc" data-report-title="공정 이상 분석" data-report-label="SPC" data-report-updated="오늘 10:05" data-report-url="https://spotfire.internal/reports/process-anomaly">
                     <span class="report-card-top"><i>LIVE</i><em>추천</em></span>
                     <span class="report-card-preview is-scatter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
                     <span class="report-card-copy"><small>PROCESS ANOMALY</small><strong>공정 이상 분석</strong><em>센서와 공정 조건의 상관관계로 이상 원인을 탐색합니다.</em></span>
                     <span class="report-card-meta"><span><i></i>오늘 10:05 갱신</span><span>Spotfire<svg class="icon"><use href="#icon-arrow"></use></svg></span></span>
                   </button>
-                  <button class="report-catalog-card" type="button" data-report-card data-report-category="spc" data-report-title="불량 Pareto 분석" data-report-label="SPC" data-report-updated="오늘 08:50">
+                  <button class="report-catalog-card" type="button" data-report-card data-report-category="spc" data-report-title="불량 Pareto 분석" data-report-label="SPC" data-report-updated="오늘 08:50" data-report-url="https://spotfire.internal/reports/defect-pareto">
                     <span class="report-card-top"><i>DAILY</i></span>
                     <span class="report-card-preview is-pareto" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b></span>
                     <span class="report-card-copy"><small>DEFECT PARETO</small><strong>불량 Pareto 분석</strong><em>불량 유형과 원인을 영향도 순으로 분석합니다.</em></span>
                     <span class="report-card-meta"><span><i></i>오늘 08:50 갱신</span><span>Spotfire<svg class="icon"><use href="#icon-arrow"></use></svg></span></span>
                   </button>
-                  <button class="report-catalog-card" type="button" data-report-card data-report-category="spc" data-report-title="공정능력 추이" data-report-label="SPC" data-report-updated="어제 18:10">
+                  <button class="report-catalog-card" type="button" data-report-card data-report-category="spc" data-report-title="공정능력 추이" data-report-label="SPC" data-report-updated="어제 18:10" data-report-url="https://spotfire.internal/reports/process-capability">
                     <span class="report-card-top"><i>DAILY</i></span>
                     <span class="report-card-preview is-area" aria-hidden="true"><i></i><b></b><span></span></span>
                     <span class="report-card-copy"><small>PROCESS CAPABILITY</small><strong>공정능력 추이</strong><em>Cp, Cpk 지표와 규격 이탈 추이를 확인합니다.</em></span>
                     <span class="report-card-meta"><span><i></i>어제 18:10 갱신</span><span>Spotfire<svg class="icon"><use href="#icon-arrow"></use></svg></span></span>
                   </button>
-                  <button class="report-catalog-card" type="button" data-report-card data-report-category="spc" data-report-title="월간 품질 리뷰" data-report-label="SPC" data-report-updated="8월 1일">
+                  <button class="report-catalog-card" type="button" data-report-card data-report-category="spc" data-report-title="월간 품질 리뷰" data-report-label="SPC" data-report-updated="8월 1일" data-report-url="https://spotfire.internal/reports/monthly-review">
                     <span class="report-card-top"><i>MONTHLY</i></span>
                     <span class="report-card-preview is-rings" aria-hidden="true"><i></i><i></i><i></i><b></b></span>
                     <span class="report-card-copy"><small>MONTHLY REVIEW</small><strong>월간 품질 리뷰</strong><em>월간 실적과 목표 대비 개선 활동을 종합 리뷰합니다.</em></span>
@@ -852,27 +852,27 @@
               </section>
 
               <section class="report-category-section" data-report-group="vm" aria-labelledby="report-category-vm">
-                <header><span class="report-category-icon is-slate"><svg class="icon"><use href="#icon-settings"></use></svg></span><span><h2 id="report-category-vm">VM</h2><p>예측값과 실측값의 편차 및 모델 상태를 확인합니다.</p></span><i>4 REPORTS</i></header>
+                <header><span class="report-category-icon is-slate"><svg class="icon"><use href="#icon-settings"></use></svg></span><span><h2 id="report-category-vm">VM</h2><p>예측값과 실측값의 편차 및 모델 상태를 확인합니다.</p></span><i data-report-group-count>4 REPORTS</i></header>
                 <div class="report-card-grid">
-                  <button class="report-catalog-card" type="button" data-report-card data-report-category="vm" data-report-title="설비 이상 모니터링" data-report-label="VM" data-report-updated="5분 전">
+                  <button class="report-catalog-card" type="button" data-report-card data-report-category="vm" data-report-title="설비 이상 모니터링" data-report-label="VM" data-report-updated="5분 전" data-report-url="https://spotfire.internal/reports/equipment-health">
                     <span class="report-card-top"><i>REALTIME</i><em>즐겨찾기</em></span>
                     <span class="report-card-preview is-pulse" aria-hidden="true"><i></i><b></b><span></span></span>
                     <span class="report-card-copy"><small>EQUIPMENT HEALTH</small><strong>설비 이상 모니터링</strong><em>주요 설비의 실시간 상태와 알람 발생을 확인합니다.</em></span>
                     <span class="report-card-meta"><span><i></i>5분 전 갱신</span><span>Spotfire<svg class="icon"><use href="#icon-arrow"></use></svg></span></span>
                   </button>
-                  <button class="report-catalog-card" type="button" data-report-card data-report-category="vm" data-report-title="AOI 검사 분석" data-report-label="VM" data-report-updated="오늘 09:20">
+                  <button class="report-catalog-card" type="button" data-report-card data-report-category="vm" data-report-title="AOI 검사 분석" data-report-label="VM" data-report-updated="오늘 09:20" data-report-url="https://spotfire.internal/reports/aoi-inspection">
                     <span class="report-card-top"><i>HOURLY</i></span>
                     <span class="report-card-preview is-heatmap" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
                     <span class="report-card-copy"><small>AOI INSPECTION</small><strong>AOI 검사 분석</strong><em>검사 위치별 결함 분포와 오경보 패턴을 분석합니다.</em></span>
                     <span class="report-card-meta"><span><i></i>오늘 09:20 갱신</span><span>Spotfire<svg class="icon"><use href="#icon-arrow"></use></svg></span></span>
                   </button>
-                  <button class="report-catalog-card" type="button" data-report-card data-report-category="vm" data-report-title="Chamber 성능 비교" data-report-label="VM" data-report-updated="어제 16:45">
+                  <button class="report-catalog-card" type="button" data-report-card data-report-category="vm" data-report-title="Chamber 성능 비교" data-report-label="VM" data-report-updated="어제 16:45" data-report-url="https://spotfire.internal/reports/chamber-compare">
                     <span class="report-card-top"><i>DAILY</i></span>
                     <span class="report-card-preview is-columns" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
                     <span class="report-card-copy"><small>CHAMBER COMPARE</small><strong>Chamber 성능 비교</strong><em>동일 공정 내 Chamber별 편차와 성능을 비교합니다.</em></span>
                     <span class="report-card-meta"><span><i></i>어제 16:45 갱신</span><span>Spotfire<svg class="icon"><use href="#icon-arrow"></use></svg></span></span>
                   </button>
-                  <button class="report-catalog-card" type="button" data-report-card data-report-category="vm" data-report-title="품질회의 핵심 자료" data-report-label="VM" data-report-updated="7월 31일">
+                  <button class="report-catalog-card" type="button" data-report-card data-report-category="vm" data-report-title="품질회의 핵심 자료" data-report-label="VM" data-report-updated="7월 31일" data-report-url="https://spotfire.internal/reports/quality-meeting">
                     <span class="report-card-top"><i>MEETING</i></span>
                     <span class="report-card-preview is-slides" aria-hidden="true"><i></i><i></i><i></i></span>
                     <span class="report-card-copy"><small>QUALITY MEETING</small><strong>품질회의 핵심 자료</strong><em>정기 품질회의용 지표와 주요 의사결정 항목을 제공합니다.</em></span>
@@ -880,6 +880,22 @@
                   </button>
                 </div>
               </section>
+
+              <button class="report-create-card report-admin-only" type="button" data-report-create-open>
+                <span class="rule-create-icon" aria-hidden="true"><svg class="icon"><use href="#icon-plus"></use></svg></span>
+                <strong>신규 Report 등록</strong>
+                <small>DB 테이블의 이름·설명·카테고리·URL 컬럼에 대응하는 Report 정보를 등록합니다.</small>
+                <em>관리자 전용</em>
+              </button>
+
+              <template data-report-card-template>
+                <button class="report-catalog-card" type="button" data-report-card>
+                  <span class="report-card-top"><i>MOCK</i><em>신규</em></span>
+                  <span class="report-card-preview is-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+                  <span class="report-card-copy"><small data-report-card-category></small><strong data-report-card-title></strong><em data-report-card-description></em></span>
+                  <span class="report-card-meta"><span><i></i><span data-report-card-updated></span></span><span>Spotfire<svg class="icon"><use href="#icon-arrow"></use></svg></span></span>
+                </button>
+              </template>
 
               <div class="report-empty-state" hidden data-report-empty>
                 <svg class="icon"><use href="#icon-search"></use></svg>
@@ -898,13 +914,15 @@
             </div>
             <div class="report-viewer-actions">
               <span><i></i>Spotfire 연결 예정</span>
+              <button class="report-viewer-delete report-admin-only" type="button" data-report-delete-open><svg class="icon"><use href="#icon-trash"></use></svg>삭제</button>
+              <button class="report-viewer-edit report-admin-only" type="button" data-report-edit-open><svg class="icon"><use href="#icon-edit"></use></svg>수정</button>
               <button type="button" data-report-action="Spotfire 새 창 열기"><svg class="icon"><use href="#icon-expand"></use></svg>Spotfire에서 열기</button>
             </div>
           </header>
 
           <div class="report-viewer-content">
             <section class="report-viewer-heading">
-              <div><p class="section-kicker" data-report-viewer-category>품질 현황</p><h1 data-report-viewer-title>종합 품질 현황</h1><p>선택한 Spotfire Report의 원본 화면을 Quality Hub 안에서 그대로 조회합니다.</p></div>
+              <div><p class="section-kicker" data-report-viewer-category>품질 현황</p><h1 data-report-viewer-title>종합 품질 현황</h1><p data-report-viewer-description>라인별 핵심 KPI와 이상 추이를 종합적으로 확인합니다.</p></div>
               <div><span>최근 갱신</span><strong data-report-viewer-updated>오늘 10:15</strong></div>
             </section>
 
@@ -931,6 +949,34 @@
       </section>
 
     </div>
+
+    <dialog class="report-editor-dialog rule-editor-dialog" aria-labelledby="report-editor-title" aria-describedby="report-editor-description" data-report-editor-dialog>
+      <form class="rule-editor-form" data-report-editor-form novalidate>
+        <header role="presentation">
+          <span class="rule-dialog-mark"><svg class="icon"><use href="#icon-edit"></use></svg></span>
+          <span><strong id="report-editor-title" data-report-editor-title>Report 신규 등록</strong><small id="report-editor-description">별도 DB Report 테이블의 컬럼 구조에 맞춰 설정합니다.</small></span>
+          <button type="button" aria-label="Report 등록·수정 닫기" data-report-editor-close><svg class="icon"><use href="#icon-close"></use></svg></button>
+        </header>
+        <div class="rule-editor-body report-editor-body">
+          <label>Report 이름<input type="text" required maxlength="80" placeholder="예: 수율 종합 분석" data-report-editor-name /><small>DB의 이름 컬럼 값을 사용합니다.</small></label>
+          <label>설명<textarea rows="3" required maxlength="200" placeholder="Report에서 확인할 수 있는 내용을 입력하세요." data-report-editor-description></textarea><small>DB의 설명 컬럼 값을 카드와 출력 화면에 표시합니다.</small></label>
+          <label>카테고리<select required data-report-editor-category><option value="fdc">FDC</option><option value="spc">SPC</option><option value="vm">VM</option></select><small>실제 연동 시 별도 DB의 카테고리 컬럼에서 선택 항목과 값을 가져옵니다.</small></label>
+          <label>Spotfire URL<input type="url" required placeholder="https://spotfire.internal/reports/..." data-report-editor-url /><small>별도 DB의 URL 컬럼 값을 사용해 Spotfire 원본 화면을 로드합니다.</small></label>
+          <aside class="report-permission-note" role="note"><svg class="icon"><use href="#icon-shield"></use></svg><span><strong>포털 공개 범위는 별도로 설정하지 않습니다.</strong><small>조회 가능 여부는 Spotfire 자체 권한을 그대로 따릅니다.</small></span></aside>
+          <p class="rule-editor-error" role="alert" hidden data-report-editor-error></p>
+        </div>
+        <footer><button type="button" class="rule-editor-cancel" data-report-editor-close>취소</button><button type="submit" class="rule-editor-submit"><svg class="icon"><use href="#icon-plus"></use></svg><span data-report-editor-submit-label>신규 등록</span></button></footer>
+      </form>
+    </dialog>
+
+    <dialog class="report-delete-dialog rule-delete-dialog" aria-labelledby="report-delete-title" aria-describedby="report-delete-description" data-report-delete-dialog>
+      <div class="rule-delete-panel">
+        <span class="rule-delete-mark"><svg class="icon"><use href="#icon-trash"></use></svg></span>
+        <strong id="report-delete-title">Report를 삭제할까요?</strong>
+        <p id="report-delete-description"><b data-report-delete-name></b> 카드가 목록에서 제거됩니다. 별도의 사용 중지 상태는 두지 않습니다.</p>
+        <div><button type="button" data-report-delete-close>취소</button><button type="button" data-report-delete-confirm>삭제</button></div>
+      </div>
+    </dialog>
 
     <dialog class="rule-detail-dialog" aria-labelledby="rule-detail-title" aria-describedby="rule-detail-description" data-rule-detail-dialog>
       <article class="rule-detail-panel">

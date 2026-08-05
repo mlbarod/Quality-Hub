@@ -29,9 +29,11 @@
 ### 각종 Report 조회
 
 - 품질 Hub의 Report를 업무 카테고리와 카드 형식으로 구성하고 검색·필터 제공
-- 권한이 있는 사용자가 Report 이름, 설명, 카테고리와 Spotfire 연결 정보를 등록·관리
+- 관리자가 Rule&SOP와 같은 카드·팝업 흐름으로 Report를 등록하고, 선택한 Report 출력 화면 우측 상단에서 수정·삭제
+- Report의 이름, 설명, 카테고리와 Spotfire URL은 별도 DB 테이블의 각 컬럼 값을 참조하며 별도의 사용 중지 상태는 두지 않음
 - Report 선택 시 데이터를 별도 가공하지 않고 Spotfire Web Player 원본 화면 표시
-- Spotfire의 화면 구성과 조회 권한을 유지하며 실제 URL·인증 방식은 연동 단계에서 확정
+- 포털에서 Report별 공개 범위나 조회 권한을 추가로 설정하지 않고 Spotfire의 화면 구성과 조회 권한을 그대로 유지
+- 실제 DB 테이블 규격과 Spotfire URL·인증 방식은 연동 단계에서 확정
 
 ### 품질 Agent
 
