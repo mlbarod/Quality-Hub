@@ -56,6 +56,17 @@ test("마스터가 유저 ID와 소속부서 기준의 관리자·일반 접근 
   assert.match(memo, /관리자 권한을 일반 권한보다 우선 적용/)
 })
 
+test("사용자 및 권한 화면의 표와 조작 요소를 읽기 쉬운 크기로 제공한다", () => {
+  assert.match(styles, /\.role-summary-card small \{[^}]*font-size: 14px;/s)
+  assert.match(styles, /\.user-search input \{[^}]*font-size: 15px;/s)
+  assert.match(styles, /\.admin-add-button \{[^}]*height: 48px;[^}]*font-size: 15px;/s)
+  assert.match(styles, /\.user-table-header \{[^}]*min-height: 54px;[^}]*font-size: 14px;/s)
+  assert.match(styles, /\.user-table-row \{[^}]*min-height: 88px;[^}]*font-size: 16px;/s)
+  assert.match(styles, /\.access-role-badge \{[^}]*font-size: 14px;/s)
+  assert.match(styles, /\.admin-remove-button \{[^}]*height: 44px;[^}]*font-size: 14px;/s)
+  assert.match(styles, /\.admin-add-form > footer button \{[^}]*height: 46px;[^}]*font-size: 14px;/s)
+})
+
 test("품질 Agent UI 확정과 실제 연동 후속 처리를 메모에 명시한다", () => {
   assert.match(memo, /품질 Agent의 UI와 사용 흐름은 현재 안으로 완료 처리한다/)
   assert.match(memo, /품질 Agent의 실제 사내 LLM API 연동은 1단계에 포함하지 않는다/)
