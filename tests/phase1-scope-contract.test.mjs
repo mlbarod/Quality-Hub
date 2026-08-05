@@ -24,8 +24,8 @@ test("통합 검색 팝업에서 Report, Rule&SOP, Q&A 콘텐츠로 연결한다
   assert.match(html, /data-search-target="rule"/)
   assert.match(html, /data-search-target="qna"/)
   assert.match(script, /const openGlobalSearch/)
-  assert.match(script, /setReportMode\("viewer", \{ card \}\)/)
-  assert.match(script, /setRuleMode\("open"\)/)
+  assert.match(script, /setReportMode\("viewer", \{ card, focus: false \}\)/)
+  assert.match(script, /setRuleMode\("open", \{ focus: false \}\)/)
   assert.match(script, /setQnaMode\("open", \{ view: "detail", postId: contentId \}\)/)
   assert.match(qnaApp, /hasRequestedPost \? "detail" : "list"/)
   assert.match(styles, /\.header-search \{\s*min-width: 230px;/)
@@ -112,11 +112,12 @@ test("품질 Agent UI 확정과 실제 연동 후속 처리를 메모에 명시�
   assert.match(memo, /\[x\] 품질 Agent UI 설계 완료 및 실제 연동 후속 처리 명시/)
 })
 
-test("1단계 완료 판정과 2단계 구현 경계를 문서와 화면에 일치시킨다", () => {
+test("1단계 완료 근거를 유지하고 현재 2단계 완료 상태를 문서와 화면에 일치시킨다", () => {
   assert.match(memo, /\[x\] 요구사항·개발 계획·UI\/UX 설계 문서와 현재 화면 대조/)
   assert.match(memo, /1단계 UI\/UX 설계를 종료한다/)
   assert.match(developmentPlan, /현재 상태:\*\* 1단계 UI\/UX 설계 완료/)
-  assert.match(developmentPlan, /2단계: UI 프로토타입 구현 · 다음 단계/)
+  assert.match(developmentPlan, /2단계: UI 프로토타입 구현 · 완료/)
+  assert.match(developmentPlan, /3단계: 로컬 기능 구현 · 다음 단계/)
   assert.match(completionReport, /최종 판정:\*\* 완료/)
   assert.match(completionReport, /실제 인증, 권한 집행, 운영 저장/)
   assert.match(completionReport, /## 6\. 2단계 인계 항목/)

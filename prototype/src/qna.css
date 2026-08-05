@@ -149,7 +149,7 @@
 
 .qna-prosemirror .is-editor-empty:first-child::before {
   height: 0;
-  color: #8295a3;
+  color: #526b7d;
   content: attr(data-placeholder);
   float: left;
   pointer-events: none;

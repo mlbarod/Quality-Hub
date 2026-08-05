@@ -66,11 +66,11 @@ test("관리자는 빈 카드에서 문서를 등록하고 카드 상세에서 �
   assert.match(html, /data-rule-delete-open/)
   assert.match(html, /data-rule-editor-dialog/)
   assert.match(html, /data-rule-delete-dialog/)
-  assert.match(script, /const canManageRuleDocuments = prototype\?\.dataset\.canManageRules === "true"/)
+  assert.match(script, /let canManageRuleDocuments = prototype\?\.dataset\.canManageRules === "true"/)
   assert.match(script, /document\.body\.classList\.toggle\("rule-manager", canManageRuleDocuments\)/)
   assert.match(script, /ruleCardGrid\?\.addEventListener\("click"/)
   assert.match(script, /ruleEditorForm\?\.addEventListener\("submit"/)
-  assert.match(script, /activeRuleCard\.remove\(\)/)
+  assert.match(script, /softDeleteItem\(\{ type: "Rule&SOP"/)
 })
 
 test("등록·수정 분류는 대분류부터 담당 공정까지 드릴다운하고 URL 컬럼을 보관한다", () => {

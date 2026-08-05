@@ -13,7 +13,7 @@ test("Report는 Rule&SOP와 같은 관리자 전용 등록 흐름을 제공한�
   assert.match(html, /class="report-create-card report-admin-only"[^>]*data-report-create-open/)
   assert.ok(html.indexOf("data-report-create-open") > html.lastIndexOf("data-report-card data-report-category"))
   assert.match(styles, /body:not\(\.report-manager\) \.report-admin-only/)
-  assert.match(script, /const canManageReports = prototype\?\.dataset\.canManageReports === "true"/)
+  assert.match(script, /let canManageReports = prototype\?\.dataset\.canManageReports === "true"/)
   assert.match(script, /openReportEditor\("create", null, createButton\)/)
 })
 
@@ -22,7 +22,7 @@ test("Report 출력 화면 우측 상단에서 수정과 삭제를 제공한다"
   assert.match(viewerActions, /data-report-delete-open/)
   assert.match(viewerActions, /data-report-edit-open/)
   assert.match(script, /openReportEditor\("edit", activeReportCard/)
-  assert.match(script, /activeReportCard\.remove\(\)/)
+  assert.match(script, /softDeleteItem\(\{ type: "Report"/)
   assert.doesNotMatch(html, /data-report-(?:disable|status|visibility|permission)/)
 })
 

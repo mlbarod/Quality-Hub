@@ -1,3 +1,12 @@
+import {
+  COMMON_STATE_OPTIONS,
+  createHistoryEntry,
+  DASHBOARD_PERIODS,
+  getPermissionMessage,
+  getRoleOption,
+  getRolePolicy,
+} from "./src/mock/phase2.js";
+
 const prototype = document.querySelector(".prototype");
 const dashboardWorkspace = document.querySelector(".workspace");
 const toast = document.querySelector("[data-toast]");
@@ -54,6 +63,16 @@ const accessRowTemplate = document.querySelector("[data-access-row-template]");
 const globalSearch = document.querySelector("[data-global-search]");
 const globalSearchInput = document.querySelector("[data-global-search-input]");
 const globalSearchEmpty = document.querySelector("[data-global-search-empty]");
+const rolePreview = document.querySelector("[data-role-preview]");
+const commonStatePreview = document.querySelector("[data-common-state-preview]");
+const commonStateSurface = document.querySelector("[data-common-state-surface]");
+const chartsSection = document.querySelector(".charts-section");
+const accessBlocked = document.querySelector("[data-access-blocked]");
+const recoveryDialog = document.querySelector("[data-recovery-dialog]");
+const recoveryList = document.querySelector("[data-recovery-list]");
+const historyDialog = document.querySelector("[data-history-dialog]");
+const historyList = document.querySelector("[data-history-list]");
+const masterList = document.querySelector("[data-master-list]");
 let toastTimer;
 let reportEntryTimer;
 let reportEditorReturnFocus;
@@ -69,21 +88,15 @@ let qnaReturnFocus;
 let userReturnFocus;
 let accessAddReturnFocus;
 let globalSearchReturnFocus;
+let suppressGlobalSearchFocusRestore = false;
+let currentRole = prototype?.dataset.currentRole ?? "master";
+let currentRolePolicy = getRolePolicy(currentRole);
+let currentCommonState = prototype?.dataset.commonState ?? "normal";
+let editingAccessRow = null;
+const hiddenItems = [];
+const historyEntries = [];
 
-const chartPeriods = {
-  7: {
-    compliance: "98.4%",
-    anomaly: "7건",
-    label: "최근 7일",
-    path: "M42 86 C90 82 112 78 142 79 S202 67.5 242 70 S302 58 342 60 S402 50 442 52 S502 39 542 42 S612 24 654 27",
-  },
-  30: {
-    compliance: "97.9%",
-    anomaly: "24건",
-    label: "최근 30일",
-    path: "M42 78 C82 69 112 87 142 75.5 S207 83 242 71.5 S305 54 342 66 S406 47 442 58 S505 37 542 46 S614 34 654 30.5",
-  },
-};
+const chartPeriods = DASHBOARD_PERIODS;
 
 const showToast = (message) => {
   if (!toast) return;
@@ -91,6 +104,109 @@ const showToast = (message) => {
   toast.classList.add("is-visible");
   window.clearTimeout(toastTimer);
   toastTimer = window.setTimeout(() => toast.classList.remove("is-visible"), 2400);
+};
+
+const focusAfterTransition = (target, delay = 280) => {
+  if (!(target instanceof HTMLElement)) return;
+  const focusTarget = () => {
+    if (!target.isConnected || target.closest("[inert]")) return;
+    target.focus();
+  };
+  window.requestAnimationFrame(() => window.requestAnimationFrame(focusTarget));
+  window.setTimeout(() => {
+    if (document.activeElement !== target) focusTarget();
+  }, delay);
+};
+
+const syncPrimaryWorkspaceAccessibility = () => {
+  if (!(prototype instanceof HTMLElement) || !(dashboardWorkspace instanceof HTMLElement)) return;
+  const isBlocked = currentRolePolicy.canAccess === false;
+  const isInactive = isBlocked || prototype.dataset.agentMode === "full" || prototype.dataset.reportMode !== "closed" || prototype.dataset.ruleMode === "open" || prototype.dataset.qnaMode === "open" || prototype.dataset.userMode === "open";
+  dashboardWorkspace.inert = isInactive;
+  dashboardWorkspace.setAttribute("aria-hidden", String(isInactive));
+};
+
+const recordHistory = (entry) => {
+  historyEntries.unshift(createHistoryEntry({ ...entry, actor: getRoleOption(currentRole).name }));
+  renderHistoryList();
+};
+
+const renderHistoryList = () => {
+  if (!(historyList instanceof HTMLElement)) return;
+  if (!historyEntries.length) {
+    const empty = document.createElement("p");
+    empty.className = "phase2-empty";
+    empty.textContent = "아직 변경 이력이 없습니다.";
+    historyList.replaceChildren(empty);
+    return;
+  }
+  historyList.replaceChildren(...historyEntries.map((entry) => {
+    const item = document.createElement("article");
+    item.className = "phase2-list-item";
+    const copy = document.createElement("span");
+    const title = document.createElement("strong");
+    const meta = document.createElement("small");
+    const action = document.createElement("b");
+    title.textContent = `${entry.targetType} · ${entry.targetName}`;
+    meta.textContent = `${entry.occurredAt} · ${entry.actor}${entry.detail ? ` · ${entry.detail}` : ""}`;
+    action.textContent = entry.action;
+    copy.append(title, meta);
+    item.append(copy, action);
+    return item;
+  }));
+};
+
+const renderRecoveryList = () => {
+  if (!(recoveryList instanceof HTMLElement)) return;
+  if (!hiddenItems.length) {
+    const empty = document.createElement("p");
+    empty.className = "phase2-empty";
+    empty.textContent = "숨김 처리된 항목이 없습니다.";
+    recoveryList.replaceChildren(empty);
+    return;
+  }
+  recoveryList.replaceChildren(...hiddenItems.map((item) => {
+    const row = document.createElement("article");
+    row.className = "phase2-list-item";
+    const copy = document.createElement("span");
+    const title = document.createElement("strong");
+    const meta = document.createElement("small");
+    const type = document.createElement("b");
+    const restore = document.createElement("button");
+    title.textContent = item.name;
+    meta.textContent = `${item.hiddenAt} · ${item.hiddenBy} 숨김`;
+    type.textContent = item.type;
+    restore.type = "button";
+    restore.textContent = "복구";
+    restore.dataset.restoreItem = item.id;
+    copy.append(title, meta);
+    row.append(copy, type, restore);
+    return row;
+  }));
+};
+
+const softDeleteItem = ({ type, name, element, onChange }) => {
+  if (!(element instanceof HTMLElement)) return;
+  const id = `${type}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  element.dataset.softDeleted = "true";
+  element.hidden = true;
+  hiddenItems.unshift({ id, type, name, element, onChange, hiddenAt: "방금 전", hiddenBy: getRoleOption(currentRole).name });
+  recordHistory({ action: "숨김", targetType: type, targetName: name });
+  renderRecoveryList();
+  onChange?.();
+};
+
+const restoreItem = (id) => {
+  if (!currentRolePolicy.canRestore) return;
+  const index = hiddenItems.findIndex((item) => item.id === id);
+  if (index < 0) return;
+  const [item] = hiddenItems.splice(index, 1);
+  delete item.element.dataset.softDeleted;
+  item.element.hidden = false;
+  recordHistory({ action: "복구", targetType: item.type, targetName: item.name });
+  renderRecoveryList();
+  item.onChange?.();
+  showToast(`${item.name} 항목을 복구했습니다. (목업)`);
 };
 
 document.querySelectorAll("[data-home-refresh]").forEach((link) => {
@@ -122,6 +238,7 @@ const setAgentMode = (mode, { announce = true, focus = true } = {}) => {
   agentWorkspace?.setAttribute("aria-hidden", String(mode !== "full"));
   if (agentDrawer instanceof HTMLElement) agentDrawer.inert = mode !== "drawer";
   if (agentWorkspace instanceof HTMLElement) agentWorkspace.inert = mode !== "full";
+  syncPrimaryWorkspaceAccessibility();
   document.querySelectorAll("[data-agent-open]").forEach((button) => {
     button.setAttribute("aria-expanded", String(mode !== "closed"));
   });
@@ -153,15 +270,9 @@ const setAgentMode = (mode, { announce = true, focus = true } = {}) => {
   }
 
   if (focus) {
-    window.requestAnimationFrame(() => {
-      if (mode === "full") {
-        document.querySelector("#agent-main")?.focus();
-      } else if (mode === "drawer") {
-        document.querySelector("#agent-drawer-input")?.focus();
-      } else {
-        document.querySelector("[data-agent-open]")?.focus();
-      }
-    });
+    if (mode === "full") focusAfterTransition(document.querySelector("#agent-main"));
+    else if (mode === "drawer") focusAfterTransition(document.querySelector("#agent-drawer-input"));
+    else focusAfterTransition(document.querySelector("[data-agent-open]"));
   }
 
   if (!announce) return;
@@ -172,10 +283,11 @@ const setAgentMode = (mode, { announce = true, focus = true } = {}) => {
 
 const reportModes = new Set(["closed", "catalog", "viewer"]);
 const reportCategoryLabels = { fdc: "FDC", spc: "SPC", vm: "VM" };
-const canManageReports = prototype?.dataset.canManageReports === "true";
+let canManageReports = prototype?.dataset.canManageReports === "true";
 document.body.classList.toggle("report-manager", canManageReports);
 
-const getReportCards = () => [...document.querySelectorAll("[data-report-card]")];
+const getReportCards = ({ includeDeleted = false } = {}) => [...document.querySelectorAll("[data-report-card]")]
+  .filter((card) => includeDeleted || card.dataset.softDeleted !== "true");
 
 const getReportDescription = (card) => card.dataset.reportDescription
   ?? card.querySelector(".report-card-copy em")?.textContent?.trim()
@@ -190,7 +302,7 @@ const updateReportCounts = () => {
     button.querySelector("[data-report-filter-count]")?.replaceChildren(String(count));
   });
   document.querySelectorAll("[data-report-group]").forEach((group) => {
-    const count = group.querySelectorAll("[data-report-card]").length;
+    const count = [...group.querySelectorAll("[data-report-card]")].filter((card) => card.dataset.softDeleted !== "true").length;
     group.querySelector("[data-report-group-count]")?.replaceChildren(`${count} REPORTS`);
   });
 };
@@ -249,6 +361,7 @@ const setReportMode = (mode, { announce = true, focus = true, restoreAgent = tru
   if (reportWorkspace instanceof HTMLElement) reportWorkspace.inert = mode === "closed";
   if (reportCatalog instanceof HTMLElement) reportCatalog.inert = mode !== "catalog";
   if (reportViewer instanceof HTMLElement) reportViewer.inert = mode !== "viewer";
+  syncPrimaryWorkspaceAccessibility();
 
   if (mode !== "closed") {
     setAgentMode("closed", { announce: false, focus: false });
@@ -271,11 +384,9 @@ const setReportMode = (mode, { announce = true, focus = true, restoreAgent = tru
   }
 
   if (focus) {
-    window.requestAnimationFrame(() => {
-      if (mode === "catalog") reportCatalog?.focus();
-      else if (mode === "viewer") reportViewer?.focus();
-      else document.querySelector("[data-report-open]")?.focus();
-    });
+    if (mode === "catalog") focusAfterTransition(reportCatalog);
+    else if (mode === "viewer") focusAfterTransition(reportViewer);
+    else focusAfterTransition(document.querySelector("[data-report-open]"));
   }
 
   if (!announce) return;
@@ -309,6 +420,7 @@ const setRuleMode = (mode, { announce = true, focus = true, restoreAgent = true 
 
   ruleWorkspace?.setAttribute("aria-hidden", String(mode === "closed"));
   if (ruleWorkspace instanceof HTMLElement) ruleWorkspace.inert = mode === "closed";
+  syncPrimaryWorkspaceAccessibility();
 
   if (mode === "open") {
     setAgentMode("closed", { announce: false, focus: false });
@@ -320,14 +432,11 @@ const setRuleMode = (mode, { announce = true, focus = true, restoreAgent = true 
   document.title = mode === "open" ? "Quality Hub · Rule&SOP" : "Quality Hub";
 
   if (focus) {
-    window.requestAnimationFrame(() => {
-      if (mode === "open") {
-        window.requestAnimationFrame(() => rulePage?.focus());
-      } else {
-        const fallbackOpener = [...document.querySelectorAll("[data-rule-open]")].find((button) => button.getClientRects().length > 0);
-        (ruleReturnFocus ?? fallbackOpener)?.focus();
-      }
-    });
+    if (mode === "open") focusAfterTransition(rulePage);
+    else {
+      const fallbackOpener = [...document.querySelectorAll("[data-rule-open]")].find((button) => button.getClientRects().length > 0);
+      focusAfterTransition(ruleReturnFocus ?? fallbackOpener);
+    }
   }
 
   if (!announce) return;
@@ -359,7 +468,7 @@ const setQnaMode = (mode, { announce = true, focus = true, restoreAgent = true, 
   document.body.classList.toggle("qna-active", mode === "open");
   qnaWorkspace?.setAttribute("aria-hidden", String(mode === "closed"));
   if (qnaWorkspace instanceof HTMLElement) qnaWorkspace.inert = mode === "closed";
-  if (dashboardWorkspace instanceof HTMLElement) dashboardWorkspace.inert = mode === "open";
+  syncPrimaryWorkspaceAccessibility();
 
   const url = new URL(window.location.href);
   if (mode === "open") url.searchParams.set("qna", "open");
@@ -380,14 +489,11 @@ const setQnaMode = (mode, { announce = true, focus = true, restoreAgent = true, 
   }
 
   if (focus) {
-    window.requestAnimationFrame(() => {
-      if (mode === "open") {
-        window.requestAnimationFrame(() => document.querySelector("#qna-main")?.focus());
-      } else {
-        const fallbackOpener = [...document.querySelectorAll("[data-qna-open]")].find((button) => button.getClientRects().length > 0);
-        (qnaReturnFocus ?? fallbackOpener)?.focus();
-      }
-    });
+    if (mode === "open") focusAfterTransition(document.querySelector("#qna-main"), 360);
+    else {
+      const fallbackOpener = [...document.querySelectorAll("[data-qna-open]")].find((button) => button.getClientRects().length > 0);
+      focusAfterTransition(qnaReturnFocus ?? fallbackOpener);
+    }
   }
 
   if (!announce) return;
@@ -419,6 +525,7 @@ const setUserMode = (mode, { announce = true, focus = true, restoreAgent = true 
   document.body.classList.toggle("user-active", mode === "open");
   userWorkspace?.setAttribute("aria-hidden", String(mode === "closed"));
   if (userWorkspace instanceof HTMLElement) userWorkspace.inert = mode === "closed";
+  syncPrimaryWorkspaceAccessibility();
 
   const url = new URL(window.location.href);
   if (mode === "open") url.searchParams.set("users", "open");
@@ -433,13 +540,11 @@ const setUserMode = (mode, { announce = true, focus = true, restoreAgent = true 
   document.title = mode === "open" ? "Quality Hub · 사용자 및 권한" : "Quality Hub";
 
   if (focus) {
-    window.requestAnimationFrame(() => {
-      if (mode === "open") userPage?.focus();
-      else {
-        const fallbackOpener = [...document.querySelectorAll("[data-user-open]")].find((button) => button.getClientRects().length > 0);
-        (userReturnFocus ?? fallbackOpener)?.focus();
-      }
-    });
+    if (mode === "open") focusAfterTransition(userPage);
+    else {
+      const fallbackOpener = [...document.querySelectorAll("[data-user-open]")].find((button) => button.getClientRects().length > 0);
+      focusAfterTransition(userReturnFocus ?? fallbackOpener);
+    }
   }
 
   if (!announce) return;
@@ -497,7 +602,8 @@ document.querySelectorAll("[data-user-close]").forEach((button) => {
   button.addEventListener("click", () => setUserMode("closed"));
 });
 
-const getAccessRows = () => [...document.querySelectorAll("[data-access-row]")];
+const getAccessRows = ({ includeDeleted = false } = {}) => [...document.querySelectorAll("[data-access-row]")]
+  .filter((row) => includeDeleted || row.dataset.softDeleted !== "true");
 
 const updateAccessCounts = () => {
   ["admin", "general"].forEach((role) => {
@@ -535,16 +641,33 @@ const applyAccessSearch = () => {
 userSearch?.addEventListener("input", applyAccessSearch);
 
 userWorkspace?.addEventListener("click", (event) => {
+  const editButton = event.target.closest("[data-access-edit]");
+  if (editButton instanceof HTMLButtonElement) {
+    const row = editButton.closest("[data-access-row]");
+    if (!(row instanceof HTMLElement) || !currentRolePolicy.canManagePermissions || !(accessAddDialog instanceof HTMLDialogElement)) return;
+    editingAccessRow = row;
+    accessAddReturnFocus = editButton;
+    accessAddForm?.reset();
+    if (accessFieldInput instanceof HTMLSelectElement) accessFieldInput.value = row.dataset.accessField ?? "user-id";
+    if (accessMatchInput instanceof HTMLSelectElement) accessMatchInput.value = row.dataset.accessMatch ?? "exact";
+    if (accessValueInput instanceof HTMLInputElement) accessValueInput.value = row.dataset.accessValue ?? "";
+    const roleInput = accessAddForm?.querySelector(`[data-access-role][value="${row.dataset.accessRole}"]`);
+    if (roleInput instanceof HTMLInputElement) roleInput.checked = true;
+    document.querySelector("[data-access-dialog-title]")?.replaceChildren("접근 권한 규칙 변경");
+    document.querySelector("[data-access-submit-label]")?.replaceChildren("변경 저장");
+    updateAccessFormGuide();
+    accessAddDialog.showModal();
+    window.requestAnimationFrame(() => accessValueInput?.focus());
+    return;
+  }
   const removeButton = event.target.closest("[data-access-remove]");
-  if (!(removeButton instanceof HTMLButtonElement)) return;
+  if (!(removeButton instanceof HTMLButtonElement) || !currentRolePolicy.canManagePermissions) return;
   const row = removeButton.closest("[data-access-row]");
   if (!(row instanceof HTMLElement)) return;
 
   const accessValue = row.dataset.accessValue;
-  row.remove();
-  updateAccessCounts();
-  applyAccessSearch();
-  showToast(`${accessValue} 조건의 권한 규칙을 삭제했습니다. (목업)`);
+  softDeleteItem({ type: "권한 규칙", name: accessValue, element: row, onChange: () => { updateAccessCounts(); applyAccessSearch(); } });
+  showToast(`${accessValue} 조건의 권한 규칙을 숨김 처리했습니다. (목업)`);
 });
 
 const updateAccessFormGuide = () => {
@@ -567,9 +690,12 @@ accessMatchInput?.addEventListener("change", updateAccessFormGuide);
 
 document.querySelectorAll("[data-access-add-open]").forEach((button) => {
   button.addEventListener("click", () => {
-    if (!(accessAddDialog instanceof HTMLDialogElement) || accessAddDialog.open) return;
+    if (!(accessAddDialog instanceof HTMLDialogElement) || accessAddDialog.open || !currentRolePolicy.canManagePermissions) return;
+    editingAccessRow = null;
     accessAddReturnFocus = button;
     accessAddForm?.reset();
+    document.querySelector("[data-access-dialog-title]")?.replaceChildren("접근 권한 규칙 추가");
+    document.querySelector("[data-access-submit-label]")?.replaceChildren("권한 규칙 추가");
     accessValueInput?.removeAttribute("aria-invalid");
     if (accessValueError instanceof HTMLElement) accessValueError.hidden = true;
     updateAccessFormGuide();
@@ -601,6 +727,7 @@ accessAddForm?.addEventListener("submit", (event) => {
     ? /^[a-z0-9][a-z0-9._-]{1,79}$/i.test(accessValue)
     : accessValue.length >= 2 && accessValue.length <= 80;
   const isDuplicate = getAccessRows().some((row) =>
+    row !== editingAccessRow &&
     row.dataset.accessField === accessField &&
     row.dataset.accessMatch === accessMatch &&
     row.dataset.accessValue?.toLocaleLowerCase("ko-KR") === accessValue.toLocaleLowerCase("ko-KR")
@@ -614,8 +741,8 @@ accessAddForm?.addEventListener("submit", (event) => {
     return;
   }
 
-  if (!(accessRowTemplate instanceof HTMLTemplateElement) || !["admin", "general"].includes(accessRole)) return;
-  const row = accessRowTemplate.content.firstElementChild?.cloneNode(true);
+  if (!(accessRowTemplate instanceof HTMLTemplateElement) || !["admin", "general"].includes(accessRole) || !currentRolePolicy.canManagePermissions) return;
+  const row = editingAccessRow ?? accessRowTemplate.content.firstElementChild?.cloneNode(true);
   const table = document.querySelector(".user-table");
   if (!(row instanceof HTMLElement) || !(table instanceof HTMLElement)) return;
 
@@ -624,17 +751,21 @@ accessAddForm?.addEventListener("submit", (event) => {
   row.dataset.accessField = accessField;
   row.dataset.accessMatch = accessMatch;
   row.dataset.accessValue = accessValue;
-  const roleBadge = row.querySelector("[data-access-role-label]");
+  const roleBadge = row.querySelector("[data-access-role-label]") ?? row.querySelector(".access-role-badge");
   roleBadge?.replaceChildren(roleLabel);
+  roleBadge?.classList.remove("is-admin", "is-general");
   roleBadge?.classList.add(accessRole === "admin" ? "is-admin" : "is-general");
-  row.querySelector("[data-access-field-label]")?.replaceChildren(accessField === "user-id" ? "유저 ID" : "소속부서");
-  row.querySelector("[data-access-match-label]")?.replaceChildren(accessMatch === "exact" ? "직접 일치" : "텍스트 포함");
-  row.querySelector("[data-access-value-label]")?.replaceChildren(accessValue);
-  table.append(row);
+  (row.querySelector("[data-access-field-label]") ?? row.children[1])?.replaceChildren(accessField === "user-id" ? "유저 ID" : "소속부서");
+  (row.querySelector("[data-access-match-label]") ?? row.children[2])?.replaceChildren(accessMatch === "exact" ? "직접 일치" : "텍스트 포함");
+  (row.querySelector("[data-access-value-label]") ?? row.querySelector(".access-value"))?.replaceChildren(accessValue);
+  if (!editingAccessRow) table.append(row);
+  const action = editingAccessRow ? "변경" : "등록";
+  editingAccessRow = null;
   accessAddDialog.close();
   updateAccessCounts();
   applyAccessSearch();
-  showToast(`${accessValue} 조건에 ${roleLabel} 권한 규칙을 추가했습니다. (목업)`);
+  recordHistory({ action, targetType: "권한 규칙", targetName: accessValue, detail: `${roleLabel} · ${accessField === "user-id" ? "유저 ID" : "소속부서"}` });
+  showToast(`${accessValue} 조건의 ${roleLabel} 권한 규칙을 ${action}했습니다. (목업)`);
 });
 
 updateAccessCounts();
@@ -727,7 +858,7 @@ const applyReportFilters = () => {
     group.querySelectorAll("[data-report-card]").forEach((card) => {
       const matchesCategory = selectedFilter === "all" || card.dataset.reportCategory === selectedFilter;
       const matchesSearch = !searchTerm || card.textContent.toLocaleLowerCase("ko-KR").includes(searchTerm);
-      const isVisible = matchesCategory && matchesSearch;
+      const isVisible = card.dataset.softDeleted !== "true" && matchesCategory && matchesSearch;
       card.hidden = !isVisible;
       if (isVisible) {
         visibleCardCount += 1;
@@ -813,14 +944,13 @@ reportDeleteDialog?.addEventListener("close", () => {
 
 document.querySelector("[data-report-delete-confirm]")?.addEventListener("click", () => {
   if (!(activeReportCard instanceof HTMLElement)) return;
+  const card = activeReportCard;
   const deletedTitle = activeReportCard.dataset.reportTitle ?? "선택한 Report";
-  activeReportCard.remove();
   activeReportCard = null;
   reportDeleteDialog?.close();
-  updateReportCounts();
-  applyReportFilters();
+  softDeleteItem({ type: "Report", name: deletedTitle, element: card, onChange: () => { updateReportCounts(); applyReportFilters(); } });
   setReportMode("catalog", { announce: false });
-  showToast(`${deletedTitle} Report를 삭제했습니다. (목업)`);
+  showToast(`${deletedTitle} Report를 숨김 처리했습니다. (목업)`);
 });
 
 reportEditorForm?.addEventListener("submit", (event) => {
@@ -857,6 +987,7 @@ reportEditorForm?.addEventListener("submit", (event) => {
   }
 
   activeReportCard = card;
+  recordHistory({ action: reportEditorMode === "edit" ? "수정" : "등록", targetType: "Report", targetName: card.dataset.reportTitle });
   closeReportEditor();
   updateReportCounts();
   applyReportFilters();
@@ -924,7 +1055,7 @@ const ruleProcessesByMinor = {
 };
 
 const ruleRevisionHistory = new Map();
-const canManageRuleDocuments = prototype?.dataset.canManageRules === "true";
+let canManageRuleDocuments = prototype?.dataset.canManageRules === "true";
 document.body.classList.toggle("rule-manager", canManageRuleDocuments);
 
 const replaceRuleSelectOptions = (select, values, labels, preferredValue) => {
@@ -1049,7 +1180,8 @@ const openRuleEditor = (mode, card = null, returnFocus = null) => {
   window.requestAnimationFrame(() => ruleEditorName?.focus());
 };
 
-const getRuleCards = () => [...document.querySelectorAll("[data-rule-card]")];
+const getRuleCards = ({ includeDeleted = false } = {}) => [...document.querySelectorAll("[data-rule-card]")]
+  .filter((card) => includeDeleted || card.dataset.softDeleted !== "true");
 
 const matchesRuleScope = (card, scope, value = ruleFilterState[scope]) =>
   value === "all" || card.dataset[`rule${scope[0].toUpperCase()}${scope.slice(1)}`] === value;
@@ -1110,7 +1242,7 @@ const applyRuleFilters = ({ animate = true } = {}) => {
   let visibleCardCount = 0;
 
   getRuleCards().forEach((card) => {
-    const isVisible = Object.keys(ruleFilterState).every((scope) => matchesRuleScope(card, scope));
+    const isVisible = card.dataset.softDeleted !== "true" && Object.keys(ruleFilterState).every((scope) => matchesRuleScope(card, scope));
     card.hidden = !isVisible;
     if (isVisible) visibleCardCount += 1;
   });
@@ -1194,15 +1326,13 @@ ruleDeleteDialog?.addEventListener("close", () => activeRuleCard?.focus());
 
 document.querySelector("[data-rule-delete-confirm]")?.addEventListener("click", () => {
   if (!(activeRuleCard instanceof HTMLElement)) return;
+  const card = activeRuleCard;
   const deletedTitle = activeRuleCard.dataset.ruleTitle ?? "선택한 문서";
-  const deletedId = activeRuleCard.dataset.ruleId;
-  activeRuleCard.remove();
-  if (deletedId) ruleRevisionHistory.delete(deletedId);
   activeRuleCard = null;
   ruleDeleteDialog?.close();
-  applyRuleFilters({ animate: false });
+  softDeleteItem({ type: "Rule&SOP", name: deletedTitle, element: card, onChange: () => applyRuleFilters({ animate: false }) });
   document.querySelector("[data-rule-create-open]")?.focus();
-  showToast(`${deletedTitle} 문서를 삭제했습니다. (목업)`);
+  showToast(`${deletedTitle} 문서를 숨김 처리했습니다. (목업)`);
 });
 
 document.querySelectorAll("[data-rule-editor-close]").forEach((button) => {
@@ -1268,6 +1398,7 @@ ruleEditorForm?.addEventListener("submit", (event) => {
   });
 
   activeRuleCard = card;
+  recordHistory({ action: isEdit ? "수정" : "등록", targetType: "Rule&SOP", targetName: card.dataset.ruleTitle });
   closeRuleEditor();
   applyRuleFilters();
   showToast(`${card.dataset.ruleTitle} 문서를 ${isEdit ? "수정" : "등록"}했습니다. (목업)`);
@@ -1347,7 +1478,7 @@ const applyGlobalSearch = () => {
 };
 
 const openGlobalSearch = (opener) => {
-  if (!(globalSearch instanceof HTMLDialogElement) || globalSearch.open) return;
+  if (!currentRolePolicy.canAccess || !(globalSearch instanceof HTMLDialogElement) || globalSearch.open) return;
   globalSearchReturnFocus = opener instanceof HTMLElement ? opener : null;
   if (globalSearchInput instanceof HTMLInputElement) globalSearchInput.value = "";
   applyGlobalSearch();
@@ -1381,23 +1512,27 @@ document.querySelectorAll("[data-global-search-result]").forEach((result) => {
   result.addEventListener("click", () => {
     const target = result.dataset.searchTarget;
     const contentId = result.dataset.searchId;
+    suppressGlobalSearchFocusRestore = true;
     globalSearch?.close();
 
     if (target === "report") {
       const card = [...document.querySelectorAll("[data-report-card]")].find((item) => item.dataset.reportTitle === contentId);
-      if (card) setReportMode("viewer", { card });
+      if (card) {
+        setReportMode("viewer", { card, focus: false });
+        window.setTimeout(() => reportViewer?.focus(), 220);
+      }
       return;
     }
 
     if (target === "rule") {
       const card = [...document.querySelectorAll("[data-rule-card]")].find((item) => item.dataset.ruleTitle === contentId);
-      setRuleMode("open");
-      window.requestAnimationFrame(() => {
+      setRuleMode("open", { focus: false });
+      window.setTimeout(() => {
         card?.classList.add("is-search-target");
         card?.scrollIntoView({ block: "center", behavior: "smooth" });
         card?.focus();
         window.setTimeout(() => card?.classList.remove("is-search-target"), 1800);
-      });
+      }, 220);
       return;
     }
 
@@ -1412,7 +1547,8 @@ globalSearch?.addEventListener("click", (event) => {
 });
 
 globalSearch?.addEventListener("close", () => {
-  globalSearchReturnFocus?.focus();
+  if (!suppressGlobalSearchFocusRestore) globalSearchReturnFocus?.focus();
+  suppressGlobalSearchFocusRestore = false;
 });
 
 document.querySelectorAll("[data-today]").forEach((element) => {
@@ -1506,3 +1642,162 @@ document.addEventListener("keydown", (event) => {
     else if (prototype?.dataset.agentMode === "full") setAgentMode("drawer");
   }
 });
+
+const applyCommonState = (state, { announce = true } = {}) => {
+  if (!(prototype instanceof HTMLElement) || !COMMON_STATE_OPTIONS.some((option) => option.value === state)) return;
+  currentCommonState = state;
+  prototype.dataset.commonState = state;
+  if (commonStatePreview instanceof HTMLSelectElement) commonStatePreview.value = state;
+  chartsSection?.setAttribute("aria-busy", String(state === "loading"));
+  if (chartsSection instanceof HTMLElement) chartsSection.hidden = state === "empty" || state === "denied";
+  if (!(commonStateSurface instanceof HTMLElement)) return;
+
+  const stateCopy = {
+    loading: ["처리 중", "예시 품질 지표를 확인하고 있습니다."],
+    empty: ["데이터가 없습니다.", "현재 조건에서 표시할 예시 품질 지표가 없습니다."],
+    error: ["조회 오류가 발생했습니다.", "다시 시도해 주세요. 현재 화면의 기존 내용은 유지됩니다."],
+    stale: ["오래된 데이터", "마지막 정상 시각: 오늘 09:40 (목업)"],
+    denied: ["권한 없음", getPermissionMessage(currentRole)],
+  };
+  const stateIcons = {
+    loading: "#icon-refresh",
+    empty: "#icon-empty",
+    error: "#icon-alert",
+    stale: "#icon-history",
+    denied: "#icon-shield",
+  };
+
+  commonStateSurface.className = "common-state-surface";
+  if (state === "normal") {
+    commonStateSurface.hidden = true;
+    return;
+  }
+  const [title, description] = stateCopy[state];
+  commonStateSurface.hidden = false;
+  commonStateSurface.classList.add(`is-${state}`);
+  document.querySelector("[data-common-state-title]")?.replaceChildren(title);
+  document.querySelector("[data-common-state-description]")?.replaceChildren(description);
+  document.querySelector("[data-common-state-icon-use]")?.setAttribute("href", stateIcons[state]);
+  const retryButton = document.querySelector("[data-common-state-retry]");
+  if (retryButton instanceof HTMLButtonElement) retryButton.hidden = state !== "error";
+  if (announce) showToast(`${title} 상태를 표시했습니다. (목업)`);
+};
+
+commonStatePreview?.addEventListener("change", () => applyCommonState(commonStatePreview.value));
+document.querySelector("[data-common-state-close]")?.addEventListener("click", () => applyCommonState("normal", { announce: false }));
+document.querySelector("[data-common-state-retry]")?.addEventListener("click", () => {
+  applyCommonState("loading", { announce: false });
+  window.setTimeout(() => {
+    applyCommonState("normal", { announce: false });
+    showToast("예시 데이터를 다시 조회했습니다.");
+    commonStatePreview?.focus();
+  }, 480);
+});
+
+const updateMasterProtection = () => {
+  const activeRows = [...document.querySelectorAll("[data-master-row]")].filter((row) => row.dataset.softDeleted !== "true");
+  activeRows.forEach((row) => {
+    const button = row.querySelector("[data-master-revoke]");
+    if (!(button instanceof HTMLButtonElement)) return;
+    button.disabled = activeRows.length === 1;
+    button.title = activeRows.length === 1 ? "마지막 마스터의 권한은 회수할 수 없습니다." : "마스터 권한 회수";
+  });
+};
+
+masterList?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-master-revoke]");
+  if (!(button instanceof HTMLButtonElement) || button.disabled || !currentRolePolicy.canManageMasters) return;
+  const row = button.closest("[data-master-row]");
+  if (!(row instanceof HTMLElement)) return;
+  const name = row.querySelector("strong")?.textContent ?? row.dataset.masterId ?? "마스터";
+  softDeleteItem({ type: "마스터", name, element: row, onChange: updateMasterProtection });
+  showToast(`${name} 계정의 마스터 권한을 회수했습니다. (목업)`);
+});
+
+document.querySelector("[data-master-add]")?.addEventListener("click", () => {
+  if (!currentRolePolicy.canManageMasters || !(masterList instanceof HTMLElement)) return;
+  const id = `quality.master${document.querySelectorAll("[data-master-row]").length + 1}`;
+  const row = document.createElement("article");
+  row.dataset.masterRow = "";
+  row.dataset.masterId = id;
+  row.innerHTML = `<span class="avatar">신</span><div><strong>신규 마스터</strong><small>${id} · 품질기획</small></div><b>마스터</b><button type="button" data-master-revoke>권한 회수</button>`;
+  masterList.append(row);
+  recordHistory({ action: "부여", targetType: "마스터", targetName: "신규 마스터", detail: id });
+  updateMasterProtection();
+  showToast("예시 마스터 계정을 추가했습니다. (목업)");
+});
+
+document.querySelectorAll("[data-recovery-open]").forEach((button) => button.addEventListener("click", () => {
+  if (!currentRolePolicy.canRestore || !(recoveryDialog instanceof HTMLDialogElement)) return;
+  renderRecoveryList();
+  recoveryDialog.showModal();
+}));
+document.querySelectorAll("[data-history-open]").forEach((button) => button.addEventListener("click", () => {
+  if (!currentRolePolicy.canViewHistory || !(historyDialog instanceof HTMLDialogElement)) return;
+  renderHistoryList();
+  historyDialog.showModal();
+}));
+document.querySelectorAll("[data-recovery-close]").forEach((button) => button.addEventListener("click", () => recoveryDialog?.close()));
+document.querySelectorAll("[data-history-close]").forEach((button) => button.addEventListener("click", () => historyDialog?.close()));
+recoveryList?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-restore-item]");
+  if (button instanceof HTMLButtonElement) restoreItem(button.dataset.restoreItem);
+});
+
+const applyRole = (role, { announce = true } = {}) => {
+  if (!(prototype instanceof HTMLElement)) return;
+  const previousRole = currentRole;
+  currentRole = role;
+  currentRolePolicy = getRolePolicy(role);
+  const roleOption = getRoleOption(role);
+  prototype.dataset.currentRole = role;
+  prototype.dataset.canManageReports = String(currentRolePolicy.canManageContent);
+  prototype.dataset.canManageRules = String(currentRolePolicy.canManageContent);
+  canManageReports = currentRolePolicy.canManageContent;
+  canManageRuleDocuments = currentRolePolicy.canManageContent;
+  document.body.classList.toggle("report-manager", canManageReports);
+  document.body.classList.toggle("rule-manager", canManageRuleDocuments);
+  document.body.classList.toggle("master-view", currentRolePolicy.canManagePermissions);
+  if (rolePreview instanceof HTMLSelectElement) rolePreview.value = role;
+
+  document.querySelectorAll("[data-master-only]").forEach((element) => { element.hidden = !currentRolePolicy.canManagePermissions; });
+  document.querySelectorAll("[data-recovery-open], [data-history-open], .master-management-card").forEach((element) => { element.hidden = !currentRolePolicy.canManagePermissions; });
+  document.querySelectorAll("[data-current-user-name]").forEach((element) => element.replaceChildren(roleOption.name));
+  document.querySelectorAll("[data-current-role-label]").forEach((element) => element.replaceChildren(roleOption.label));
+  document.querySelectorAll("[data-current-user-initial]").forEach((element) => element.replaceChildren(roleOption.name.slice(0, 1)));
+  document.querySelector("[data-blocked-user-id]")?.replaceChildren(roleOption.userId);
+  document.querySelector("[data-blocked-department]")?.replaceChildren(roleOption.department);
+  if (accessBlocked instanceof HTMLElement) accessBlocked.hidden = currentRolePolicy.canAccess;
+  document.querySelectorAll(".global-header > .brand, .top-navigation, .header-actions > button").forEach((element) => {
+    element.toggleAttribute("inert", !currentRolePolicy.canAccess);
+    element.setAttribute("aria-hidden", String(!currentRolePolicy.canAccess));
+  });
+
+  if (!currentRolePolicy.canManagePermissions && prototype.dataset.userMode === "open") {
+    setUserMode("closed", { announce: false, focus: false });
+  }
+  if (!currentRolePolicy.canAccess) {
+    setReportMode("closed", { announce: false, focus: false, restoreAgent: false });
+    setRuleMode("closed", { announce: false, focus: false, restoreAgent: false });
+    setQnaMode("closed", { announce: false, focus: false, restoreAgent: false });
+    setUserMode("closed", { announce: false, focus: false, restoreAgent: false });
+    setAgentMode("closed", { announce: false, focus: false });
+    document.title = "Quality Hub · 접근 차단";
+    focusAfterTransition(accessBlocked, 0);
+  } else if (previousRole === "blocked" && prototype.dataset.agentMode === "closed") {
+    setAgentMode("drawer", { announce: false, focus: false });
+    focusAfterTransition(rolePreview, 0);
+  }
+
+  if (currentCommonState === "denied") applyCommonState("denied", { announce: false });
+  syncPrimaryWorkspaceAccessibility();
+  window.dispatchEvent(new CustomEvent("qualityhub:role-change", { detail: { role, policy: currentRolePolicy, user: roleOption } }));
+  if (announce) showToast(`${roleOption.label} 역할 화면으로 전환했습니다. (목업)`);
+};
+
+rolePreview?.addEventListener("change", () => applyRole(rolePreview.value));
+updateMasterProtection();
+renderRecoveryList();
+renderHistoryList();
+applyRole(currentRole, { announce: false });
+applyCommonState(currentCommonState, { announce: false });

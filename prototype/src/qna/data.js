@@ -178,6 +178,7 @@ export function filterPosts(posts, { search = "", status = "all", process = "전
   return posts.filter((post) => {
     const searchTarget = [post.title, post.excerpt, post.author, ...post.tags].join(" ").toLocaleLowerCase("ko-KR")
     return (
+      !post.hidden &&
       (!normalized || searchTarget.includes(normalized)) &&
       (status === "all" || post.status === status) &&
       (process === "전체 공정" || post.process === process) &&

@@ -8,6 +8,7 @@
       content="Quality Hub 데스크톱 대시보드 목업"
     />
     <title>Quality Hub</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23eaf6fd'/%3E%3Crect x='7' y='7' width='8' height='18' rx='2' fill='%230788df'/%3E%3Crect x='18' y='7' width='7' height='7' rx='2' fill='%230788df'/%3E%3Crect x='18' y='17' width='7' height='8' rx='2' fill='%230673bc'/%3E%3C/svg%3E" />
     <link rel="stylesheet" href="./styles.css" />
     <script type="module" src="./app.js"></script>
     <script type="module" src="./src/main.jsx"></script>
@@ -62,6 +63,13 @@
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
         <path d="m9 12 2 2 4-4" />
       </symbol>
+      <symbol id="icon-alert" viewBox="0 0 24 24">
+        <path d="M12 3 2.5 20h19z" />
+        <path d="M12 9v5M12 18h.01" />
+      </symbol>
+      <symbol id="icon-empty" viewBox="0 0 24 24">
+        <path d="M4 5h16v14H4zM8 9h8M8 13h5" />
+      </symbol>
       <symbol id="icon-expand" viewBox="0 0 24 24">
         <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" />
       </symbol>
@@ -106,7 +114,7 @@
       </symbol>
     </svg>
 
-    <div class="prototype" data-layout="top" data-agent-mode="drawer" data-report-mode="closed" data-rule-mode="closed" data-qna-mode="closed" data-user-mode="closed" data-can-manage-rules="true" data-can-manage-reports="true">
+    <div class="prototype" data-layout="top" data-agent-mode="drawer" data-report-mode="closed" data-rule-mode="closed" data-qna-mode="closed" data-user-mode="closed" data-current-role="master" data-common-state="normal" data-can-manage-rules="true" data-can-manage-reports="true">
       <aside class="sidebar" aria-label="좌측 서비스 메뉴">
         <a class="brand sidebar-brand" href="#dashboard" aria-label="Quality Hub 홈" data-home-refresh>
           <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -148,7 +156,7 @@
             <span>알림</span>
             <span class="status-dot" aria-label="읽지 않은 알림 있음"></span>
           </button>
-          <button class="side-nav-item" type="button" data-user-open>
+          <button class="side-nav-item" type="button" data-user-open data-master-only>
             <svg class="icon"><use href="#icon-users"></use></svg>
             <span>사용자 및 권한</span>
           </button>
@@ -161,7 +169,7 @@
           </div>
           <button class="profile-card" type="button" data-planned="내 프로필">
             <span class="avatar">김</span>
-            <span><strong>김품질</strong><small>마스터</small></span>
+            <span><strong data-current-user-name>김품질</strong><small data-current-role-label>마스터</small></span>
             <svg class="icon"><use href="#icon-chevron-down"></use></svg>
           </button>
         </div>
@@ -191,7 +199,7 @@
               관리 <svg class="icon"><use href="#icon-chevron-down"></use></svg>
             </button>
             <div class="top-nav-menu compact-menu">
-              <button type="button" data-user-open><svg class="icon"><use href="#icon-users"></use></svg><span><strong>사용자 및 권한</strong><small>접근 권한 규칙 관리</small></span></button>
+              <button type="button" data-user-open data-master-only><svg class="icon"><use href="#icon-users"></use></svg><span><strong>사용자 및 권한</strong><small>접근 권한 규칙 관리</small></span></button>
             </div>
           </div>
           <button class="top-nav-link agent-nav-button" type="button" data-agent-open aria-expanded="true">
@@ -201,17 +209,26 @@
         </nav>
 
         <div class="header-actions">
+          <label class="role-preview-control">
+            <span>역할 미리보기</span>
+            <select aria-label="목업 사용자 역할 전환" data-role-preview>
+              <option value="master">마스터</option>
+              <option value="admin">관리자</option>
+              <option value="general">일반유저</option>
+              <option value="blocked">접근 차단</option>
+            </select>
+          </label>
           <button class="header-search" type="button" data-global-search-open aria-label="통합 검색 열기">
             <svg class="icon"><use href="#icon-search"></use></svg><span>Report, Rule, Q&amp;A 검색</span><kbd>⌘ K</kbd>
           </button>
           <button class="icon-button" type="button" data-qna-notifications aria-label="Q&A 알림 3개">
             <svg class="icon"><use href="#icon-bell"></use></svg><i>3</i>
           </button>
-          <button class="header-profile" type="button" data-planned="내 프로필"><span class="avatar">김</span><span>김품질</span></button>
+          <button class="header-profile" type="button" data-planned="내 프로필"><span class="avatar" data-current-user-initial>김</span><span data-current-user-name>김품질</span></button>
         </div>
       </header>
 
-      <div class="workspace">
+      <div class="workspace" data-dashboard-shell>
         <header class="workspace-header">
           <div class="breadcrumb"><span>Quality Hub</span><i>/</i><strong>대시보드</strong></div>
           <div class="workspace-actions">
@@ -243,7 +260,15 @@
             <strong>UI 검토용 예시 데이터</strong>
             <span>실제 품질 현황이나 사내 시스템과 연결되지 않았습니다.</span>
             <span class="notice-state"><i></i> 마지막 화면 갱신 <time data-last-updated>방금 전</time></span>
+            <label class="state-preview-control"><span>상태 미리보기</span><select aria-label="공통 화면 상태 미리보기" data-common-state-preview><option value="normal">정상</option><option value="loading">로딩</option><option value="empty">데이터 없음</option><option value="error">조회 오류</option><option value="stale">오래된 데이터</option><option value="denied">권한 없음</option></select></label>
           </div>
+
+          <section class="common-state-surface" hidden aria-live="polite" data-common-state-surface>
+            <span class="common-state-icon" aria-hidden="true" data-common-state-icon><svg class="icon"><use href="#icon-refresh" data-common-state-icon-use></use></svg></span>
+            <div><strong data-common-state-title></strong><p data-common-state-description></p></div>
+            <button type="button" hidden data-common-state-retry><svg class="icon"><use href="#icon-refresh"></use></svg>다시 시도</button>
+            <button type="button" aria-label="상태 안내 닫기" data-common-state-close>닫기</button>
+          </section>
 
           <section class="charts-section" aria-labelledby="chart-section-title">
             <div class="section-heading">
@@ -439,7 +464,7 @@
         </form>
       </aside>
 
-      <section class="agent-workspace" aria-label="품질 Agent 전체 작업 화면" aria-hidden="true" data-agent-workspace>
+      <div class="agent-workspace" aria-hidden="true" data-agent-workspace>
         <aside class="agent-history" aria-label="품질 Agent 대화 기록">
           <header><strong>대화 기록</strong><button type="button" data-agent-action="새 대화"><svg class="icon"><use href="#icon-plus"></use></svg>새 대화</button></header>
           <div class="agent-history-group">
@@ -513,7 +538,7 @@
             <button type="button" data-agent-action="공정 이상 분석 Report"><span class="context-card-icon"><svg class="icon"><use href="#icon-activity"></use></svg></span><span><strong>공정 이상 분석</strong><small>공정 분석 · Spotfire</small><em>현재 대화와 관련도 높음</em></span><i>OPEN</i></button>
           </section>
         </aside>
-      </section>
+      </div>
 
       <div class="qna-workspace" aria-hidden="true" data-qna-workspace>
         <div id="qna-root"></div>
@@ -675,7 +700,7 @@
               <button class="report-back-button" type="button" data-user-close><svg class="icon"><use href="#icon-arrow"></use></svg>대시보드</button>
               <span><i>Quality Hub</i><b>/</b><strong>사용자 및 권한</strong></span>
             </div>
-            <span class="user-page-status"><i></i>UI 검토용 권한 설정</span>
+            <div class="user-page-tools"><span class="user-page-status"><i></i>UI 검토용 권한 설정</span><button type="button" data-recovery-open><svg class="icon"><use href="#icon-refresh"></use></svg>숨김 항목 복구</button><button type="button" data-history-open><svg class="icon"><use href="#icon-history"></use></svg>변경 이력</button></div>
           </header>
 
           <div class="user-page-content">
@@ -709,6 +734,14 @@
               </article>
             </section>
 
+            <section class="master-management-card" aria-labelledby="master-list-title">
+              <header><div><p class="section-kicker">MASTER ACCOUNTS</p><h2 id="master-list-title">마스터 계정</h2><span>마스터만 권한을 부여·회수할 수 있으며 마지막 1명은 보호됩니다.</span></div><button class="admin-add-button" type="button" data-master-add><svg class="icon"><use href="#icon-plus"></use></svg>마스터 추가</button></header>
+              <div class="master-list" data-master-list>
+                <article data-master-row data-master-id="quality.kim"><span class="avatar">김</span><div><strong>김품질</strong><small>quality.kim · 품질기획</small></div><b>현재 사용자</b><button type="button" data-master-revoke>권한 회수</button></article>
+                <article data-master-row data-master-id="quality.jung"><span class="avatar">정</span><div><strong>정품질</strong><small>quality.jung · 품질관리</small></div><b>마스터</b><button type="button" data-master-revoke>권한 회수</button></article>
+              </div>
+            </section>
+
             <section class="user-management-card" aria-labelledby="user-list-title">
               <header>
                 <div><p class="section-kicker">ACCESS RULES</p><h2 id="user-list-title">접근 권한 규칙</h2><span>여러 규칙에 일치하면 관리자 권한을 우선 적용합니다.</span></div>
@@ -724,22 +757,22 @@
                 </div>
                 <div class="user-table-row" role="row" data-access-row data-access-role="admin" data-access-field="user-id" data-access-match="exact" data-access-value="process.park">
                   <span role="cell"><b class="access-role-badge is-admin">관리자</b></span><span role="cell">유저 ID</span><span role="cell">직접 일치</span><span role="cell"><strong class="access-value">process.park</strong></span><span role="cell">2026-08-05</span>
-                  <span role="cell"><button class="admin-remove-button" type="button" data-access-remove>권한 삭제</button></span>
+                  <span role="cell" class="access-row-actions"><button class="admin-edit-button" type="button" data-access-edit>조건 변경</button><button class="admin-remove-button" type="button" data-access-remove>권한 삭제</button></span>
                 </div>
                 <div class="user-table-row" role="row" data-access-row data-access-role="admin" data-access-field="department" data-access-match="contains" data-access-value="품질관리">
                   <span role="cell"><b class="access-role-badge is-admin">관리자</b></span><span role="cell">소속부서</span><span role="cell">텍스트 포함</span><span role="cell"><strong class="access-value">품질관리</strong></span><span role="cell">2026-08-05</span>
-                  <span role="cell"><button class="admin-remove-button" type="button" data-access-remove>권한 삭제</button></span>
+                  <span role="cell" class="access-row-actions"><button class="admin-edit-button" type="button" data-access-edit>조건 변경</button><button class="admin-remove-button" type="button" data-access-remove>권한 삭제</button></span>
                 </div>
                 <div class="user-table-row" role="row" data-access-row data-access-role="general" data-access-field="department" data-access-match="contains" data-access-value="품질">
                   <span role="cell"><b class="access-role-badge is-general">일반</b></span><span role="cell">소속부서</span><span role="cell">텍스트 포함</span><span role="cell"><strong class="access-value">품질</strong></span><span role="cell">2026-08-05</span>
-                  <span role="cell"><button class="admin-remove-button" type="button" data-access-remove>권한 삭제</button></span>
+                  <span role="cell" class="access-row-actions"><button class="admin-edit-button" type="button" data-access-edit>조건 변경</button><button class="admin-remove-button" type="button" data-access-remove>권한 삭제</button></span>
                 </div>
               </div>
 
               <template data-access-row-template>
                 <div class="user-table-row" role="row" data-access-row>
                   <span role="cell"><b class="access-role-badge" data-access-role-label></b></span><span role="cell" data-access-field-label></span><span role="cell" data-access-match-label></span><span role="cell"><strong class="access-value" data-access-value-label></strong></span><span role="cell">방금 전</span>
-                  <span role="cell"><button class="admin-remove-button" type="button" data-access-remove>권한 삭제</button></span>
+                  <span role="cell" class="access-row-actions"><button class="admin-edit-button" type="button" data-access-edit>조건 변경</button><button class="admin-remove-button" type="button" data-access-remove>권한 삭제</button></span>
                 </div>
               </template>
 
@@ -914,7 +947,7 @@
             </div>
             <div class="report-viewer-actions">
               <span><i></i>Spotfire 연결 예정</span>
-              <button class="report-viewer-delete report-admin-only" type="button" data-report-delete-open><svg class="icon"><use href="#icon-trash"></use></svg>삭제</button>
+              <button class="report-viewer-delete report-admin-only" type="button" data-report-delete-open><svg class="icon"><use href="#icon-trash"></use></svg>숨김</button>
               <button class="report-viewer-edit report-admin-only" type="button" data-report-edit-open><svg class="icon"><use href="#icon-edit"></use></svg>수정</button>
               <button type="button" data-report-action="Spotfire 새 창 열기"><svg class="icon"><use href="#icon-expand"></use></svg>Spotfire에서 열기</button>
             </div>
@@ -948,6 +981,15 @@
         </div>
       </section>
 
+      <main class="access-blocked" hidden tabindex="-1" aria-labelledby="access-blocked-title" data-access-blocked>
+        <span><svg class="icon"><use href="#icon-shield"></use></svg></span>
+        <p class="section-kicker">ACCESS BLOCKED · MOCK</p>
+        <h1 id="access-blocked-title">Quality Hub에 접근할 수 없습니다.</h1>
+        <p>사내 인증은 성공했지만 등록된 마스터 계정 또는 접근 권한 규칙과 일치하지 않습니다.</p>
+        <dl><div><dt>유저 ID</dt><dd data-blocked-user-id>guest.unknown</dd></div><div><dt>소속부서</dt><dd data-blocked-department>미등록 부서</dd></div></dl>
+        <strong>포털 관리자에게 접근 권한을 문의해 주세요.</strong>
+      </main>
+
     </div>
 
     <dialog class="report-editor-dialog rule-editor-dialog" aria-labelledby="report-editor-title" aria-describedby="report-editor-description" data-report-editor-dialog>
@@ -972,9 +1014,9 @@
     <dialog class="report-delete-dialog rule-delete-dialog" aria-labelledby="report-delete-title" aria-describedby="report-delete-description" data-report-delete-dialog>
       <div class="rule-delete-panel">
         <span class="rule-delete-mark"><svg class="icon"><use href="#icon-trash"></use></svg></span>
-        <strong id="report-delete-title">Report를 삭제할까요?</strong>
-        <p id="report-delete-description"><b data-report-delete-name></b> 카드가 목록에서 제거됩니다. 별도의 사용 중지 상태는 두지 않습니다.</p>
-        <div><button type="button" data-report-delete-close>취소</button><button type="button" data-report-delete-confirm>삭제</button></div>
+        <strong id="report-delete-title">Report를 숨김 처리할까요?</strong>
+        <p id="report-delete-description"><b data-report-delete-name></b> 카드가 일반 목록에서 숨겨지며 마스터가 복구할 수 있습니다.</p>
+        <div><button type="button" data-report-delete-close>취소</button><button type="button" data-report-delete-confirm>숨김 처리</button></div>
       </div>
     </dialog>
 
@@ -1005,7 +1047,7 @@
         <footer>
           <span>별도 DB URL·분류 컬럼 연동 전 목업입니다.</span>
           <div class="rule-admin-actions rule-admin-only">
-            <button class="rule-detail-delete" type="button" data-rule-delete-open><svg class="icon"><use href="#icon-trash"></use></svg>삭제</button>
+            <button class="rule-detail-delete" type="button" data-rule-delete-open><svg class="icon"><use href="#icon-trash"></use></svg>숨김</button>
             <button class="rule-detail-edit" type="button" data-rule-edit-open><svg class="icon"><use href="#icon-edit"></use></svg>수정</button>
           </div>
         </footer>
@@ -1044,9 +1086,9 @@
     <dialog class="rule-delete-dialog" aria-labelledby="rule-delete-title" aria-describedby="rule-delete-description" data-rule-delete-dialog>
       <div class="rule-delete-panel">
         <span class="rule-delete-mark"><svg class="icon"><use href="#icon-trash"></use></svg></span>
-        <strong id="rule-delete-title">문서를 삭제할까요?</strong>
-        <p id="rule-delete-description"><b data-rule-delete-name></b> 카드와 목업 개정 이력이 목록에서 제거됩니다.</p>
-        <div><button type="button" data-rule-delete-close>취소</button><button type="button" data-rule-delete-confirm>삭제</button></div>
+        <strong id="rule-delete-title">문서를 숨김 처리할까요?</strong>
+        <p id="rule-delete-description"><b data-rule-delete-name></b> 카드가 일반 목록에서 숨겨지며 마스터가 복구할 수 있습니다.</p>
+        <div><button type="button" data-rule-delete-close>취소</button><button type="button" data-rule-delete-confirm>숨김 처리</button></div>
       </div>
     </dialog>
 
@@ -1054,7 +1096,7 @@
       <form class="admin-add-form" data-access-add-form novalidate>
         <header role="presentation">
           <span class="admin-add-mark"><svg class="icon"><use href="#icon-users"></use></svg></span>
-          <span><strong id="access-add-title">접근 권한 규칙 추가</strong><small id="access-add-description">SSO에서 받을 항목과 비교할 조건을 설정하세요.</small></span>
+          <span><strong id="access-add-title" data-access-dialog-title>접근 권한 규칙 추가</strong><small id="access-add-description">SSO에서 받을 항목과 비교할 조건을 설정하세요.</small></span>
           <button type="button" aria-label="접근 권한 규칙 추가 닫기" data-access-add-close><svg class="icon"><use href="#icon-close"></use></svg></button>
         </header>
         <div class="admin-add-body">
@@ -1069,8 +1111,22 @@
           <p id="access-value-error" role="alert" hidden data-access-value-error></p>
           <aside role="note"><svg class="icon"><use href="#icon-shield"></use></svg><span><strong>일치하는 규칙이 없는 사용자는 접근이 차단됩니다.</strong><small>현재 목업의 규칙은 새로고침하면 초기화되며, 실제 SSO 조회와 저장은 아직 연결하지 않았습니다.</small></span></aside>
         </div>
-        <footer><button type="button" class="admin-dialog-cancel" data-access-add-close>취소</button><button type="submit" class="admin-dialog-submit"><svg class="icon"><use href="#icon-plus"></use></svg>권한 규칙 추가</button></footer>
+        <footer><button type="button" class="admin-dialog-cancel" data-access-add-close>취소</button><button type="submit" class="admin-dialog-submit"><svg class="icon"><use href="#icon-plus"></use></svg><span data-access-submit-label>권한 규칙 추가</span></button></footer>
       </form>
+    </dialog>
+
+    <dialog class="phase2-dialog" aria-labelledby="recovery-title" data-recovery-dialog>
+      <section class="phase2-dialog-panel">
+        <header><span><svg class="icon"><use href="#icon-refresh"></use></svg></span><div><strong id="recovery-title">숨김 항목 복구</strong><small>Report, Rule&amp;SOP, 권한 규칙의 숨김 항목을 복구합니다.</small></div><button type="button" aria-label="숨김 항목 복구 닫기" data-recovery-close><svg class="icon"><use href="#icon-close"></use></svg></button></header>
+        <div class="phase2-dialog-body" data-recovery-list><p class="phase2-empty">숨김 처리된 항목이 없습니다.</p></div>
+      </section>
+    </dialog>
+
+    <dialog class="phase2-dialog" aria-labelledby="history-title" data-history-dialog>
+      <section class="phase2-dialog-panel">
+        <header><span><svg class="icon"><use href="#icon-history"></use></svg></span><div><strong id="history-title">변경 이력</strong><small>현재 세션의 콘텐츠·권한 변경을 시간순으로 표시합니다.</small></div><button type="button" aria-label="변경 이력 닫기" data-history-close><svg class="icon"><use href="#icon-close"></use></svg></button></header>
+        <div class="phase2-dialog-body" data-history-list><p class="phase2-empty">아직 변경 이력이 없습니다.</p></div>
+      </section>
     </dialog>
 
     <dialog class="global-search-dialog" aria-labelledby="global-search-title" aria-describedby="global-search-description" data-global-search>

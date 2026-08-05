@@ -13,7 +13,7 @@ async function mountQna(initialView = "list") {
       import("@/qna/QnaApp"),
     ]).then(([React, { createRoot }, { QnaApp }]) => {
       qnaRoot = createRoot(rootElement)
-      qnaRoot.render(React.createElement(React.StrictMode, null, React.createElement(QnaApp, { initialView })))
+      qnaRoot.render(React.createElement(QnaApp, { initialView }))
     })
   }
   await mountPromise
