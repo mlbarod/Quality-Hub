@@ -15,11 +15,26 @@ const rulePage = document.querySelector("[data-rule-page]");
 const ruleCardGrid = document.querySelector("[data-rule-card-grid]");
 const ruleEmptyState = document.querySelector("[data-rule-empty]");
 const qnaWorkspace = document.querySelector("[data-qna-workspace]");
+const userWorkspace = document.querySelector("[data-user-workspace]");
+const userPage = document.querySelector("[data-user-page]");
+const userSearch = document.querySelector("[data-user-search]");
+const userEmptyState = document.querySelector("[data-user-empty]");
+const adminAddDialog = document.querySelector("[data-admin-add-dialog]");
+const adminAddForm = document.querySelector("[data-admin-add-form]");
+const adminIdInput = document.querySelector("[data-admin-id-input]");
+const adminIdError = document.querySelector("[data-admin-id-error]");
+const adminRowTemplate = document.querySelector("[data-admin-row-template]");
+const globalSearch = document.querySelector("[data-global-search]");
+const globalSearchInput = document.querySelector("[data-global-search-input]");
+const globalSearchEmpty = document.querySelector("[data-global-search-empty]");
 let toastTimer;
 let reportEntryTimer;
 let ruleArrangeTimer;
 let ruleReturnFocus;
 let qnaReturnFocus;
+let userReturnFocus;
+let adminAddReturnFocus;
+let globalSearchReturnFocus;
 
 const chartPeriods = {
   7: {
@@ -79,14 +94,17 @@ const setAgentMode = (mode, { announce = true, focus = true } = {}) => {
 
   if (skipLink) {
     const reportMode = prototype.dataset.reportMode;
-    if (prototype.dataset.qnaMode === "open") skipLink.setAttribute("href", "#qna-main");
+    if (prototype.dataset.userMode === "open") skipLink.setAttribute("href", "#user-main");
+    else if (prototype.dataset.qnaMode === "open") skipLink.setAttribute("href", "#qna-main");
     else if (prototype.dataset.ruleMode === "open") skipLink.setAttribute("href", "#rule-main");
     else if (reportMode === "catalog") skipLink.setAttribute("href", "#report-catalog-main");
     else if (reportMode === "viewer") skipLink.setAttribute("href", "#report-viewer-main");
     else skipLink.setAttribute("href", mode === "full" ? "#agent-main" : "#main-content");
   }
 
-  if (prototype.dataset.qnaMode === "open") {
+  if (prototype.dataset.userMode === "open") {
+    document.title = "Quality Hub · 사용자 및 권한";
+  } else if (prototype.dataset.qnaMode === "open") {
     document.title = "Quality Hub · Q&A";
   } else if (prototype.dataset.ruleMode === "open") {
     document.title = "Quality Hub · Rule&SOP";
@@ -153,6 +171,9 @@ const setReportMode = (mode, { announce = true, focus = true, restoreAgent = tru
   if (mode !== "closed" && prototype.dataset.qnaMode === "open") {
     setQnaMode("closed", { announce: false, focus: false, restoreAgent: false });
   }
+  if (mode !== "closed" && prototype.dataset.userMode === "open") {
+    setUserMode("closed", { announce: false, focus: false, restoreAgent: false });
+  }
 
   const previousMode = prototype.dataset.reportMode;
   if (mode === "viewer" && card) updateReportViewer(card);
@@ -214,6 +235,9 @@ const setRuleMode = (mode, { announce = true, focus = true, restoreAgent = true 
   if (mode === "open" && prototype.dataset.qnaMode === "open") {
     setQnaMode("closed", { announce: false, focus: false, restoreAgent: false });
   }
+  if (mode === "open" && prototype.dataset.userMode === "open") {
+    setUserMode("closed", { announce: false, focus: false, restoreAgent: false });
+  }
 
   prototype.dataset.ruleMode = mode;
   document.body.classList.toggle("rule-active", mode === "open");
@@ -253,7 +277,7 @@ const setRuleMode = (mode, { announce = true, focus = true, restoreAgent = true 
 
 const qnaModes = new Set(["closed", "open"]);
 
-const setQnaMode = (mode, { announce = true, focus = true, restoreAgent = true, view = "list" } = {}) => {
+const setQnaMode = (mode, { announce = true, focus = true, restoreAgent = true, view = "list", postId = null } = {}) => {
   if (!prototype || !qnaModes.has(mode)) return;
 
   if (mode === "open") {
@@ -262,6 +286,9 @@ const setQnaMode = (mode, { announce = true, focus = true, restoreAgent = true, 
     }
     if (prototype.dataset.ruleMode === "open") {
       setRuleMode("closed", { announce: false, focus: false, restoreAgent: false });
+    }
+    if (prototype.dataset.userMode === "open") {
+      setUserMode("closed", { announce: false, focus: false, restoreAgent: false });
     }
     setAgentMode("closed", { announce: false, focus: false });
   } else if (restoreAgent) {
@@ -287,7 +314,9 @@ const setQnaMode = (mode, { announce = true, focus = true, restoreAgent = true, 
   document.title = mode === "open" ? "Quality Hub · Q&A" : "Quality Hub";
 
   if (mode === "open") {
-    window.dispatchEvent(new CustomEvent("qualityhub:qna-view", { detail: { view } }));
+    const qnaViewDetail = { view, postId };
+    window.__qualityHubPendingQnaView = qnaViewDetail;
+    window.dispatchEvent(new CustomEvent("qualityhub:qna-view", { detail: qnaViewDetail }));
   }
 
   if (focus) {
@@ -303,6 +332,58 @@ const setQnaMode = (mode, { announce = true, focus = true, restoreAgent = true, 
 
   if (!announce) return;
   if (mode === "open") showToast(view === "notifications" ? "Q&A 알림을 열었습니다." : "Q&A 게시판을 열었습니다.");
+  else showToast("대시보드로 돌아왔습니다.");
+};
+
+const userModes = new Set(["closed", "open"]);
+
+const setUserMode = (mode, { announce = true, focus = true, restoreAgent = true } = {}) => {
+  if (!prototype || !userModes.has(mode)) return;
+
+  if (mode === "open") {
+    if (prototype.dataset.reportMode !== "closed") {
+      setReportMode("closed", { announce: false, focus: false, restoreAgent: false });
+    }
+    if (prototype.dataset.ruleMode === "open") {
+      setRuleMode("closed", { announce: false, focus: false, restoreAgent: false });
+    }
+    if (prototype.dataset.qnaMode === "open") {
+      setQnaMode("closed", { announce: false, focus: false, restoreAgent: false });
+    }
+    setAgentMode("closed", { announce: false, focus: false });
+  } else if (restoreAgent) {
+    setAgentMode("drawer", { announce: false, focus: false });
+  }
+
+  prototype.dataset.userMode = mode;
+  document.body.classList.toggle("user-active", mode === "open");
+  userWorkspace?.setAttribute("aria-hidden", String(mode === "closed"));
+  if (userWorkspace instanceof HTMLElement) userWorkspace.inert = mode === "closed";
+
+  const url = new URL(window.location.href);
+  if (mode === "open") url.searchParams.set("users", "open");
+  else url.searchParams.delete("users");
+  window.history.replaceState({}, "", url);
+
+  document.querySelectorAll("[data-user-open]").forEach((button) => {
+    button.classList.toggle("is-active", mode === "open");
+    button.setAttribute("aria-expanded", String(mode === "open"));
+  });
+  skipLink?.setAttribute("href", mode === "open" ? "#user-main" : "#main-content");
+  document.title = mode === "open" ? "Quality Hub · 사용자 및 권한" : "Quality Hub";
+
+  if (focus) {
+    window.requestAnimationFrame(() => {
+      if (mode === "open") userPage?.focus();
+      else {
+        const fallbackOpener = [...document.querySelectorAll("[data-user-open]")].find((button) => button.getClientRects().length > 0);
+        (userReturnFocus ?? fallbackOpener)?.focus();
+      }
+    });
+  }
+
+  if (!announce) return;
+  if (mode === "open") showToast("사용자별 권한 관리 화면을 열었습니다.");
   else showToast("대시보드로 돌아왔습니다.");
 };
 
@@ -324,6 +405,7 @@ document.querySelectorAll("[data-agent-open]").forEach((button) => {
     setReportMode("closed", { announce: false, focus: false, restoreAgent: false });
     setRuleMode("closed", { announce: false, focus: false, restoreAgent: false });
     setQnaMode("closed", { announce: false, focus: false, restoreAgent: false });
+    setUserMode("closed", { announce: false, focus: false, restoreAgent: false });
     setAgentMode("drawer");
   });
 });
@@ -343,6 +425,108 @@ document.querySelectorAll("[data-qna-notifications]").forEach((button) => {
 });
 
 window.addEventListener("qualityhub:qna-close", () => setQnaMode("closed"));
+
+document.querySelectorAll("[data-user-open]").forEach((button) => {
+  button.addEventListener("click", (event) => {
+    userReturnFocus = event.currentTarget;
+    setUserMode("open");
+  });
+});
+
+document.querySelectorAll("[data-user-close]").forEach((button) => {
+  button.addEventListener("click", () => setUserMode("closed"));
+});
+
+const getAdminRows = () => [...document.querySelectorAll("[data-admin-row]")];
+
+const updateAdminCount = () => {
+  document.querySelector("[data-admin-count]")?.replaceChildren(`${getAdminRows().length}명`);
+};
+
+const applyAdminSearch = () => {
+  if (!(userSearch instanceof HTMLInputElement)) return;
+  const searchTerm = userSearch.value.trim().toLocaleLowerCase("ko-KR");
+  let visibleCount = 0;
+  getAdminRows().forEach((row) => {
+    const searchTarget = [row.dataset.adminName, row.dataset.adminId].join(" ").toLocaleLowerCase("ko-KR");
+    const isVisible = !searchTerm || searchTarget.includes(searchTerm);
+    row.hidden = !isVisible;
+    if (isVisible) visibleCount += 1;
+  });
+  if (userEmptyState instanceof HTMLElement) userEmptyState.hidden = visibleCount > 0;
+};
+
+userSearch?.addEventListener("input", applyAdminSearch);
+
+userWorkspace?.addEventListener("click", (event) => {
+  const removeButton = event.target.closest("[data-admin-remove]");
+  if (!(removeButton instanceof HTMLButtonElement)) return;
+  const row = removeButton.closest("[data-admin-row]");
+  if (!(row instanceof HTMLElement)) return;
+
+  const adminId = row.dataset.adminId;
+  row.remove();
+  updateAdminCount();
+  applyAdminSearch();
+  showToast(`${adminId}의 관리자 권한을 삭제했습니다. (목업)`);
+});
+
+document.querySelectorAll("[data-admin-add-open]").forEach((button) => {
+  button.addEventListener("click", () => {
+    if (!(adminAddDialog instanceof HTMLDialogElement) || adminAddDialog.open) return;
+    adminAddReturnFocus = button;
+    adminAddForm?.reset();
+    adminIdInput?.removeAttribute("aria-invalid");
+    if (adminIdError instanceof HTMLElement) adminIdError.hidden = true;
+    adminAddDialog.showModal();
+    window.requestAnimationFrame(() => adminIdInput?.focus());
+  });
+});
+
+document.querySelectorAll("[data-admin-add-close]").forEach((button) => {
+  button.addEventListener("click", () => adminAddDialog?.close());
+});
+
+adminAddDialog?.addEventListener("click", (event) => {
+  if (event.target === adminAddDialog) adminAddDialog.close();
+});
+
+adminAddDialog?.addEventListener("close", () => adminAddReturnFocus?.focus());
+
+adminAddForm?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (!(adminIdInput instanceof HTMLInputElement) || !(adminIdError instanceof HTMLElement)) return;
+
+  const companyId = adminIdInput.value.trim().toLocaleLowerCase("en-US");
+  const isValidFormat = /^[a-z0-9][a-z0-9._-]{2,39}$/i.test(companyId);
+  const isDuplicate = getAdminRows().some((row) => row.dataset.adminId?.toLocaleLowerCase("en-US") === companyId);
+
+  if (!isValidFormat || isDuplicate) {
+    adminIdInput.setAttribute("aria-invalid", "true");
+    adminIdError.hidden = false;
+    adminIdError.replaceChildren(isDuplicate ? "이미 관리자 권한이 있는 사내 ID입니다." : "올바른 사내 ID 형식으로 입력해 주세요.");
+    adminIdInput.focus();
+    return;
+  }
+
+  if (!(adminRowTemplate instanceof HTMLTemplateElement)) return;
+  const row = adminRowTemplate.content.firstElementChild?.cloneNode(true);
+  const table = document.querySelector(".user-table");
+  if (!(row instanceof HTMLElement) || !(table instanceof HTMLElement)) return;
+
+  row.dataset.adminId = companyId;
+  row.dataset.adminName = companyId;
+  row.querySelector("[data-admin-name]")?.replaceChildren(companyId);
+  row.querySelector("[data-admin-id]")?.replaceChildren(companyId);
+  row.querySelector("[data-admin-avatar]")?.replaceChildren(companyId.slice(0, 1).toLocaleUpperCase("en-US"));
+  table.append(row);
+  adminAddDialog.close();
+  updateAdminCount();
+  applyAdminSearch();
+  showToast(`${companyId}에 관리자 권한을 추가했습니다. (목업)`);
+});
+
+updateAdminCount();
 
 document.querySelectorAll("[data-agent-expand]").forEach((button) => {
   button.addEventListener("click", () => setAgentMode("full"));
@@ -611,6 +795,98 @@ setRuleMode(initialRuleQuery === "open" ? "open" : "closed", { announce: false, 
 const initialQnaQuery = new URL(window.location.href).searchParams.get("qna");
 setQnaMode(initialQnaQuery === "open" ? "open" : "closed", { announce: false, focus: false, restoreAgent: false });
 
+const initialUserQuery = new URL(window.location.href).searchParams.get("users");
+setUserMode(initialUserQuery === "open" ? "open" : "closed", { announce: false, focus: false, restoreAgent: false });
+
+const getVisibleGlobalSearchResults = () =>
+  [...document.querySelectorAll("[data-global-search-result]")].filter((result) => !result.hidden);
+
+const applyGlobalSearch = () => {
+  const searchTerm = globalSearchInput instanceof HTMLInputElement
+    ? globalSearchInput.value.trim().toLocaleLowerCase("ko-KR")
+    : "";
+  let visibleCount = 0;
+
+  document.querySelectorAll("[data-global-search-result]").forEach((result) => {
+    const searchTarget = (result.dataset.searchText ?? result.textContent).toLocaleLowerCase("ko-KR");
+    const isVisible = !searchTerm || searchTarget.includes(searchTerm);
+    result.hidden = !isVisible;
+    if (isVisible) visibleCount += 1;
+  });
+
+  document.querySelector("[data-global-search-count]")?.replaceChildren(`${visibleCount}개 콘텐츠`);
+  if (globalSearchEmpty instanceof HTMLElement) globalSearchEmpty.hidden = visibleCount > 0;
+};
+
+const openGlobalSearch = (opener) => {
+  if (!(globalSearch instanceof HTMLDialogElement) || globalSearch.open) return;
+  globalSearchReturnFocus = opener instanceof HTMLElement ? opener : null;
+  if (globalSearchInput instanceof HTMLInputElement) globalSearchInput.value = "";
+  applyGlobalSearch();
+  globalSearch.showModal();
+  window.requestAnimationFrame(() => globalSearchInput?.focus());
+};
+
+document.querySelectorAll("[data-global-search-open]").forEach((button) => {
+  button.addEventListener("click", () => openGlobalSearch(button));
+});
+
+globalSearchInput?.addEventListener("input", applyGlobalSearch);
+globalSearchInput?.addEventListener("keydown", (event) => {
+  if (event.key !== "ArrowDown") return;
+  event.preventDefault();
+  getVisibleGlobalSearchResults()[0]?.focus();
+});
+
+document.querySelectorAll("[data-global-search-result]").forEach((result) => {
+  result.addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+    event.preventDefault();
+    const visibleResults = getVisibleGlobalSearchResults();
+    const currentIndex = visibleResults.indexOf(result);
+    const nextIndex = event.key === "ArrowDown"
+      ? Math.min(currentIndex + 1, visibleResults.length - 1)
+      : Math.max(currentIndex - 1, 0);
+    visibleResults[nextIndex]?.focus();
+  });
+
+  result.addEventListener("click", () => {
+    const target = result.dataset.searchTarget;
+    const contentId = result.dataset.searchId;
+    globalSearch?.close();
+
+    if (target === "report") {
+      const card = [...document.querySelectorAll("[data-report-card]")].find((item) => item.dataset.reportTitle === contentId);
+      if (card) setReportMode("viewer", { card });
+      return;
+    }
+
+    if (target === "rule") {
+      const card = [...document.querySelectorAll("[data-rule-card]")].find((item) => item.dataset.ruleTitle === contentId);
+      setRuleMode("open");
+      window.requestAnimationFrame(() => {
+        card?.classList.add("is-search-target");
+        card?.scrollIntoView({ block: "center", behavior: "smooth" });
+        card?.focus();
+        window.setTimeout(() => card?.classList.remove("is-search-target"), 1800);
+      });
+      return;
+    }
+
+    if (target === "qna") {
+      setQnaMode("open", { view: "detail", postId: contentId });
+    }
+  });
+});
+
+globalSearch?.addEventListener("click", (event) => {
+  if (event.target === globalSearch) globalSearch.close();
+});
+
+globalSearch?.addEventListener("close", () => {
+  globalSearchReturnFocus?.focus();
+});
+
 document.querySelectorAll("[data-today]").forEach((element) => {
   element.textContent = formatDate(new Date());
 });
@@ -687,16 +963,14 @@ refreshButton?.addEventListener("click", () => {
 document.addEventListener("keydown", (event) => {
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
     event.preventDefault();
-    if (prototype?.dataset.reportMode === "catalog" && reportSearch instanceof HTMLInputElement) {
-      reportSearch.focus();
-    } else {
-      showToast("통합 검색 화면은 디자인 확정 후 연결할 예정입니다.");
-    }
+    openGlobalSearch(document.activeElement);
   }
 
   if (event.key === "Escape") {
+    if (globalSearch instanceof HTMLDialogElement && globalSearch.open) return;
     if (document.querySelector("[data-qna-modal]")) return;
     if (prototype?.dataset.qnaMode === "open") setQnaMode("closed");
+    else if (prototype?.dataset.userMode === "open") setUserMode("closed");
     else if (prototype?.dataset.ruleMode === "open") setRuleMode("closed");
     else if (prototype?.dataset.reportMode === "viewer") setReportMode("catalog");
     else if (prototype?.dataset.reportMode === "catalog") setReportMode("closed");

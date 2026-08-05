@@ -363,14 +363,20 @@ export function QnaApp({ initialView = "list" }) {
   const unreadCount = notifications.filter((item) => !item.read).length
 
   useEffect(() => {
-    const handleView = (event) => {
-      const nextView = event.detail?.view === "notifications" ? "notifications" : "list"
+    const applyView = (detail) => {
+      const requestedPostId = detail?.postId
+      const hasRequestedPost = requestedPostId && posts.some((post) => post.id === requestedPostId)
+      const nextView = detail?.view === "notifications" ? "notifications" : hasRequestedPost ? "detail" : "list"
+      if (hasRequestedPost) setSelectedId(requestedPostId)
       setView(nextView)
+      window.__qualityHubPendingQnaView = null
       window.requestAnimationFrame(() => document.querySelector("#qna-main")?.focus())
     }
+    const handleView = (event) => applyView(event.detail)
     window.addEventListener("qualityhub:qna-view", handleView)
+    if (window.__qualityHubPendingQnaView) applyView(window.__qualityHubPendingQnaView)
     return () => window.removeEventListener("qualityhub:qna-view", handleView)
-  }, [])
+  }, [posts])
 
   useEffect(() => () => window.clearTimeout(liveTimerRef.current), [])
 

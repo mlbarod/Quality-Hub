@@ -90,7 +90,7 @@
       </symbol>
     </svg>
 
-    <div class="prototype" data-layout="top" data-agent-mode="drawer" data-report-mode="closed" data-rule-mode="closed" data-qna-mode="closed">
+    <div class="prototype" data-layout="top" data-agent-mode="drawer" data-report-mode="closed" data-rule-mode="closed" data-qna-mode="closed" data-user-mode="closed">
       <aside class="sidebar" aria-label="좌측 서비스 메뉴">
         <a class="brand sidebar-brand" href="#dashboard" aria-label="Quality Hub 홈" data-home-refresh>
           <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -108,9 +108,9 @@
           <button class="side-nav-item agent-side-button" type="button" data-agent-open aria-expanded="true">
             <span class="agent-spark" aria-hidden="true">✦</span>
             <span>품질 Agent</span>
-            <span class="agent-live-dot" aria-label="사내 LLM 연결됨"></span>
+            <span class="agent-live-dot" aria-label="사내 LLM 연동 예정"></span>
           </button>
-          <button class="side-nav-item" type="button" data-planned="통합 검색">
+          <button class="side-nav-item" type="button" data-global-search-open>
             <svg class="icon"><use href="#icon-search"></use></svg>
             <span>통합 검색</span>
             <kbd>⌘ K</kbd>
@@ -132,13 +132,9 @@
             <span>알림</span>
             <span class="status-dot" aria-label="읽지 않은 알림 있음"></span>
           </button>
-          <button class="side-nav-item" type="button" data-planned="사용자 및 권한">
+          <button class="side-nav-item" type="button" data-user-open>
             <svg class="icon"><use href="#icon-users"></use></svg>
             <span>사용자 및 권한</span>
-          </button>
-          <button class="side-nav-item" type="button" data-planned="시스템 설정">
-            <svg class="icon"><use href="#icon-settings"></use></svg>
-            <span>시스템 설정</span>
           </button>
         </nav>
 
@@ -149,7 +145,7 @@
           </div>
           <button class="profile-card" type="button" data-planned="내 프로필">
             <span class="avatar">김</span>
-            <span><strong>김품질</strong><small>품질 총괄</small></span>
+            <span><strong>김품질</strong><small>마스터</small></span>
             <svg class="icon"><use href="#icon-chevron-down"></use></svg>
           </button>
         </div>
@@ -169,7 +165,7 @@
             </button>
             <div class="top-nav-menu">
               <button type="button" data-report-open><svg class="icon"><use href="#icon-grid"></use></svg><span><strong>각종 Report 조회</strong><small>FDC·SPC·VM Report 조회</small></span></button>
-              <button type="button" data-planned="통합 검색"><svg class="icon"><use href="#icon-search"></use></svg><span><strong>통합 검색</strong><small>지표·Rule·문서를 한 번에 검색</small></span></button>
+              <button type="button" data-global-search-open><svg class="icon"><use href="#icon-search"></use></svg><span><strong>통합 검색</strong><small>Report·Rule·Q&amp;A를 한 번에 검색</small></span></button>
               <button type="button" data-rule-open><svg class="icon"><use href="#icon-book"></use></svg><span><strong>Rule&amp;SOP</strong><small>분류별 Rule·SOP 조회</small></span></button>
               <button type="button" data-qna-open><svg class="icon"><use href="#icon-message"></use></svg><span><strong>Q&amp;A</strong><small>공정별 문의와 답변</small></span></button>
             </div>
@@ -179,8 +175,7 @@
               관리 <svg class="icon"><use href="#icon-chevron-down"></use></svg>
             </button>
             <div class="top-nav-menu compact-menu">
-              <button type="button" data-planned="사용자 및 권한"><svg class="icon"><use href="#icon-users"></use></svg><span><strong>사용자 및 권한</strong><small>역할과 담당 공정 관리</small></span></button>
-              <button type="button" data-planned="데이터 원천"><svg class="icon"><use href="#icon-activity"></use></svg><span><strong>데이터 원천</strong><small>연결 및 최신 상태 확인</small></span></button>
+              <button type="button" data-user-open><svg class="icon"><use href="#icon-users"></use></svg><span><strong>사용자 및 권한</strong><small>관리자 권한 추가·삭제</small></span></button>
             </div>
           </div>
           <button class="top-nav-link agent-nav-button" type="button" data-agent-open aria-expanded="true">
@@ -190,8 +185,8 @@
         </nav>
 
         <div class="header-actions">
-          <button class="header-search" type="button" data-planned="통합 검색" aria-label="통합 검색">
-            <svg class="icon"><use href="#icon-search"></use></svg><span>검색</span><kbd>⌘ K</kbd>
+          <button class="header-search" type="button" data-global-search-open aria-label="통합 검색 열기">
+            <svg class="icon"><use href="#icon-search"></use></svg><span>Report, Rule, Q&amp;A 검색</span><kbd>⌘ K</kbd>
           </button>
           <button class="icon-button" type="button" data-qna-notifications aria-label="Q&A 알림 3개">
             <svg class="icon"><use href="#icon-bell"></use></svg><i>3</i>
@@ -204,7 +199,7 @@
         <header class="workspace-header">
           <div class="breadcrumb"><span>Quality Hub</span><i>/</i><strong>대시보드</strong></div>
           <div class="workspace-actions">
-            <button type="button" data-planned="통합 검색"><svg class="icon"><use href="#icon-search"></use></svg>지표, Rule, 문서 검색<kbd>⌘ K</kbd></button>
+            <button type="button" data-global-search-open><svg class="icon"><use href="#icon-search"></use></svg>Report, Rule, Q&amp;A 검색<kbd>⌘ K</kbd></button>
             <button class="icon-button" type="button" data-qna-notifications aria-label="Q&A 알림 3개"><svg class="icon"><use href="#icon-bell"></use></svg><i>3</i></button>
           </div>
         </header>
@@ -643,6 +638,81 @@
         </div>
       </section>
 
+      <section class="user-workspace" aria-label="사용자 및 권한 관리" aria-hidden="true" data-user-workspace>
+        <div class="user-page" id="user-main" tabindex="-1" data-user-page>
+          <header class="report-page-header">
+            <div>
+              <button class="report-back-button" type="button" data-user-close><svg class="icon"><use href="#icon-arrow"></use></svg>대시보드</button>
+              <span><i>Quality Hub</i><b>/</b><strong>사용자 및 권한</strong></span>
+            </div>
+            <span class="user-page-status"><i></i>UI 검토용 권한 설정</span>
+          </header>
+
+          <div class="user-page-content">
+            <section class="user-page-hero" aria-labelledby="user-page-title">
+              <div>
+                <p class="section-kicker">ACCESS MANAGEMENT</p>
+                <h1 id="user-page-title">관리자 권한을<br />간단하게 관리합니다.</h1>
+                <p>마스터 권한자가 사내 ID를 기준으로 관리자 권한을 추가하거나 삭제합니다.</p>
+              </div>
+              <aside class="user-security-note" role="note">
+                <svg class="icon"><use href="#icon-shield"></use></svg>
+                <span><strong>일반유저는 이 화면에서 관리하지 않습니다.</strong><small>일반유저는 사내 인증을 통해 기본 접근하며 수천 명의 사용자 목록을 별도로 표시하지 않습니다.</small></span>
+              </aside>
+            </section>
+
+            <section class="role-summary-grid is-admin-only" aria-label="마스터와 관리자 권한 요약">
+              <article class="role-summary-card is-master">
+                <span><svg class="icon"><use href="#icon-shield"></use></svg></span>
+                <div><strong>현재 마스터 · 김품질</strong><small>quality.kim · 관리자 권한을 추가하거나 삭제할 수 있습니다.</small></div>
+                <b>MASTER</b>
+              </article>
+              <article class="role-summary-card is-admin">
+                <span><svg class="icon"><use href="#icon-settings"></use></svg></span>
+                <div><strong>관리자</strong><small>Report·Rule&amp;SOP·Q&amp;A 콘텐츠를 관리합니다.</small></div>
+                <b data-admin-count>2명</b>
+              </article>
+            </section>
+
+            <section class="user-management-card" aria-labelledby="user-list-title">
+              <header>
+                <div><p class="section-kicker">ADMIN ACCESS</p><h2 id="user-list-title">관리자 권한 목록</h2><span>관리자만 표시하며 일반유저는 목록과 검색 대상에서 제외합니다.</span></div>
+                <div class="user-management-actions">
+                  <label class="user-search"><svg class="icon"><use href="#icon-search"></use></svg><span class="sr-only">관리자 검색</span><input type="search" placeholder="이름 또는 사내 ID 검색" data-user-search /></label>
+                  <button class="admin-add-button" type="button" data-admin-add-open><svg class="icon"><use href="#icon-plus"></use></svg>관리자 권한 추가</button>
+                </div>
+              </header>
+
+              <div class="user-table" role="table" aria-label="관리자 권한 목록">
+                <div class="user-table-header" role="row">
+                  <span role="columnheader">관리자</span><span role="columnheader">사내 ID</span><span role="columnheader">소속</span><span role="columnheader">추가 일시</span><span role="columnheader">관리</span>
+                </div>
+                <div class="user-table-row" role="row" data-admin-row data-admin-name="박담당" data-admin-id="process.park">
+                  <span class="user-identity" role="cell"><i class="avatar">박</i><span><strong>박담당</strong><small>최근 접속 · 오늘 09:51</small></span></span>
+                  <span role="cell"><strong class="admin-id">process.park</strong></span><span role="cell">공정기술</span><span role="cell">2026-08-05</span>
+                  <span role="cell"><button class="admin-remove-button" type="button" data-admin-remove>권한 삭제</button></span>
+                </div>
+                <div class="user-table-row" role="row" data-admin-row data-admin-name="정품질" data-admin-id="quality.jung">
+                  <span class="user-identity" role="cell"><i class="avatar">정</i><span><strong>정품질</strong><small>최근 접속 · 어제 17:14</small></span></span>
+                  <span role="cell"><strong class="admin-id">quality.jung</strong></span><span role="cell">품질기획</span><span role="cell">2026-08-04</span>
+                  <span role="cell"><button class="admin-remove-button" type="button" data-admin-remove>권한 삭제</button></span>
+                </div>
+              </div>
+
+              <template data-admin-row-template>
+                <div class="user-table-row" role="row" data-admin-row>
+                  <span class="user-identity" role="cell"><i class="avatar" data-admin-avatar>신</i><span><strong data-admin-name>신규 관리자</strong><small>사내 사용자 정보 확인 예정</small></span></span>
+                  <span role="cell"><strong class="admin-id" data-admin-id></strong></span><span role="cell">확인 예정</span><span role="cell">방금 전</span>
+                  <span role="cell"><button class="admin-remove-button" type="button" data-admin-remove>권한 삭제</button></span>
+                </div>
+              </template>
+
+              <div class="user-empty-state" hidden data-user-empty><svg class="icon"><use href="#icon-search"></use></svg><strong>일치하는 관리자가 없습니다.</strong><span>다른 이름 또는 사내 ID로 검색해 보세요.</span></div>
+            </section>
+          </div>
+        </div>
+      </section>
+
       <section class="report-workspace" aria-label="각종 Report 조회" aria-hidden="true" data-report-workspace>
         <div class="report-catalog-view" id="report-catalog-main" tabindex="-1" data-report-catalog>
           <header class="report-page-header">
@@ -825,6 +895,77 @@
       </section>
 
     </div>
+
+    <dialog class="admin-add-dialog" aria-labelledby="admin-add-title" aria-describedby="admin-add-description" data-admin-add-dialog>
+      <form class="admin-add-form" data-admin-add-form novalidate>
+        <header>
+          <span class="admin-add-mark"><svg class="icon"><use href="#icon-users"></use></svg></span>
+          <span><strong id="admin-add-title">관리자 권한 추가</strong><small id="admin-add-description">관리자로 지정할 사용자의 사내 ID를 입력하세요.</small></span>
+          <button type="button" aria-label="관리자 권한 추가 닫기" data-admin-add-close><svg class="icon"><use href="#icon-close"></use></svg></button>
+        </header>
+        <div class="admin-add-body">
+          <label for="admin-company-id">사내 ID</label>
+          <div class="admin-id-input"><span>ID</span><input id="admin-company-id" type="text" placeholder="예: quality.hong" autocomplete="off" maxlength="40" aria-describedby="admin-id-help admin-id-error" data-admin-id-input /></div>
+          <small id="admin-id-help">영문, 숫자, 마침표(.), 밑줄(_), 하이픈(-)을 사용할 수 있습니다.</small>
+          <p id="admin-id-error" role="alert" hidden data-admin-id-error></p>
+          <aside role="note"><svg class="icon"><use href="#icon-shield"></use></svg><span><strong>사내 사용자 확인 후 관리자 권한이 부여됩니다.</strong><small>현재 목업에서는 입력한 ID가 목록에 즉시 추가되며 새로고침하면 초기화됩니다.</small></span></aside>
+        </div>
+        <footer><button type="button" class="admin-dialog-cancel" data-admin-add-close>취소</button><button type="submit" class="admin-dialog-submit"><svg class="icon"><use href="#icon-plus"></use></svg>관리자 권한 추가</button></footer>
+      </form>
+    </dialog>
+
+    <dialog class="global-search-dialog" aria-labelledby="global-search-title" aria-describedby="global-search-description" data-global-search>
+      <div class="global-search-panel">
+        <header>
+          <span class="global-search-mark"><svg class="icon"><use href="#icon-search"></use></svg></span>
+          <span><strong id="global-search-title">통합 검색</strong><small id="global-search-description">Report, Rule&amp;SOP, Q&amp;A 콘텐츠를 한 번에 찾습니다.</small></span>
+          <form method="dialog"><button type="submit" aria-label="통합 검색 닫기"><svg class="icon"><use href="#icon-close"></use></svg></button></form>
+        </header>
+
+        <label class="global-search-input">
+          <svg class="icon"><use href="#icon-search"></use></svg>
+          <span class="sr-only">통합 검색어</span>
+          <input type="search" placeholder="찾으려는 Report, Rule 또는 질문을 입력하세요" autocomplete="off" data-global-search-input />
+          <kbd>ESC</kbd>
+        </label>
+
+        <div class="global-search-result-heading"><strong>검색 결과</strong><span aria-live="polite" data-global-search-count>6개 콘텐츠</span></div>
+        <div class="global-search-results" data-global-search-results>
+          <button type="button" data-global-search-result data-search-target="report" data-search-id="공정 이상 분석" data-search-text="공정 이상 분석 FDC 원인 추적 Report 이상 구간">
+            <span class="search-result-type is-report"><svg class="icon"><use href="#icon-grid"></use></svg></span>
+            <span><i>REPORT · FDC</i><strong>공정 이상 분석</strong><small>이상 구간의 공정 조건과 주요 원인을 분석합니다.</small></span>
+            <svg class="icon search-result-arrow"><use href="#icon-arrow"></use></svg>
+          </button>
+          <button type="button" data-global-search-result data-search-target="report" data-search-id="AOI 검사 분석" data-search-text="AOI 검사 분석 VM 오경보 결함 분포 Report">
+            <span class="search-result-type is-report"><svg class="icon"><use href="#icon-grid"></use></svg></span>
+            <span><i>REPORT · VM</i><strong>AOI 검사 분석</strong><small>검사 위치별 결함 분포와 오경보 패턴을 분석합니다.</small></span>
+            <svg class="icon search-result-arrow"><use href="#icon-arrow"></use></svg>
+          </button>
+          <button type="button" data-global-search-result data-search-target="rule" data-search-id="예시 Rule 문서 A-01" data-search-text="예시 Rule 문서 A-01 기준 대분류 A 중분류 A-1 소분류 01">
+            <span class="search-result-type is-rule"><svg class="icon"><use href="#icon-book"></use></svg></span>
+            <span><i>RULE · 기준 문서</i><strong>예시 Rule 문서 A-01</strong><small>예시 대분류 A · 중분류 A-1 · 소분류 01</small></span>
+            <svg class="icon search-result-arrow"><use href="#icon-arrow"></use></svg>
+          </button>
+          <button type="button" data-global-search-result data-search-target="rule" data-search-id="예시 SOP 문서 B-02" data-search-text="예시 SOP 문서 B-02 절차 대분류 B 중분류 B-2 소분류 02">
+            <span class="search-result-type is-rule"><svg class="icon"><use href="#icon-book"></use></svg></span>
+            <span><i>SOP · 절차 문서</i><strong>예시 SOP 문서 B-02</strong><small>예시 대분류 B · 중분류 B-2 · 소분류 02</small></span>
+            <svg class="icon search-result-arrow"><use href="#icon-arrow"></use></svg>
+          </button>
+          <button type="button" data-global-search-result data-search-target="qna" data-search-id="Q-2026-084" data-search-text="식각 Rate 관리 기준 변경 적용 시점 Q&A 이상률 v2.4">
+            <span class="search-result-type is-qna"><svg class="icon"><use href="#icon-message"></use></svg></span>
+            <span><i>Q&amp;A · 기준 문의</i><strong>식각 Rate 관리 기준 변경 시 적용 시점</strong><small>Q-2026-084 · 공정기술 · 답변 중</small></span>
+            <svg class="icon search-result-arrow"><use href="#icon-arrow"></use></svg>
+          </button>
+          <button type="button" data-global-search-result data-search-target="qna" data-search-id="Q-2026-083" data-search-text="AOI 오경보 증가 원인 분석 자료 Q&A 장비별 비교">
+            <span class="search-result-type is-qna"><svg class="icon"><use href="#icon-message"></use></svg></span>
+            <span><i>Q&amp;A · 데이터 요청</i><strong>AOI 오경보 증가 원인 분석 자료</strong><small>Q-2026-083 · 설비기술 · 답변 대기</small></span>
+            <svg class="icon search-result-arrow"><use href="#icon-arrow"></use></svg>
+          </button>
+        </div>
+        <div class="global-search-empty" hidden data-global-search-empty><svg class="icon"><use href="#icon-search"></use></svg><strong>검색 결과가 없습니다.</strong><span>다른 콘텐츠 이름이나 업무 키워드로 다시 검색해 보세요.</span></div>
+        <footer><span>검색 결과의 제목을 선택하면 해당 콘텐츠로 이동합니다.</span><span><kbd>↑</kbd><kbd>↓</kbd> 이동 <kbd>Enter</kbd> 열기</span></footer>
+      </div>
+    </dialog>
 
     <div class="toast" role="status" aria-live="polite" aria-atomic="true" data-toast></div>
   </body>
