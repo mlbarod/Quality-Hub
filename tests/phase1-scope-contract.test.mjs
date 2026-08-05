@@ -7,6 +7,7 @@ const script = await readFile(new URL("../prototype/app.js", import.meta.url), "
 const styles = await readFile(new URL("../prototype/styles.css", import.meta.url), "utf8")
 const qnaApp = await readFile(new URL("../prototype/src/qna/QnaApp.jsx", import.meta.url), "utf8")
 const memo = await readFile(new URL("../docs/PHASE1_REMAINING_TASKS.md", import.meta.url), "utf8")
+const requirements = await readFile(new URL("../docs/QUALITY_PORTAL_REQUIREMENTS.md", import.meta.url), "utf8")
 
 test("데이터 원천 관리 진입점을 제거하고 1단계 범위에 기록한다", () => {
   assert.doesNotMatch(html, /data-planned="데이터 원천"/)
@@ -54,6 +55,18 @@ test("마스터가 유저 ID와 소속부서 기준의 관리자·일반 접근 
   assert.match(script, /row\.dataset\.accessMatch === accessMatch/)
   assert.match(memo, /등록된 관리자·일반 규칙과 일치하지 않는 사용자는 포털 접근을 차단/)
   assert.match(memo, /관리자 권한을 일반 권한보다 우선 적용/)
+})
+
+test("확정한 역할별 콘텐츠와 Q&A 권한을 요구사항에 기록한다", () => {
+  assert.match(requirements, /관리 대상 콘텐츠: Report, Rule&SOP, 변승위 Category/)
+  assert.match(requirements, /\| 관리 대상 콘텐츠 \| 전체 조회·등록·수정·삭제 \| 전체 조회·등록·수정·삭제 \| 전체 조회 \|/)
+  assert.match(requirements, /\| Q&A 답변·댓글 \| 전체 작성·수정·삭제 \| 전체 작성, 본인 작성분 수정·삭제 \| 전체 작성, 본인 작성분 수정·삭제 \|/)
+  assert.match(requirements, /답변이 등록된 질문은 작성자가 수정할 수 있지만 삭제할 수 없으며, 마스터만 삭제 가능/)
+  assert.match(requirements, /이전 상태를 포함해 자유롭게 변경 가능/)
+  assert.match(requirements, /마스터가 1명뿐이면 해당 계정의 권한 회수를 비활성화/)
+  assert.match(requirements, /복구 가능한 숨김 처리로 수행하며, 복구는 마스터만 가능/)
+  assert.match(requirements, /콘텐츠·권한·Q&A 상태의 변경 이력은 마스터만 조회 가능/)
+  assert.match(memo, /### 4\. 역할별 권한 확정\s+[\s\S]*?\[x\] 마스터:/)
 })
 
 test("사용자 및 권한 화면의 표와 조작 요소를 읽기 쉬운 크기로 제공한다", () => {
