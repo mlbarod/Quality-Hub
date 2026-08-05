@@ -113,7 +113,7 @@ function PostListView({ posts, allPosts, filters, setFilters, onSelect, onWrite 
           <div className="flex items-center justify-between border-b border-[#e3ebf0] px-5 py-4">
             <div>
               <h2 className="m-0 text-[17px] font-[680] tracking-[-.025em] text-[#24272b]">Q&amp;A 게시판</h2>
-              <p className="mt-1 text-[11px] text-[#60798b]">질문을 등록하고 담당자와 답변을 이어가세요.</p>
+              <p className="mt-1 text-[12px] text-[#60798b]">질문을 등록하고 담당자와 답변을 이어가세요.</p>
             </div>
             <Button type="button" size="lg" className="qna-write-button h-[52px] min-w-[168px] px-7" onClick={onWrite}>
               <span className="qna-write-icon" aria-hidden="true"><PenLine /></span>
@@ -233,7 +233,7 @@ function PostDetailView({ post, onBack, onUpdatePost, announce }) {
             </article>
 
             <section className="overflow-hidden rounded-[14px] border border-[#dce7ee] bg-white shadow-[0_1px_2px_rgba(15,23,42,.03)]" aria-labelledby="conversation-title">
-              <header className="flex items-center justify-between border-b border-[#e3ebf0] px-6 py-4"><div><h2 id="conversation-title" className="text-[15px] font-[680]">답변과 추가 대화</h2><p className="mt-1 text-[10px] text-[#60798b]">질문자와 담당자가 같은 흐름에서 내용을 보완합니다.</p></div><Badge variant="outline">{post.messages.length}개 메시지</Badge></header>
+              <header className="flex items-center justify-between border-b border-[#e3ebf0] px-6 py-4"><div><h2 id="conversation-title" className="text-[15px] font-[680]">답변과 추가 대화</h2><p className="mt-1 text-[12px] text-[#60798b]">질문자와 담당자가 같은 흐름에서 내용을 보완합니다.</p></div><Badge variant="outline">{post.messages.length}개 메시지</Badge></header>
               <div className="space-y-0 px-6 py-2">
                 {post.messages.map((message, index) => {
                   const isOwner = message.role.includes("담당자")
@@ -259,9 +259,9 @@ function PostDetailView({ post, onBack, onUpdatePost, announce }) {
           </div>
 
           <aside className="sticky top-5 space-y-4" aria-label="질문 관리 정보">
-            <section className="rounded-[13px] border border-[#dce7ee] bg-white p-5"><h2 className="text-[13px] font-[680]">처리 상태</h2><p className="mb-4 mt-1 text-[10px] text-[#60798b]">검토를 위해 관리 조작을 함께 표시합니다.</p><Select value={post.status} onValueChange={updateStatus}><SelectTrigger aria-label="처리 상태 변경"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(STATUS).map(([value, config]) => <SelectItem key={value} value={value}>{config.label}</SelectItem>)}</SelectContent></Select></section>
+            <section className="rounded-[13px] border border-[#dce7ee] bg-white p-5"><h2 className="text-[13px] font-[680]">처리 상태</h2><p className="mb-4 mt-1 text-[11px] text-[#60798b]">검토를 위해 관리 조작을 함께 표시합니다.</p><Select value={post.status} onValueChange={updateStatus}><SelectTrigger aria-label="처리 상태 변경"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(STATUS).map(([value, config]) => <SelectItem key={value} value={value}>{config.label}</SelectItem>)}</SelectContent></Select></section>
             <section className="rounded-[13px] border border-[#dce7ee] bg-white p-5"><h2 className="text-[13px] font-[680]">질문 정보</h2><dl className="mt-4 grid gap-3 text-[11px]"><div className="flex justify-between gap-4"><dt className="text-[#60798b]">담당 공정</dt><dd className="font-semibold">{post.process}</dd></div><div className="flex justify-between gap-4"><dt className="text-[#60798b]">담당 부서</dt><dd className="font-semibold">{post.department}</dd></div><div className="flex justify-between gap-4"><dt className="text-[#60798b]">질문 유형</dt><dd className="font-semibold">{post.type}</dd></div><div className="flex justify-between gap-4"><dt className="text-[#60798b]">최근 변경</dt><dd className="font-semibold">{post.updatedAt}</dd></div></dl></section>
-            <aside className="rounded-[13px] border border-[#cfe6da] bg-[#f3faf6] p-5 text-[#30634d]"><Sparkles className="size-5" /><strong className="mt-3 block text-[12px]">최종 답변을 지정해 주세요.</strong><p className="mt-1 text-[10px] leading-5 text-[#486956]">담당자 답변 중 해결 기준이 되는 답변을 선택하면 질문 상태가 자동으로 완료됩니다.</p></aside>
+            <aside className="rounded-[13px] border border-[#cfe6da] bg-[#f3faf6] p-5 text-[#30634d]"><Sparkles className="size-5" /><strong className="mt-3 block text-[12px]">최종 답변을 지정해 주세요.</strong><p className="mt-1 text-[11px] leading-5 text-[#486956]">담당자 답변 중 해결 기준이 되는 답변을 선택하면 질문 상태가 자동으로 완료됩니다.</p></aside>
           </aside>
         </div>
       </div>
@@ -330,7 +330,7 @@ function WriteQuestionDialog({ open, onOpenChange, onSubmit }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="grid-rows-[auto_minmax(0,1fr)_auto]" aria-describedby="write-question-description">
-        <header className="border-b border-[#e3ebf0] px-7 py-5 pr-16"><DialogTitle className="text-[19px] font-[680] tracking-[-.025em]">새 질문 작성</DialogTitle><DialogDescription id="write-question-description" className="mt-1 text-[11px] text-[#567286]">공정·부서와 질문 유형을 선택하고 확인이 필요한 내용을 작성합니다.</DialogDescription></header>
+        <header className="border-b border-[#e3ebf0] px-7 py-5 pr-16"><DialogTitle className="text-[19px] font-[680] tracking-[-.025em]">새 질문 작성</DialogTitle><DialogDescription id="write-question-description" className="mt-1 text-[12px] text-[#567286]">공정·부서와 질문 유형을 선택하고 확인이 필요한 내용을 작성합니다.</DialogDescription></header>
         <form id="qna-write-form" className="overflow-y-auto px-7 py-6" onSubmit={submit} noValidate>
           <div className="grid grid-cols-3 gap-4">
             <label className="grid gap-1.5 text-[11px] font-semibold text-[#4c5257]">공정<Select value={process} onValueChange={setProcess}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{PROCESS_OPTIONS.slice(1).map((option) => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectContent></Select></label>

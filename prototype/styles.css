@@ -15,6 +15,9 @@
   --primary: hsl(204 94% 45%);
   --primary-dark: hsl(204 94% 38%);
   --primary-soft: hsl(204 90% 94%);
+  --description-sm: 10px;
+  --description-md: 11px;
+  --description-lg: 12px;
   --amber: #a76812;
   --amber-soft: #fff6e5;
   --danger: #b64c45;
@@ -5412,6 +5415,69 @@ kbd {
   opacity: 1;
   transform: translate(-50%, 0);
 }
+
+/* 제목 크기는 유지하고 설명 문구만 단계별로 키워 가독성을 높인다. */
+.section-heading > p,
+.rule-page-hero > div > p:last-child,
+.user-page-hero > div > p:last-child,
+.report-viewer-heading > div:first-child > p:last-child {
+  color: var(--muted-foreground);
+  font-size: var(--description-lg);
+  line-height: 1.65;
+}
+
+.top-nav-menu small,
+.app-card-header small,
+.rule-category-accordion > button small,
+.rule-sop-heading > div > span,
+.user-management-card > header > div > span,
+.admin-add-form > header small,
+.report-category-section header p,
+.report-card-copy em,
+.spotfire-embed-placeholder small,
+.global-search-panel > header small {
+  font-size: var(--description-md);
+  line-height: 1.55;
+}
+
+.app-card-header small,
+.agent-citations button small,
+.agent-starters button small,
+.agent-context section > button small,
+.agent-context section > button em,
+.rule-category-panel small,
+.rule-filter-group legend small,
+.rule-empty-state span,
+.report-category-section header p,
+.report-empty-state span,
+.global-search-empty span {
+  color: var(--muted-foreground);
+}
+
+.agent-citations button small,
+.agent-starters button small,
+.agent-context section > button small,
+.agent-context section > button em,
+.rule-mock-notice small,
+.rule-category-panel small,
+.rule-filter-group legend small,
+.rule-document-card > small,
+.rule-empty-state span,
+.user-security-note small,
+.role-summary-card small,
+.admin-add-body > small,
+.admin-add-body > aside small,
+.user-empty-state span,
+.report-empty-state span,
+.report-viewer-note small,
+.global-search-results small,
+.global-search-empty span {
+  font-size: var(--description-sm);
+  line-height: 1.55;
+}
+
+.report-card-copy em { min-height: 36px; }
+.rule-document-card > small { min-height: 32px; }
 
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -6,6 +6,7 @@ const html = await readFile(new URL("../prototype/index.html", import.meta.url),
 const script = await readFile(new URL("../prototype/app.js", import.meta.url), "utf8")
 const styles = await readFile(new URL("../prototype/styles.css", import.meta.url), "utf8")
 const qnaCss = await readFile(new URL("../prototype/src/qna.css", import.meta.url), "utf8")
+const qnaApp = await readFile(new URL("../prototype/src/qna/QnaApp.jsx", import.meta.url), "utf8")
 
 test("Quality Hub 브랜드가 쿼리를 제거하고 메인 화면을 새로고침한다", () => {
   assert.match(html, /class="brand"[^>]*data-home-refresh/)
@@ -52,4 +53,15 @@ test("메인 App 카드는 실제 Report 화면과 기능별 개별 모션을 �
   assert.match(styles, /@keyframes rule-scope-unfold/)
   assert.match(styles, /@keyframes qna-answer-sequence/)
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/)
+})
+
+test("제목 크기는 유지하고 주요 설명 문구를 10px 이상으로 표시한다", () => {
+  assert.match(styles, /--description-sm: 10px;/)
+  assert.match(styles, /--description-md: 11px;/)
+  assert.match(styles, /--description-lg: 12px;/)
+  assert.match(styles, /\.section-heading > p,[\s\S]*font-size: var\(--description-lg\);/)
+  assert.match(styles, /\.top-nav-menu small,[\s\S]*font-size: var\(--description-md\);/)
+  assert.match(styles, /\.agent-citations button small,[\s\S]*font-size: var\(--description-sm\);/)
+  assert.match(qnaApp, /Q&amp;A 게시판<\/h2>[\s\S]*text-\[12px\][^>]*>질문을 등록하고 담당자와 답변을 이어가세요/)
+  assert.match(qnaApp, /DialogDescription[^>]*text-\[12px\][^>]*>공정·부서와 질문 유형을 선택/)
 })
