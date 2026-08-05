@@ -79,6 +79,16 @@ test("확정한 공통 화면 상태와 역할별 문의 대상을 문서에 기
   assert.match(requirements, /실제 연동 전 목업 시각은 목업임을 명시/)
 })
 
+test("현재 목업의 전체 사용 흐름 검수 완료와 운영 검증 경계를 기록한다", () => {
+  assert.match(memo, /현재 UI 목업에 대한 사용자 검수 결과를 기준으로 완료 처리한다/)
+  assert.match(memo, /실제 SSO·Spotfire·사내 데이터 연동 이후의 운영 동작은 후속 단계에서 별도로 검증한다/)
+  assert.match(memo, /\[x\] 주요 기능을 별도 설명 없이 찾을 수 있는지 확인/)
+  assert.match(memo, /\[x\] 화면 이동과 이전 화면 복귀 확인/)
+  assert.match(memo, /\[x\] 키보드 조작과 초점 표시 확인/)
+  assert.match(memo, /\[x\] 명도 대비와 상태 표현 확인/)
+  assert.match(memo, /\[x\] 동작 축소 설정 확인/)
+})
+
 test("사용자 및 권한 화면의 표와 조작 요소를 읽기 쉬운 크기로 제공한다", () => {
   const reportCardTitleSize = styles.match(/\.report-card-copy strong \{[^}]*font-size: (\d+px);/s)?.[1]
   const accessTableBodySize = styles.match(/\.user-table-row \{[^}]*font-size: (\d+px);/s)?.[1]
