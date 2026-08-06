@@ -33,7 +33,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[2], help="Quality Hub 저장소 루트")
     parser.add_argument("--output", type=Path, help="결과 폴더. 생략하면 tools/quality_audit/results 아래에 생성")
-    parser.add_argument("--cpu-budget", type=float, default=1.75, help="의도한 CPU 예산. Linux에서는 올림한 최대 2개 논리 CPU affinity로 적용")
+    parser.add_argument("--cpu-budget", type=float, default=1.75, help="평균 CPU 사용 목표. Linux에서는 대기 숨김을 위해 최대 4개 논리 CPU affinity를 허용")
     parser.add_argument("--command-timeout", type=int, default=600, help="일반 명령 시간 제한(초)")
     parser.add_argument("--browser-timeout", type=int, default=45, help="브라우저/CDP 대기 시간 제한(초)")
     parser.add_argument("--skip-browser", action="store_true", help="Chromium 기반 axe·화면·성능 검사를 생략")
@@ -175,7 +175,7 @@ def main() -> int:
 
     report = AuditReport(context)
     print(f"Quality Hub 검수를 시작합니다: {context.output_dir}")
-    print(f"CPU 요청값 {context.requested_cpu_budget}, affinity {context.selected_cpus}, 병렬 실행 슬롯 {len(context.selected_cpus)}")
+    print(f"CPU 목표값 {context.requested_cpu_budget}, affinity {context.selected_cpus}, 명령 슬롯 {min(2, len(context.selected_cpus))}, 브라우저 슬롯 {1 if len(context.selected_cpus) == 1 else min(8, len(context.selected_cpus) * 2)}")
     before_status = ""
     requested_exit = 0
     try:

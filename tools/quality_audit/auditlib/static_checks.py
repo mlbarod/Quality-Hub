@@ -320,8 +320,12 @@ def standard_command_checks(context: AuditContext) -> list[Finding]:
             "보안 검사",
             severity="미검증",
         )
-    command_findings = run_command_checks(context, checks, max_workers=len(context.selected_cpus))
-    context.metadata["command_workers"] = min(len(context.selected_cpus), len(checks))
+    command_findings = run_command_checks(
+        context,
+        checks,
+        max_workers=min(2, len(context.selected_cpus)),
+    )
+    context.metadata["command_workers"] = min(2, len(context.selected_cpus), len(checks))
     command_findings.extend(item for item in (lint_finding, network_finding) if item is not None)
     return command_findings
 

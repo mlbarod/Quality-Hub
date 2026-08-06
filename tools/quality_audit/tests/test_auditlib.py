@@ -5,10 +5,11 @@ from pathlib import Path
 from threading import Barrier, Lock
 from unittest.mock import patch
 
+from auditlib.browser_checks import BrowserJob, _balanced_browser_lanes
 from auditlib.model import Finding, Status
 from auditlib.process import CommandCheck, run_command_checks
 from auditlib.report import _json_safe
-from auditlib.resources import THREAD_ENV_KEYS, child_environment
+from auditlib.resources import THREAD_ENV_KEYS, child_environment, cpu_affinity_slots
 from auditlib.static_checks import MarkupInspector
 
 
@@ -28,6 +29,20 @@ class ResourceTests(unittest.TestCase):
         env = child_environment((2, 3))
         self.assertEqual(env["UV_THREADPOOL_SIZE"], "2")
         self.assertEqual(env["QUALITY_AUDIT_CPU_SET"], "2,3")
+        for key in THREAD_ENV_KEYS:
+            self.assertEqual(env[key], "2")
+
+    def test_cpu_target_keeps_serial_mode_and_allows_wait_hiding_headroom(self) -> None:
+        self.assertEqual(cpu_affinity_slots(1.0), 1)
+        self.assertEqual(cpu_affinity_slots(1.5), 3)
+        self.assertEqual(cpu_affinity_slots(1.75), 4)
+        self.assertEqual(cpu_affinity_slots(2.0), 4)
+        with self.assertRaises(ValueError):
+            cpu_affinity_slots(2.1)
+
+    def test_four_affinity_cpus_still_limit_child_thread_pools_to_two(self) -> None:
+        env = child_environment((0, 1, 2, 3))
+        self.assertEqual(env["UV_THREADPOOL_SIZE"], "2")
         for key in THREAD_ENV_KEYS:
             self.assertEqual(env[key], "2")
 
@@ -56,6 +71,16 @@ class ParallelCommandTests(unittest.TestCase):
 
         self.assertCountEqual(started[:2], ["FAST-1", "FAST-2"])
         self.assertEqual([finding.check_id for finding in findings], ["LATE", "FAST-1", "FAST-2"])
+
+
+class BrowserSchedulerTests(unittest.TestCase):
+    def test_weighted_jobs_are_balanced_across_four_lanes(self) -> None:
+        jobs = [BrowserJob(f"job-{index}", "test", index, weight, lambda _client: None) for index, weight in enumerate((8, 7, 7, 6, 5, 5, 5, 5, 4, 4, 4))]
+        lanes, loads = _balanced_browser_lanes(jobs, 4)
+
+        self.assertEqual(len(lanes), 4)
+        self.assertEqual(sum(len(lane) for lane in lanes), len(jobs))
+        self.assertLessEqual(max(loads) - min(loads), 3)
 
 
 class MarkupTests(unittest.TestCase):

@@ -18,17 +18,21 @@ THREAD_ENV_KEYS = (
 )
 
 
-def configure_cpu_budget(requested_budget: float) -> tuple[int, ...]:
-    """현재 검수 프로세스와 자식 프로세스를 최대 두 논리 CPU에 묶는다.
-
-    1.5 같은 소수 값은 CPU 시간 할당량이 아니라 의도한 병렬성이다. Linux
-    affinity는 정수 CPU 집합만 지원하므로 올림한 CPU 수(최대 2개)를 사용한다.
-    """
-
+def cpu_affinity_slots(requested_budget: float) -> int:
     if not 1.0 <= requested_budget <= 2.0:
         raise ValueError("--cpu-budget은 1.0 이상 2.0 이하이어야 합니다.")
+    return 1 if requested_budget == 1.0 else min(4, max(2, math.ceil(requested_budget * 2)))
 
-    desired_count = min(2, max(1, math.ceil(requested_budget)))
+
+def configure_cpu_budget(requested_budget: float) -> tuple[int, ...]:
+    """평균 CPU 목표를 위해 대기형 작업이 사용할 affinity 여유를 선택한다.
+
+    1 CPU 요청은 직렬 실행을 유지한다. 그보다 큰 요청은 브라우저 대기를
+    겹칠 수 있도록 목표값의 두 배를 올림한 논리 CPU(최대 4개)를 허용한다.
+    affinity는 CPU quota가 아니며 실제 실행 레인 수는 별도로 제한한다.
+    """
+
+    desired_count = cpu_affinity_slots(requested_budget)
     if hasattr(os, "sched_getaffinity") and hasattr(os, "sched_setaffinity"):
         allowed = sorted(os.sched_getaffinity(0))
         selected = tuple(allowed[:desired_count])
@@ -42,7 +46,7 @@ def configure_cpu_budget(requested_budget: float) -> tuple[int, ...]:
 
 def child_environment(selected_cpus: tuple[int, ...]) -> dict[str, str]:
     env = os.environ.copy()
-    thread_count = str(max(1, len(selected_cpus)))
+    thread_count = str(max(1, min(2, len(selected_cpus))))
     for key in THREAD_ENV_KEYS:
         env[key] = thread_count
     env["UV_THREADPOOL_SIZE"] = thread_count
@@ -61,4 +65,3 @@ def executable_versions(repo_root: Path) -> dict[str, str | None]:
         "git": shutil.which("git"),
         "repo": str(repo_root),
     }
-

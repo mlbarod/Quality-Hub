@@ -178,7 +178,8 @@ def run_command_checks(
     with ThreadPoolExecutor(max_workers=worker_count, thread_name_prefix="audit-command") as pool:
         futures = {pool.submit(execute, check): index for index, check in scheduled}
         for future in as_completed(futures):
-            results[futures[future]] = future.result()
+            result = future.result()
+            results[futures[future]] = result
     return [result for result in results if result is not None]
 
 

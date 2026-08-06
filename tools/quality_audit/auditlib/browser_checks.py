@@ -4,8 +4,9 @@ import base64
 import json
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from .cdp import CDPClient, ChromiumSession, find_chromium
 from .http_checks import BuiltServer
@@ -13,6 +14,36 @@ from .model import AuditContext, Finding, Status
 
 
 VIEWPORTS = ((1366, 768), (1440, 900), (1920, 1080))
+AXE_SCENARIOS = (
+    ("Dashboard", None, "true", False),
+    ("Agent 전체화면", "[data-agent-expand]", "document.querySelector('.prototype')?.dataset.agentMode==='full'", False),
+    ("Report 카탈로그", "[data-report-open]", "document.querySelector('.prototype')?.dataset.reportMode==='catalog'", False),
+    ("Rule&SOP", "[data-rule-open]", "document.querySelector('.prototype')?.dataset.ruleMode==='open'", False),
+    ("Q&A", "[data-qna-open]", "Boolean(document.querySelector('#qna-main'))", False),
+    ("사용자 및 권한", "[data-user-open]", "document.querySelector('.prototype')?.dataset.userMode==='open'", False),
+    ("접근 차단", None, "!document.querySelector('[data-access-blocked]')?.hidden", True),
+)
+FOCUS_TARGETS = (
+    ("report", "document.activeElement?.id==='report-viewer-main'"),
+    ("rule", "document.activeElement?.matches('.rule-document-card.is-search-target')"),
+    ("qna", "document.activeElement?.id==='qna-main'"),
+)
+
+
+@dataclass(frozen=True, slots=True)
+class BrowserJob:
+    job_id: str
+    kind: str
+    index: int
+    weight: int
+    execute: Callable[[CDPClient], Any]
+
+
+@dataclass(slots=True)
+class BrowserJobResult:
+    job: BrowserJob
+    value: Any = None
+    error: str | None = None
 
 
 def _wait_for(client: CDPClient, condition: str, timeout: float = 8.0) -> bool:
@@ -29,7 +60,7 @@ def _wait_for(client: CDPClient, condition: str, timeout: float = 8.0) -> bool:
 
 def _navigate(client: CDPClient, url: str) -> None:
     client.call("Page.navigate", {"url": url})
-    if not _wait_for(client, "document.readyState === 'complete'", timeout=15):
+    if not _wait_for(client, "document.readyState === 'complete'", timeout=30):
         raise TimeoutError(f"페이지 로드를 기다리다 시간 초과했습니다: {url}")
     time.sleep(0.25)
 
@@ -80,6 +111,10 @@ def _click_and_wait(client: CDPClient, selector: str, condition: str, timeout: f
         raise RuntimeError(f"클릭 대상을 찾지 못했습니다: {selector}")
     if not _wait_for(client, condition, timeout):
         raise TimeoutError(f"클릭 후 상태를 기다리지 못했습니다: {selector} / {condition}")
+
+
+def _settle_render(client: CDPClient) -> None:
+    client.evaluate("new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))")
 
 
 def layout_and_motion_check(context: AuditContext, client: CDPClient, url: str) -> Finding:
@@ -139,47 +174,46 @@ def layout_and_motion_check(context: AuditContext, client: CDPClient, url: str) 
     )
 
 
-def axe_check(context: AuditContext, client: CDPClient, url: str) -> Finding:
-    started = time.monotonic()
-    audits: list[dict[str, Any]] = []
-
-    def fresh() -> None:
-        _navigate(client, url)
-        _inject_axe(context, client)
-
-    scenarios = [
-        ("Dashboard", None, "true"),
-        ("Agent 전체화면", "[data-agent-expand]", "document.querySelector('.prototype')?.dataset.agentMode==='full'"),
-        ("Report 카탈로그", "[data-report-open]", "document.querySelector('.prototype')?.dataset.reportMode==='catalog'"),
-        ("Rule&SOP", "[data-rule-open]", "document.querySelector('.prototype')?.dataset.ruleMode==='open'"),
-        ("Q&A", "[data-qna-open]", "Boolean(document.querySelector('#qna-main'))"),
-        ("사용자 및 권한", "[data-user-open]", "document.querySelector('.prototype')?.dataset.userMode==='open'"),
-    ]
-    for label, selector, condition in scenarios:
-        fresh()
-        if selector:
-            _click_and_wait(client, selector, condition, timeout=12)
-            time.sleep(0.15)
-        audits.append({"screen": label, "violations": _axe(client)})
-
-    fresh()
-    client.evaluate("""
+def _axe_scenario(context: AuditContext, client: CDPClient, url: str, scenario_index: int) -> dict[str, Any]:
+    label, selector, condition, blocked = AXE_SCENARIOS[scenario_index]
+    _navigate(client, url)
+    _inject_axe(context, client)
+    if blocked:
+        client.evaluate("""
 (()=>{const role=document.querySelector('[data-role-preview]');role.value='blocked';role.dispatchEvent(new Event('change',{bubbles:true}));return true})()
 """)
-    _wait_for(client, "!document.querySelector('[data-access-blocked]')?.hidden")
-    audits.append({"screen": "접근 차단", "violations": _axe(client)})
+        if not _wait_for(client, condition, timeout=12):
+            raise TimeoutError("접근 차단 화면을 기다리지 못했습니다.")
+    elif selector:
+        _click_and_wait(client, selector, condition, timeout=12)
+    _settle_render(client)
+    return {"screen": label, "violations": _axe(client)}
+
+
+def _axe_finding(audits: list[dict[str, Any]], duration: float, errors: list[dict[str, Any]] | None = None) -> Finding:
+    task_errors = errors or []
     violation_count = sum(len(row["violations"]) for row in audits)
-    status = Status.FAIL if violation_count else Status.PASS
+    status = Status.ERROR if task_errors else (Status.FAIL if violation_count else Status.PASS)
+    if task_errors:
+        summary = f"7개 화면 중 {len(audits)}개를 확인했고 작업 오류 {len(task_errors)}건입니다."
+    else:
+        summary = f"7개 화면에서 axe 위반 {violation_count}건입니다."
     return Finding(
         "A11Y-BROWSER-01",
         "axe 대표 화면 자동 접근성 검사",
         status,
-        f"7개 화면에서 axe 위반 {violation_count}건입니다.",
+        summary,
         "접근성 검사",
-        severity="높음",
-        evidence={"audits": audits},
-        duration_seconds=time.monotonic() - started,
+        severity="미검증" if task_errors else "높음",
+        evidence={"audits": audits, "task_errors": task_errors},
+        duration_seconds=duration,
     )
+
+
+def axe_check(context: AuditContext, client: CDPClient, url: str) -> Finding:
+    started = time.monotonic()
+    audits = [_axe_scenario(context, client, url, index) for index in range(len(AXE_SCENARIOS))]
+    return _axe_finding(audits, time.monotonic() - started)
 
 
 def role_and_state_check(context: AuditContext, client: CDPClient, url: str) -> Finding:
@@ -255,45 +289,61 @@ def role_and_state_check(context: AuditContext, client: CDPClient, url: str) -> 
     )
 
 
-def focus_and_search_check(context: AuditContext, client: CDPClient, url: str) -> Finding:
-    started = time.monotonic()
-    outcomes = []
-    targets = {
-        "report": "document.activeElement?.id==='report-viewer-main'",
-        "rule": "document.activeElement?.matches('.rule-document-card.is-search-target')",
-        "qna": "document.activeElement?.id==='qna-main'",
-    }
-    for target, expected in targets.items():
-        _navigate(client, url)
-        expression = f"""
+def _focus_target(client: CDPClient, url: str, target: str, expected: str) -> dict[str, Any]:
+    _navigate(client, url)
+    expression = f"""
 (async()=>{{
   const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-  document.querySelector('[data-global-search-open]')?.click();await wait(80);
+  const until=async(test,timeout=10000)=>{{const started=performance.now();while(!test()){{if(performance.now()-started>timeout)return false;await wait(25)}}return true}};
+  document.querySelector('[data-global-search-open]')?.click();
+  await until(()=>Boolean(document.querySelector('[data-search-target={json.dumps(target)}]')));
   const result=document.querySelector('[data-search-target={json.dumps(target)}]');
   if(!result)return {{error:'result missing'}};
-  result.click();await wait({1400 if target == 'qna' else 500});
-  return {{activeId:document.activeElement?.id,activeClass:document.activeElement?.className,expected:Boolean({expected})}};
+  result.click();
+  const reached=await until(()=>Boolean({expected}));
+  return {{activeId:document.activeElement?.id,activeClass:document.activeElement?.className,expected:Boolean({expected}),timedOut:!reached}};
 }})()
 """
-        outcome = client.evaluate(expression)
-        outcomes.append({"target": target, **outcome})
+    return {"target": target, **client.evaluate(expression)}
+
+
+def _focus_agent(client: CDPClient, url: str) -> dict[str, Any]:
     _navigate(client, url)
-    agent = client.evaluate("""
-(async()=>{const wait=ms=>new Promise(r=>setTimeout(r,ms));document.querySelector('[data-agent-expand]')?.click();await wait(450);return {activeId:document.activeElement?.id,mainCount:[...document.querySelectorAll('main')].filter(el=>!el.hidden&&!el.closest('[aria-hidden="true"]')).length}})()
+    _click_and_wait(client, "[data-agent-expand]", "document.querySelector('.prototype')?.dataset.agentMode==='full'", timeout=12)
+    reached = _wait_for(client, "document.activeElement?.id==='agent-main'", timeout=12)
+    result = client.evaluate("""
+({activeId:document.activeElement?.id,mainCount:[...document.querySelectorAll('main')].filter(el=>!el.hidden&&!el.closest('[aria-hidden="true"]')).length})
 """)
+    return {**result, "timedOut": not reached}
+
+
+def _focus_finding(outcomes: list[dict[str, Any]], agent: dict[str, Any], duration: float, errors: list[dict[str, Any]] | None = None) -> Finding:
+    task_errors = errors or []
     failures = [row["target"] for row in outcomes if not row.get("expected")]
     if agent.get("activeId") != "agent-main" or agent.get("mainCount") != 1:
         failures.append("agent")
+    status = Status.ERROR if task_errors else (Status.FAIL if failures else Status.PASS)
+    if task_errors:
+        summary = f"검색·Agent 초점 작업 오류 {len(task_errors)}건입니다."
+    else:
+        summary = f"검색 3종과 Agent 초점 흐름을 확인했습니다. 실패 {len(failures)}건."
     return Finding(
         "A11Y-BROWSER-02",
         "검색 목적지·Agent 초점과 랜드마크",
-        Status.FAIL if failures else Status.PASS,
-        f"검색 3종과 Agent 초점 흐름을 확인했습니다. 실패 {len(failures)}건.",
+        status,
+        summary,
         "접근성 검사",
-        severity="높음",
-        evidence={"search": outcomes, "agent": agent, "failures": failures},
-        duration_seconds=time.monotonic() - started,
+        severity="미검증" if task_errors else "높음",
+        evidence={"search": outcomes, "agent": agent, "failures": failures, "task_errors": task_errors},
+        duration_seconds=duration,
     )
+
+
+def focus_and_search_check(context: AuditContext, client: CDPClient, url: str) -> Finding:
+    started = time.monotonic()
+    outcomes = [_focus_target(client, url, target, expected) for target, expected in FOCUS_TARGETS]
+    agent = _focus_agent(client, url)
+    return _focus_finding(outcomes, agent, time.monotonic() - started)
 
 
 def qna_permission_flow(context: AuditContext, client: CDPClient, url: str) -> Finding:
@@ -388,6 +438,17 @@ def performance_and_console_check(context: AuditContext, client: CDPClient, url:
     )
 
 
+def _balanced_browser_lanes(jobs: list[BrowserJob], worker_count: int) -> tuple[list[list[BrowserJob]], list[int]]:
+    lane_count = max(1, min(worker_count, len(jobs)))
+    lanes: list[list[BrowserJob]] = [[] for _ in range(lane_count)]
+    loads = [0] * lane_count
+    for job in sorted(jobs, key=lambda item: (-item.weight, item.job_id)):
+        lane_index = min(range(lane_count), key=lambda index: (loads[index], index))
+        lanes[lane_index].append(job)
+        loads[lane_index] += job.weight
+    return lanes, loads
+
+
 def run_browser_checks(context: AuditContext, server: BuiltServer) -> list[Finding]:
     if context.skip_browser:
         return [Finding("BROWSER-00", "Chromium 브라우저 검사", Status.SKIP, "--skip-browser 옵션으로 미실행했습니다.", "브라우저 UI 검사", severity="미검증")]
@@ -396,59 +457,109 @@ def run_browser_checks(context: AuditContext, server: BuiltServer) -> list[Findi
         return [Finding("BROWSER-00", "Chromium 브라우저 검사", Status.SKIP, "Chromium을 찾지 못했습니다. QUALITY_AUDIT_CHROME에 경로를 지정하세요.", "브라우저 UI 검사", severity="미검증")]
 
     context.metadata["chromium"] = binary
-    functional_checks = (
-        layout_and_motion_check,
-        axe_check,
-        role_and_state_check,
-        focus_and_search_check,
-        qna_permission_flow,
-    )
-    worker_count = min(len(context.selected_cpus), len(functional_checks))
-    context.metadata["browser_workers"] = worker_count
+    functional_started = time.monotonic()
+    jobs = [
+        BrowserJob("layout-motion", "finding", 0, 8, lambda client: layout_and_motion_check(context, client, server.url)),
+        BrowserJob("role-state", "finding", 2, 7, lambda client: role_and_state_check(context, client, server.url)),
+        BrowserJob("qna-permission", "finding", 4, 6, lambda client: qna_permission_flow(context, client, server.url)),
+    ]
+    for index, (label, _selector, _condition, _blocked) in enumerate(AXE_SCENARIOS):
+        weight = 7 if label == "Q&A" else 5
+        jobs.append(BrowserJob(
+            f"axe-{index + 1}",
+            "axe",
+            index,
+            weight,
+            lambda client, scenario_index=index: _axe_scenario(context, client, server.url, scenario_index),
+        ))
+    for index, (target, expected) in enumerate(FOCUS_TARGETS):
+        jobs.append(BrowserJob(
+            f"focus-{target}",
+            "focus",
+            index,
+            7 if target == "qna" else 4,
+            lambda client, target_name=target, expected_condition=expected: _focus_target(client, server.url, target_name, expected_condition),
+        ))
+    jobs.append(BrowserJob("focus-agent", "focus-agent", 0, 4, lambda client: _focus_agent(client, server.url)))
 
-    def run_lane(lane_index: int, jobs: list[tuple[int, Any]]) -> list[tuple[int, Finding]]:
-        lane_results: list[tuple[int, Finding]] = []
+    # 대기형 Chromium은 CPU 수의 두 배까지 겹치되 각 레인의 중복 초기 탐색은 피한다.
+    worker_count = 1 if len(context.selected_cpus) == 1 else min(8, len(jobs), len(context.selected_cpus) * 2)
+    lanes, lane_weights = _balanced_browser_lanes(jobs, worker_count)
+    context.metadata["browser_workers"] = worker_count
+    context.metadata["browser_tasks"] = len(jobs)
+    context.metadata["browser_lane_weights"] = lane_weights
+
+    def run_lane(lane_index: int, lane_jobs: list[BrowserJob]) -> list[BrowserJobResult]:
+        lane_results: list[BrowserJobResult] = []
         try:
             with ChromiumSession(context, server.url, session_name=f"functional-{lane_index + 1}") as client:
                 _install_observers(client)
-                _navigate(client, server.url)
-                for check_index, check in jobs:
+                for job in lane_jobs:
                     try:
-                        lane_results.append((check_index, check(context, client, server.url)))
+                        lane_results.append(BrowserJobResult(job, value=job.execute(client)))
                     except Exception as error:
-                        lane_results.append((check_index, Finding(
-                            f"BROWSER-ERROR-{check_index + 1:02d}",
-                            f"{check.__name__} 실행",
-                            Status.ERROR,
-                            str(error),
-                            "브라우저 UI 검사",
-                            severity="미검증",
-                        )))
+                        lane_results.append(BrowserJobResult(job, error=str(error)))
         except Exception as error:
-            for check_index, check in jobs:
-                lane_results.append((check_index, Finding(
-                    f"BROWSER-ERROR-{check_index + 1:02d}",
-                    f"{check.__name__} 시작",
-                    Status.ERROR,
-                    str(error),
-                    "브라우저 UI 검사",
-                    severity="미검증",
-                )))
+            lane_results.extend(BrowserJobResult(job, error=f"Chromium 시작 실패: {error}") for job in lane_jobs)
         return lane_results
 
-    lanes: list[list[tuple[int, Any]]] = [[] for _ in range(worker_count)]
-    for index, check in enumerate(functional_checks):
-        lanes[index % worker_count].append((index, check))
-
-    indexed_findings: list[tuple[int, Finding]] = []
+    job_results: list[BrowserJobResult] = []
     if worker_count == 1:
-        indexed_findings.extend(run_lane(0, lanes[0]))
+        job_results.extend(run_lane(0, lanes[0]))
     else:
         with ThreadPoolExecutor(max_workers=worker_count, thread_name_prefix="audit-browser") as pool:
-            futures = [pool.submit(run_lane, index, jobs) for index, jobs in enumerate(lanes)]
+            futures = [pool.submit(run_lane, index, lane_jobs) for index, lane_jobs in enumerate(lanes)]
             for future in as_completed(futures):
-                indexed_findings.extend(future.result())
-    findings = [finding for _, finding in sorted(indexed_findings, key=lambda item: item[0])]
+                job_results.extend(future.result())
+
+    finding_results: dict[int, Finding] = {}
+    axe_results: dict[int, dict[str, Any]] = {}
+    focus_results: dict[int, dict[str, Any]] = {}
+    focus_agent: dict[str, Any] = {}
+    errors: dict[str, list[dict[str, Any]]] = {"finding": [], "axe": [], "focus": [], "focus-agent": []}
+    for result in job_results:
+        if result.error:
+            errors[result.job.kind].append({"job": result.job.job_id, "index": result.job.index, "error": result.error})
+        elif result.job.kind == "finding":
+            finding_results[result.job.index] = result.value
+        elif result.job.kind == "axe":
+            axe_results[result.job.index] = result.value
+        elif result.job.kind == "focus":
+            focus_results[result.job.index] = result.value
+        elif result.job.kind == "focus-agent":
+            focus_agent = result.value
+
+    for index in range(len(AXE_SCENARIOS)):
+        if index not in axe_results and not any(error["index"] == index for error in errors["axe"]):
+            errors["axe"].append({"job": f"axe-{index + 1}", "index": index, "error": "결과 누락"})
+    for index in range(len(FOCUS_TARGETS)):
+        if index not in focus_results and not any(error["index"] == index for error in errors["focus"]):
+            errors["focus"].append({"job": f"focus-{index + 1}", "index": index, "error": "결과 누락"})
+    focus_errors = [*errors["focus"], *errors["focus-agent"]]
+    if not focus_agent and not errors["focus-agent"]:
+        focus_errors.append({"job": "focus-agent", "index": 0, "error": "결과 누락"})
+
+    phase_duration = time.monotonic() - functional_started
+    assembled = {
+        1: _axe_finding([axe_results[index] for index in sorted(axe_results)], phase_duration, errors["axe"]),
+        3: _focus_finding([focus_results[index] for index in sorted(focus_results)], focus_agent, phase_duration, focus_errors),
+    }
+    findings: list[Finding] = []
+    for check_index in range(5):
+        finding = finding_results.get(check_index) or assembled.get(check_index)
+        if finding:
+            findings.append(finding)
+            continue
+        related_errors = [error for error in errors["finding"] if error["index"] == check_index]
+        findings.append(Finding(
+            f"BROWSER-ERROR-{check_index + 1:02d}",
+            "브라우저 기능 검사 실행",
+            Status.ERROR,
+            related_errors[0]["error"] if related_errors else "결과가 누락됐습니다.",
+            "브라우저 UI 검사",
+            severity="미검증",
+            evidence={"task_errors": related_errors},
+        ))
 
     # 성능 수치는 다른 Chromium 부하와 겹치지 않도록 기능 검사가 끝난 뒤 단독 측정한다.
     try:
