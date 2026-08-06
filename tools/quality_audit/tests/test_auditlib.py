@@ -6,6 +6,7 @@ from threading import Barrier, Lock
 from unittest.mock import patch
 
 from auditlib.browser_checks import BrowserJob, _balanced_browser_lanes
+from auditlib.cpu_floor import cpu_floor_duties
 from auditlib.model import Finding, Status
 from auditlib.process import CommandCheck, run_command_checks
 from auditlib.report import _json_safe
@@ -31,6 +32,12 @@ class ResourceTests(unittest.TestCase):
         self.assertEqual(env["QUALITY_AUDIT_CPU_SET"], "2,3")
         for key in THREAD_ENV_KEYS:
             self.assertEqual(env[key], "2")
+
+    def test_forced_cpu_floor_splits_full_and_fractional_workers(self) -> None:
+        self.assertEqual(cpu_floor_duties(1.5), [1.0, 0.5])
+        self.assertEqual(cpu_floor_duties(2.0), [1.0, 1.0])
+        with self.assertRaises(ValueError):
+            cpu_floor_duties(0)
 
     def test_cpu_target_keeps_serial_mode_and_allows_wait_hiding_headroom(self) -> None:
         self.assertEqual(cpu_affinity_slots(1.0), 1)

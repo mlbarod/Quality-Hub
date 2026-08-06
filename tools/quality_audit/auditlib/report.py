@@ -37,6 +37,7 @@ def write_json(report: AuditReport) -> Path:
         "finished_at": (report.finished_at or datetime.now(timezone.utc)).isoformat(),
         "repo_root": str(report.context.repo_root),
         "requested_cpu_budget": report.context.requested_cpu_budget,
+        "forced_cpu_floor": report.context.forced_cpu_floor,
         "selected_logical_cpus": report.context.selected_cpus,
         "metadata": report.context.metadata,
         "counts": report.counts,
@@ -65,6 +66,7 @@ def write_markdown(report: AuditReport) -> Path:
         f"- 시작 시각(UTC): `{report.context.started_at.isoformat()}`",
         f"- 종료 시각(UTC): `{(report.finished_at or datetime.now(timezone.utc)).isoformat()}`",
         f"- CPU 요청값: `{report.context.requested_cpu_budget}` · affinity: `{', '.join(map(str, report.context.selected_cpus))}`",
+        f"- 합성 CPU 하한: `{report.context.forced_cpu_floor if report.context.forced_cpu_floor is not None else '미사용'}`",
         f"- 결과 수: 통과 {counts['PASS']} · 실패 {counts['FAIL']} · 주의 {counts['WARN']} · 미실행 {counts['SKIP']} · 오류 {counts['ERROR']}",
         "",
         "> 이 결과는 로컬 목업과 현재 코드에 대한 검수입니다. 실제 SSO, Spotfire, 사내 LLM, DB, Parquet, 운영 보안·네트워크와 50명 동시 사용을 증명하지 않습니다.",
@@ -90,4 +92,3 @@ def write_markdown(report: AuditReport) -> Path:
             lines.append("")
     path.write_text("\n".join(lines), encoding="utf-8")
     return path
-

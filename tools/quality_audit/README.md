@@ -15,6 +15,7 @@
 - 기본 설정은 CPU 작업이 겹치는 동안 1.5 Core 이상 활용하는 것을 목표로 합니다. 다만 파일·네트워크·브라우저 대기 구간까지 포함한 전체 실행 평균을 보장하는 CPU 예약 방식은 아닙니다.
 - affinity는 CPU quota가 아니므로 순간 사용량은 목표값을 넘을 수 있지만, 명령·라이브러리 스레드는 2개로 제한합니다.
 - 다른 작업과 자원을 나눠야 하면 `--cpu-budget 1`을 사용하세요.
+- `--force-cpu-floor`는 비교 실험을 위한 명시적 합성 부하 모드입니다. 검수 프로세스와 전체 자식 프로세스의 사용률을 관측해 부족한 duty cycle만 보충하며, 검수 성능 개선으로 해석하면 안 됩니다.
 
 ## 검수 범위
 
@@ -86,6 +87,16 @@ python3 tools/quality_audit/run_audit.py --include-network
 ```bash
 python3 tools/quality_audit/run_audit.py --skip-browser
 ```
+
+일반 검수와 CPU 하한 강제 실행을 비교하려면 서로 다른 결과 폴더를 사용하세요:
+
+```bash
+python3 tools/quality_audit/run_audit.py \
+  --force-cpu-floor 1.5 \
+  --output /tmp/quality-hub-audit-cpu-floor-1_5
+```
+
+이 옵션은 `/proc`에서 검수 프로세스와 Node·Chromium 등 전체 자식 프로세스의 CPU 시간을 약 0.25초마다 관측하고 별도 Python 작업자 2개의 부하를 조절합니다. 보고서의 `ENV-CPU-FLOOR`와 `metadata.forced_cpu_floor`에 관측 평균과 합성 duty가 기록됩니다.
 
 도움말:
 

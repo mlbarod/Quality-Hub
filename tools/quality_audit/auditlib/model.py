@@ -50,6 +50,7 @@ class AuditContext:
     include_network: bool
     skip_browser: bool
     keep_work: bool
+    forced_cpu_floor: float | None = None
     started_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: dict[str, Any] = field(default_factory=dict)
 

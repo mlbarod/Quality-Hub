@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from auditlib.browser_checks import run_browser_checks
+from auditlib.cpu_floor import ForcedCpuFloor
 from auditlib.http_checks import BuiltServer, run_http_checks
 from auditlib.model import AuditContext, AuditReport, Finding, Status
 from auditlib.process import command_exists, git_snapshot, run_command
@@ -34,6 +35,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[2], help="Quality Hub 저장소 루트")
     parser.add_argument("--output", type=Path, help="결과 폴더. 생략하면 tools/quality_audit/results 아래에 생성")
     parser.add_argument("--cpu-budget", type=float, default=1.75, help="평균 CPU 사용 목표. Linux에서는 대기 숨김을 위해 최대 4개 논리 CPU affinity를 허용")
+    parser.add_argument("--force-cpu-floor", type=float, help="합성 CPU 부하로 유지할 최소 Core 수. 일반 검수 비교용이며 실행시간 개선을 의미하지 않음")
     parser.add_argument("--command-timeout", type=int, default=600, help="일반 명령 시간 제한(초)")
     parser.add_argument("--browser-timeout", type=int, default=45, help="브라우저/CDP 대기 시간 제한(초)")
     parser.add_argument("--skip-browser", action="store_true", help="Chromium 기반 axe·화면·성능 검사를 생략")
@@ -47,6 +49,8 @@ def make_context(args: argparse.Namespace) -> AuditContext:
     if not (repo_root / "package.json").exists() or not (repo_root / "prototype" / "index.html").exists():
         raise ValueError(f"Quality Hub 저장소 루트가 아닙니다: {repo_root}")
     selected_cpus = configure_cpu_budget(args.cpu_budget)
+    if args.force_cpu_floor is not None and not 0 < args.force_cpu_floor <= len(selected_cpus):
+        raise ValueError(f"--force-cpu-floor은 0보다 크고 선택된 CPU 수 {len(selected_cpus)} 이하여야 합니다.")
     stamp = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S")
     default_results_root = repo_root / "tools" / "quality_audit" / "results"
     output_dir = args.output.resolve() if args.output else default_results_root / stamp
@@ -71,6 +75,7 @@ def make_context(args: argparse.Namespace) -> AuditContext:
         include_network=args.include_network,
         skip_browser=args.skip_browser,
         keep_work=args.keep_work,
+        forced_cpu_floor=args.force_cpu_floor,
     )
 
 
@@ -176,8 +181,12 @@ def main() -> int:
     report = AuditReport(context)
     print(f"Quality Hub 검수를 시작합니다: {context.output_dir}")
     print(f"CPU 목표값 {context.requested_cpu_budget}, affinity {context.selected_cpus}, 명령 슬롯 {min(2, len(context.selected_cpus))}, 브라우저 슬롯 {1 if len(context.selected_cpus) == 1 else min(8, len(context.selected_cpus) * 2)}")
+    if context.forced_cpu_floor is not None:
+        print(f"합성 CPU 하한 모드 {context.forced_cpu_floor} Core를 사용합니다.")
     before_status = ""
     requested_exit = 0
+    cpu_floor = ForcedCpuFloor(context.forced_cpu_floor, context.selected_cpus) if context.forced_cpu_floor is not None else None
+    cpu_floor_started = False
     try:
         collect_git_metadata(context)
         before_status, _ = git_snapshot(context, "git-status-before")
@@ -185,6 +194,9 @@ def main() -> int:
         if any(item.status == Status.ERROR for item in report.findings):
             requested_exit = 2
         else:
+            if cpu_floor:
+                cpu_floor.start()
+                cpu_floor_started = True
             add_static_checks(report)
             add_runtime_checks(report)
     except KeyboardInterrupt:
@@ -194,6 +206,18 @@ def main() -> int:
         report.add(Finding("RUN-ERROR", "검수기 예외", Status.ERROR, repr(error), "실행 환경", severity="미검증"))
         requested_exit = 2
     finally:
+        if cpu_floor and cpu_floor_started:
+            stats = cpu_floor.stop()
+            context.metadata["forced_cpu_floor"] = stats.as_dict()
+            report.add(Finding(
+                "ENV-CPU-FLOOR",
+                "합성 CPU 하한 모드",
+                Status.WARN,
+                f"검수와 무관한 합성 부하로 {stats.requested_cores:.2f} Core 하한을 요청했습니다.",
+                "실행 환경",
+                severity="정보",
+                evidence=stats.as_dict(),
+            ))
         finalize(report, before_status)
     return requested_exit or report.exit_code
 
