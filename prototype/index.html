@@ -114,9 +114,9 @@
       </symbol>
     </svg>
 
-    <div class="prototype" data-layout="top" data-agent-mode="drawer" data-report-mode="closed" data-rule-mode="closed" data-qna-mode="closed" data-user-mode="closed" data-current-role="master" data-common-state="normal" data-can-manage-rules="true" data-can-manage-reports="true">
+    <div class="prototype" data-layout="top" data-dashboard-mode="home" data-agent-mode="closed" data-report-mode="closed" data-rule-mode="closed" data-qna-mode="closed" data-user-mode="closed" data-current-role="master" data-common-state="normal" data-can-manage-rules="true" data-can-manage-reports="true">
       <aside class="sidebar" aria-label="좌측 서비스 메뉴">
-        <a class="brand sidebar-brand" href="#dashboard" aria-label="Quality Hub 홈" data-home-refresh>
+        <a class="brand sidebar-brand" href="#home" aria-label="Quality Hub 홈" data-home-refresh>
           <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
           <span>Quality Hub</span>
         </a>
@@ -125,11 +125,11 @@
 
         <nav class="sidebar-nav" aria-label="서비스 메뉴">
           <p class="nav-caption">Workspace</p>
-          <a class="side-nav-item is-active" href="#dashboard" aria-current="page">
+          <button class="side-nav-item" type="button" data-dashboard-open aria-pressed="false">
             <svg class="icon"><use href="#icon-grid"></use></svg>
             <span>대시보드</span>
-          </a>
-          <button class="side-nav-item agent-side-button" type="button" data-agent-open aria-expanded="true">
+          </button>
+          <button class="side-nav-item agent-side-button" type="button" data-agent-open aria-expanded="false">
             <span class="agent-spark" aria-hidden="true">✦</span>
             <span>품질 Agent</span>
             <span class="agent-live-dot" aria-label="사내 LLM 연동 예정"></span>
@@ -176,13 +176,13 @@
       </aside>
 
       <header class="global-header" aria-label="상단 서비스 메뉴">
-        <a class="brand" href="#dashboard" aria-label="Quality Hub 홈" data-home-refresh>
+        <a class="brand" href="#home" aria-label="Quality Hub 홈" data-home-refresh>
           <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
           <span>Quality Hub</span>
         </a>
 
         <nav class="top-navigation" aria-label="주 메뉴">
-          <a class="top-nav-link is-active" href="#dashboard">대시보드</a>
+          <button class="top-nav-link" type="button" data-dashboard-open aria-pressed="false">대시보드</button>
           <div class="top-nav-group">
             <button type="button" aria-haspopup="true">
               품질 업무 <svg class="icon"><use href="#icon-chevron-down"></use></svg>
@@ -202,9 +202,6 @@
               <button type="button" data-user-open data-master-only><svg class="icon"><use href="#icon-users"></use></svg><span><strong>사용자 및 권한</strong><small>접근 권한 규칙 관리</small></span></button>
             </div>
           </div>
-          <button class="top-nav-link agent-nav-button" type="button" data-agent-open aria-expanded="true">
-            <span aria-hidden="true">✦</span>품질 Agent
-          </button>
           <button class="top-nav-link" type="button" data-planned="도움말">도움말</button>
         </nav>
 
@@ -238,7 +235,65 @@
         </header>
 
         <main class="main-content" id="main-content" tabindex="-1">
-          <section class="page-heading" id="dashboard" aria-labelledby="dashboard-title">
+          <section class="command-hero" id="home" tabindex="-1" aria-labelledby="command-hero-title" data-home-view>
+            <div class="command-hero-copy">
+              <p class="system-status"><span aria-hidden="true"></span> QUALITY SYSTEM ACTIVE</p>
+              <h1 id="command-hero-title">Quality<br /><span>Intelligence.</span></h1>
+              <p class="command-hero-description">흩어진 품질 현황과 업무 지식을 하나로 연결합니다.<br />필요한 앱을 선택해 바로 업무를 시작하세요.</p>
+
+              <dl class="hero-meta" aria-label="Quality Hub 현재 상태">
+                <div><dt>DATA</dt><dd>UI 검토용 예시</dd></div>
+                <div><dt>ROLE</dt><dd data-current-role-label>마스터</dd></div>
+                <div><dt>UPDATED</dt><dd data-last-updated>방금 전</dd></div>
+              </dl>
+            </div>
+
+            <div class="app-orbit" aria-labelledby="quick-apps-title">
+              <svg class="orbit-connectors" viewBox="0 0 760 650" preserveAspectRatio="none" aria-hidden="true">
+                <path class="connector-track" pathLength="1" d="M380 325 C315 285 275 225 176 170" />
+                <path class="connector-signal connector-signal-one" pathLength="1" d="M380 325 C315 285 275 225 176 170" />
+                <path class="connector-track" pathLength="1" d="M380 325 C445 280 492 222 592 168" />
+                <path class="connector-signal connector-signal-two" pathLength="1" d="M380 325 C445 280 492 222 592 168" />
+                <path class="connector-track" pathLength="1" d="M380 325 C316 370 276 430 178 490" />
+                <path class="connector-signal connector-signal-three" pathLength="1" d="M380 325 C316 370 276 430 178 490" />
+                <path class="connector-track" pathLength="1" d="M380 325 C448 372 492 435 594 492" />
+                <path class="connector-signal connector-signal-four" pathLength="1" d="M380 325 C448 372 492 435 594 492" />
+              </svg>
+              <button class="orbit-agent" type="button" data-agent-open aria-expanded="false" aria-controls="quality-agent-floating-panel">
+                <span class="orbit-agent-rings" aria-hidden="true"><i></i><i></i></span>
+                <span class="orbit-agent-mark" aria-hidden="true">✦</span>
+                <span class="orbit-agent-copy"><strong>품질 Agent</strong><small>무엇이든 물어보세요</small></span>
+              </button>
+              <div class="orbit-heading">
+                <p>FREQUENT WORK APPS</p>
+                <h2 id="quick-apps-title">자주 쓰는 App</h2>
+              </div>
+
+              <button class="orbit-app orbit-app-report" type="button" data-report-open>
+                <span class="orbit-app-heading"><span class="orbit-app-icon"><svg class="icon"><use href="#icon-grid"></use></svg></span><span><strong>Report</strong><small>12 REPORTS</small></span></span>
+                <span class="orbit-mini orbit-mini-report" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b></span>
+                <svg class="orbit-app-arrow icon" aria-hidden="true"><use href="#icon-arrow"></use></svg>
+              </button>
+              <button class="orbit-app orbit-app-search" type="button" data-global-search-open>
+                <span class="orbit-app-heading"><span class="orbit-app-icon"><svg class="icon"><use href="#icon-search"></use></svg></span><span><strong>통합 검색</strong><small>ALL CONTENT</small></span></span>
+                <span class="orbit-mini orbit-mini-search" aria-hidden="true"><i><b></b></i><em></em><em></em><em></em></span>
+                <svg class="orbit-app-arrow icon" aria-hidden="true"><use href="#icon-arrow"></use></svg>
+              </button>
+              <button class="orbit-app orbit-app-rule" type="button" data-rule-open>
+                <span class="orbit-app-heading"><span class="orbit-app-icon"><svg class="icon"><use href="#icon-book"></use></svg></span><span><strong>Rule&amp;SOP</strong><small>12 RULES</small></span></span>
+                <span class="orbit-mini orbit-mini-rule" aria-hidden="true"><b></b><i></i><i></i><i></i><em></em></span>
+                <svg class="orbit-app-arrow icon" aria-hidden="true"><use href="#icon-arrow"></use></svg>
+              </button>
+              <button class="orbit-app orbit-app-qna" type="button" data-qna-open>
+                <span class="orbit-app-heading"><span class="orbit-app-icon"><svg class="icon"><use href="#icon-message"></use></svg></span><span><strong>Q&amp;A</strong><small>4 WAITING</small></span></span>
+                <span class="orbit-mini orbit-mini-qna" aria-hidden="true"><i><b></b><b></b><b></b></i><em><b></b><b></b></em></span>
+                <svg class="orbit-app-arrow icon" aria-hidden="true"><use href="#icon-arrow"></use></svg>
+              </button>
+            </div>
+          </section>
+
+          <div class="dashboard-view" id="dashboard" tabindex="-1" data-dashboard-view hidden aria-hidden="true">
+          <section class="page-heading" aria-labelledby="dashboard-title">
             <div>
               <p class="eyebrow"><span></span> 오늘의 품질 브리핑</p>
               <h1 id="dashboard-title">공정 품질을 한눈에.</h1>
@@ -402,10 +457,11 @@
             <span>Quality Hub UI Mock · 실제 데이터 아님</span>
             <span>Desktop only · 1440px 이상 권장</span>
           </footer>
+          </div>
         </main>
       </div>
 
-      <aside class="agent-drawer" aria-label="품질 Agent 대화 패널" aria-hidden="false" data-agent-drawer>
+      <aside class="agent-drawer" id="quality-agent-floating-panel" aria-label="품질 Agent 플로팅 대화 패널" aria-hidden="true" data-agent-drawer>
         <header class="agent-panel-header">
           <div class="agent-identity">
             <span class="agent-logo" aria-hidden="true">✦</span>

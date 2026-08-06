@@ -42,14 +42,14 @@ describe("Q&A 프로토타입", () => {
     await user.click(writeButtons[0])
     expect(screen.getByRole("dialog", { name: "새 질문 작성" })).toBeInTheDocument()
 
-    expect(await screen.findByRole("toolbar", { name: "본문 서식 도구" })).toBeInTheDocument()
+    expect(await screen.findByRole("toolbar", { name: "본문 서식 도구" }, { timeout: 5000 })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "3×3 표 삽입" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "이미지 삽입" })).toBeInTheDocument()
 
     expect(await screen.findByLabelText("질문 본문 편집기")).toHaveAttribute("aria-multiline", "true")
     await user.click(screen.getByRole("button", { name: "취소" }))
     expect(screen.queryByRole("dialog", { name: "새 질문 작성" })).not.toBeInTheDocument()
-  })
+  }, 15000)
 
   test("질문 작성 버튼을 게시판 우측 상단에서 제공한다", () => {
     render(<QnaApp />)

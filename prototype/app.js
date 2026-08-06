@@ -9,6 +9,8 @@ import {
 
 const prototype = document.querySelector(".prototype");
 const dashboardWorkspace = document.querySelector(".workspace");
+const homeView = document.querySelector("[data-home-view]");
+const dashboardView = document.querySelector("[data-dashboard-view]");
 const toast = document.querySelector("[data-toast]");
 const refreshButton = document.querySelector("[data-refresh]");
 const skipLink = document.querySelector(".skip-link");
@@ -126,6 +128,48 @@ const syncPrimaryWorkspaceAccessibility = () => {
   dashboardWorkspace.setAttribute("aria-hidden", String(isInactive));
 };
 
+const dashboardModes = new Set(["home", "dashboard"]);
+
+const setDashboardMode = (mode, { announce = true, focus = true } = {}) => {
+  if (!(prototype instanceof HTMLElement) || !dashboardModes.has(mode)) return;
+
+  const isDashboard = mode === "dashboard";
+  prototype.dataset.dashboardMode = mode;
+  if (homeView instanceof HTMLElement) {
+    homeView.hidden = isDashboard;
+    homeView.inert = isDashboard;
+  }
+  if (dashboardView instanceof HTMLElement) {
+    dashboardView.hidden = !isDashboard;
+    dashboardView.inert = !isDashboard;
+    dashboardView.setAttribute("aria-hidden", String(!isDashboard));
+  }
+
+  document.querySelectorAll("[data-dashboard-open]").forEach((button) => {
+    button.classList.toggle("is-active", isDashboard);
+    button.setAttribute("aria-pressed", String(isDashboard));
+  });
+
+  const url = new URL(window.location.href);
+  if (isDashboard) url.searchParams.set("view", "dashboard");
+  else url.searchParams.delete("view");
+  url.hash = isDashboard ? "dashboard" : "home";
+  window.history.replaceState({}, "", url);
+
+  const hasOpenWorkspace = prototype.dataset.agentMode === "full"
+    || prototype.dataset.reportMode !== "closed"
+    || prototype.dataset.ruleMode === "open"
+    || prototype.dataset.qnaMode === "open"
+    || prototype.dataset.userMode === "open";
+  if (!hasOpenWorkspace) {
+    skipLink?.setAttribute("href", isDashboard ? "#dashboard" : "#main-content");
+    document.title = isDashboard ? "Quality Hub · 대시보드" : "Quality Hub";
+  }
+
+  if (focus) focusAfterTransition(isDashboard ? dashboardView : homeView, 80);
+  if (announce) showToast(isDashboard ? "품질 대시보드를 열었습니다." : "App 홈으로 돌아왔습니다.");
+};
+
 const recordHistory = (entry) => {
   historyEntries.unshift(createHistoryEntry({ ...entry, actor: getRoleOption(currentRole).name }));
   renderHistoryList();
@@ -214,7 +258,7 @@ document.querySelectorAll("[data-home-refresh]").forEach((link) => {
     event.preventDefault();
     const homeUrl = new URL(window.location.href);
     homeUrl.search = "";
-    homeUrl.hash = "dashboard";
+    homeUrl.hash = "home";
     window.history.replaceState({}, "", homeUrl);
     window.location.reload();
   });
@@ -228,7 +272,7 @@ const setAgentMode = (mode, { announce = true, focus = true } = {}) => {
   prototype.dataset.agentMode = mode;
   document.body.classList.toggle("agent-full-active", mode === "full");
   const url = new URL(window.location.href);
-  if (mode === "drawer" || (mode === "closed" && prototype.dataset.reportMode !== "closed")) {
+  if (mode === "drawer" || mode === "closed") {
     url.searchParams.delete("agent");
   } else {
     url.searchParams.set("agent", mode);
@@ -266,13 +310,17 @@ const setAgentMode = (mode, { announce = true, focus = true } = {}) => {
   } else if (mode === "full") {
     document.title = "Quality Hub · 품질 Agent";
   } else {
-    document.title = "Quality Hub";
+    document.title = prototype.dataset.dashboardMode === "dashboard" ? "Quality Hub · 대시보드" : "Quality Hub";
   }
 
   if (focus) {
     if (mode === "full") focusAfterTransition(document.querySelector("#agent-main"));
     else if (mode === "drawer") focusAfterTransition(document.querySelector("#agent-drawer-input"));
-    else focusAfterTransition(document.querySelector("[data-agent-open]"));
+    else {
+      const visibleAgentOpener = [...document.querySelectorAll("[data-agent-open]")]
+        .find((button) => button.getClientRects().length > 0 && !button.closest("[inert]"));
+      focusAfterTransition(visibleAgentOpener);
+    }
   }
 
   if (!announce) return;
@@ -366,7 +414,7 @@ const setReportMode = (mode, { announce = true, focus = true, restoreAgent = tru
   if (mode !== "closed") {
     setAgentMode("closed", { announce: false, focus: false });
   } else if (restoreAgent) {
-    setAgentMode("drawer", { announce: false, focus: false });
+    setAgentMode("closed", { announce: false, focus: false });
   }
 
   if (skipLink) {
@@ -386,7 +434,11 @@ const setReportMode = (mode, { announce = true, focus = true, restoreAgent = tru
   if (focus) {
     if (mode === "catalog") focusAfterTransition(reportCatalog);
     else if (mode === "viewer") focusAfterTransition(reportViewer);
-    else focusAfterTransition(document.querySelector("[data-report-open]"));
+    else {
+      const visibleReportOpener = [...document.querySelectorAll("[data-report-open]")]
+        .find((button) => button.getClientRects().length > 0 && !button.closest("[inert]"));
+      focusAfterTransition(visibleReportOpener);
+    }
   }
 
   if (!announce) return;
@@ -425,7 +477,7 @@ const setRuleMode = (mode, { announce = true, focus = true, restoreAgent = true 
   if (mode === "open") {
     setAgentMode("closed", { announce: false, focus: false });
   } else if (restoreAgent) {
-    setAgentMode("drawer", { announce: false, focus: false });
+    setAgentMode("closed", { announce: false, focus: false });
   }
 
   skipLink?.setAttribute("href", mode === "open" ? "#rule-main" : "#main-content");
@@ -461,7 +513,7 @@ const setQnaMode = (mode, { announce = true, focus = true, restoreAgent = true, 
     }
     setAgentMode("closed", { announce: false, focus: false });
   } else if (restoreAgent) {
-    setAgentMode("drawer", { announce: false, focus: false });
+    setAgentMode("closed", { announce: false, focus: false });
   }
 
   prototype.dataset.qnaMode = mode;
@@ -518,7 +570,7 @@ const setUserMode = (mode, { announce = true, focus = true, restoreAgent = true 
     }
     setAgentMode("closed", { announce: false, focus: false });
   } else if (restoreAgent) {
-    setAgentMode("drawer", { announce: false, focus: false });
+    setAgentMode("closed", { announce: false, focus: false });
   }
 
   prototype.dataset.userMode = mode;
@@ -565,6 +617,20 @@ const formatTime = (date) =>
     minute: "2-digit",
   }).format(date);
 
+const openDashboard = ({ announce = true, focus = true } = {}) => {
+  setReportMode("closed", { announce: false, focus: false, restoreAgent: false });
+  setRuleMode("closed", { announce: false, focus: false, restoreAgent: false });
+  setQnaMode("closed", { announce: false, focus: false, restoreAgent: false });
+  setUserMode("closed", { announce: false, focus: false, restoreAgent: false });
+  setAgentMode("closed", { announce: false, focus: false });
+  if (globalSearch instanceof HTMLDialogElement && globalSearch.open) globalSearch.close();
+  setDashboardMode("dashboard", { announce, focus });
+};
+
+document.querySelectorAll("[data-dashboard-open]").forEach((button) => {
+  button.addEventListener("click", () => openDashboard());
+});
+
 document.querySelectorAll("[data-agent-open]").forEach((button) => {
   button.addEventListener("click", () => {
     setReportMode("closed", { announce: false, focus: false, restoreAgent: false });
@@ -589,7 +655,10 @@ document.querySelectorAll("[data-qna-notifications]").forEach((button) => {
   });
 });
 
-window.addEventListener("qualityhub:qna-close", () => setQnaMode("closed"));
+window.addEventListener("qualityhub:qna-close", () => {
+  setQnaMode("closed", { announce: false, focus: false });
+  setDashboardMode("dashboard");
+});
 
 document.querySelectorAll("[data-user-open]").forEach((button) => {
   button.addEventListener("click", (event) => {
@@ -599,7 +668,10 @@ document.querySelectorAll("[data-user-open]").forEach((button) => {
 });
 
 document.querySelectorAll("[data-user-close]").forEach((button) => {
-  button.addEventListener("click", () => setUserMode("closed"));
+  button.addEventListener("click", () => {
+    setUserMode("closed", { announce: false, focus: false });
+    setDashboardMode("dashboard");
+  });
 });
 
 const getAccessRows = ({ includeDeleted = false } = {}) => [...document.querySelectorAll("[data-access-row]")]
@@ -825,7 +897,10 @@ document.querySelectorAll("[data-report-open]").forEach((button) => {
 });
 
 document.querySelectorAll("[data-report-close]").forEach((button) => {
-  button.addEventListener("click", () => setReportMode("closed"));
+  button.addEventListener("click", () => {
+    setReportMode("closed", { announce: false, focus: false });
+    setDashboardMode("dashboard");
+  });
 });
 
 document.querySelectorAll("[data-report-back]").forEach((button) => {
@@ -1270,7 +1345,10 @@ document.querySelectorAll("[data-rule-open]").forEach((button) => {
 });
 
 document.querySelectorAll("[data-rule-close]").forEach((button) => {
-  button.addEventListener("click", () => setRuleMode("closed"));
+  button.addEventListener("click", () => {
+    setRuleMode("closed", { announce: false, focus: false });
+    setDashboardMode("dashboard");
+  });
 });
 
 document.querySelectorAll("[data-rule-action]").forEach((button) => {
@@ -1457,6 +1535,9 @@ setQnaMode(initialQnaQuery === "open" ? "open" : "closed", { announce: false, fo
 const initialUserQuery = new URL(window.location.href).searchParams.get("users");
 setUserMode(initialUserQuery === "open" ? "open" : "closed", { announce: false, focus: false, restoreAgent: false });
 
+const initialDashboardView = new URL(window.location.href).searchParams.get("view");
+setDashboardMode(initialDashboardView === "dashboard" ? "dashboard" : "home", { announce: false, focus: false });
+
 const getVisibleGlobalSearchResults = () =>
   [...document.querySelectorAll("[data-global-search-result]")].filter((result) => !result.hidden);
 
@@ -1640,6 +1721,7 @@ document.addEventListener("keydown", (event) => {
     else if (prototype?.dataset.reportMode === "viewer") setReportMode("catalog");
     else if (prototype?.dataset.reportMode === "catalog") setReportMode("closed");
     else if (prototype?.dataset.agentMode === "full") setAgentMode("drawer");
+    else if (prototype?.dataset.agentMode === "drawer") setAgentMode("closed");
   }
 });
 
@@ -1785,7 +1867,6 @@ const applyRole = (role, { announce = true } = {}) => {
     document.title = "Quality Hub · 접근 차단";
     focusAfterTransition(accessBlocked, 0);
   } else if (previousRole === "blocked" && prototype.dataset.agentMode === "closed") {
-    setAgentMode("drawer", { announce: false, focus: false });
     focusAfterTransition(rolePreview, 0);
   }
 
