@@ -17,18 +17,34 @@ THREAD_ENV_KEYS = (
     "RAYON_NUM_THREADS",
 )
 
+DEFAULT_CPU_BUDGET = 5.25
+MAX_CPU_BUDGET = 6.0
+MAX_AFFINITY_CPUS = 12
+MAX_GENERAL_WORKERS = 6
+MAX_BROWSER_WORKERS = 24
+
 
 def cpu_affinity_slots(requested_budget: float) -> int:
-    if not 1.0 <= requested_budget <= 2.0:
-        raise ValueError("--cpu-budget은 1.0 이상 2.0 이하이어야 합니다.")
-    return 1 if requested_budget == 1.0 else min(4, max(2, math.ceil(requested_budget * 2)))
+    if not 1.0 <= requested_budget <= MAX_CPU_BUDGET:
+        raise ValueError(f"--cpu-budget은 1.0 이상 {MAX_CPU_BUDGET:.1f} 이하이어야 합니다.")
+    return 1 if requested_budget == 1.0 else min(MAX_AFFINITY_CPUS, max(2, math.ceil(requested_budget * 2)))
+
+
+def general_worker_slots(selected_cpus: tuple[int, ...], task_count: int | None = None) -> int:
+    slots = max(1, min(MAX_GENERAL_WORKERS, len(selected_cpus)))
+    return min(slots, task_count) if task_count is not None else slots
+
+
+def browser_worker_slots(selected_cpus: tuple[int, ...], task_count: int | None = None) -> int:
+    slots = 1 if len(selected_cpus) <= 1 else min(MAX_BROWSER_WORKERS, len(selected_cpus) * 2)
+    return min(slots, task_count) if task_count is not None else slots
 
 
 def configure_cpu_budget(requested_budget: float) -> tuple[int, ...]:
     """평균 CPU 목표를 위해 대기형 작업이 사용할 affinity 여유를 선택한다.
 
     1 CPU 요청은 직렬 실행을 유지한다. 그보다 큰 요청은 브라우저 대기를
-    겹칠 수 있도록 목표값의 두 배를 올림한 논리 CPU(최대 4개)를 허용한다.
+    겹칠 수 있도록 목표값의 두 배를 올림한 논리 CPU(최대 12개)를 허용한다.
     affinity는 CPU quota가 아니며 실제 실행 레인 수는 별도로 제한한다.
     """
 
@@ -46,7 +62,7 @@ def configure_cpu_budget(requested_budget: float) -> tuple[int, ...]:
 
 def child_environment(selected_cpus: tuple[int, ...]) -> dict[str, str]:
     env = os.environ.copy()
-    thread_count = str(max(1, min(2, len(selected_cpus))))
+    thread_count = str(general_worker_slots(selected_cpus))
     for key in THREAD_ENV_KEYS:
         env[key] = thread_count
     env["UV_THREADPOOL_SIZE"] = thread_count

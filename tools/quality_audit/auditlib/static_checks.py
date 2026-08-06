@@ -12,6 +12,7 @@ from typing import Iterable
 
 from .model import AuditContext, Finding, Status
 from .process import CommandCheck, run_command_checks
+from .resources import general_worker_slots
 
 
 EXCLUDED_PARTS = {".git", "node_modules", "dist", "coverage", "results", "__pycache__"}
@@ -323,9 +324,9 @@ def standard_command_checks(context: AuditContext) -> list[Finding]:
     command_findings = run_command_checks(
         context,
         checks,
-        max_workers=min(2, len(context.selected_cpus)),
+        max_workers=general_worker_slots(context.selected_cpus),
     )
-    context.metadata["command_workers"] = min(2, len(context.selected_cpus), len(checks))
+    context.metadata["command_workers"] = general_worker_slots(context.selected_cpus, len(checks))
     command_findings.extend(item for item in (lint_finding, network_finding) if item is not None)
     return command_findings
 

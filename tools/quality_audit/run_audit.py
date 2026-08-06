@@ -15,7 +15,13 @@ from auditlib.http_checks import BuiltServer, run_http_checks
 from auditlib.model import AuditContext, AuditReport, Finding, Status
 from auditlib.process import command_exists, git_snapshot, run_command
 from auditlib.report import write_json, write_markdown
-from auditlib.resources import configure_cpu_budget, executable_versions
+from auditlib.resources import (
+    DEFAULT_CPU_BUDGET,
+    browser_worker_slots,
+    configure_cpu_budget,
+    executable_versions,
+    general_worker_slots,
+)
 from auditlib.static_checks import (
     bundle_size_check,
     documentation_boundary,
@@ -34,7 +40,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[2], help="Quality Hub 저장소 루트")
     parser.add_argument("--output", type=Path, help="결과 폴더. 생략하면 tools/quality_audit/results 아래에 생성")
-    parser.add_argument("--cpu-budget", type=float, default=1.75, help="평균 CPU 사용 목표. Linux에서는 대기 숨김을 위해 최대 4개 논리 CPU affinity를 허용")
+    parser.add_argument("--cpu-budget", type=float, default=DEFAULT_CPU_BUDGET, help="평균 CPU 사용 목표. Linux에서는 대기 숨김을 위해 최대 12개 논리 CPU affinity를 허용")
     parser.add_argument("--force-cpu-floor", type=float, help="합성 CPU 부하로 유지할 최소 Core 수. 일반 검수 비교용이며 실행시간 개선을 의미하지 않음")
     parser.add_argument("--command-timeout", type=int, default=600, help="일반 명령 시간 제한(초)")
     parser.add_argument("--browser-timeout", type=int, default=45, help="브라우저/CDP 대기 시간 제한(초)")
@@ -114,9 +120,9 @@ def collect_git_metadata(context: AuditContext) -> None:
 def add_static_checks(report: AuditReport) -> None:
     context = report.context
     functions = (source_inventory, secret_scan, risky_api_scan, markup_contract, documentation_boundary)
-    worker_count = min(2, len(context.selected_cpus), len(functions))
+    worker_count = general_worker_slots(context.selected_cpus, len(functions))
     context.metadata["static_workers"] = worker_count
-    # I/O 중심 정적 검사는 affinity 범위 안에서 최대 두 작업만 병렬화한다.
+    # I/O 중심 정적 검사는 affinity 범위 안에서 최대 여섯 작업을 병렬화한다.
     with ThreadPoolExecutor(max_workers=worker_count) as pool:
         futures = {pool.submit(function, context): function.__name__ for function in functions}
         for future in as_completed(futures):
@@ -180,7 +186,7 @@ def main() -> int:
 
     report = AuditReport(context)
     print(f"Quality Hub 검수를 시작합니다: {context.output_dir}")
-    print(f"CPU 목표값 {context.requested_cpu_budget}, affinity {context.selected_cpus}, 명령 슬롯 {min(2, len(context.selected_cpus))}, 브라우저 슬롯 {1 if len(context.selected_cpus) == 1 else min(8, len(context.selected_cpus) * 2)}")
+    print(f"CPU 목표값 {context.requested_cpu_budget}, affinity {context.selected_cpus}, 명령 슬롯 {general_worker_slots(context.selected_cpus)}, 브라우저 슬롯 {browser_worker_slots(context.selected_cpus)}")
     if context.forced_cpu_floor is not None:
         print(f"합성 CPU 하한 모드 {context.forced_cpu_floor} Core를 사용합니다.")
     before_status = ""

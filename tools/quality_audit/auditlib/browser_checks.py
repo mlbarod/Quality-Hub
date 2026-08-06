@@ -11,6 +11,7 @@ from typing import Any, Callable
 from .cdp import CDPClient, ChromiumSession, find_chromium
 from .http_checks import BuiltServer
 from .model import AuditContext, Finding, Status
+from .resources import browser_worker_slots
 
 
 VIEWPORTS = ((1366, 768), (1440, 900), (1920, 1080))
@@ -482,8 +483,8 @@ def run_browser_checks(context: AuditContext, server: BuiltServer) -> list[Findi
         ))
     jobs.append(BrowserJob("focus-agent", "focus-agent", 0, 4, lambda client: _focus_agent(client, server.url)))
 
-    # 대기형 Chromium은 CPU 수의 두 배까지 겹치되 각 레인의 중복 초기 탐색은 피한다.
-    worker_count = 1 if len(context.selected_cpus) == 1 else min(8, len(jobs), len(context.selected_cpus) * 2)
+    # 대기형 Chromium은 CPU 수의 두 배, 최대 24개까지 겹치되 각 레인의 중복 초기 탐색은 피한다.
+    worker_count = browser_worker_slots(context.selected_cpus, len(jobs))
     lanes, lane_weights = _balanced_browser_lanes(jobs, worker_count)
     context.metadata["browser_workers"] = worker_count
     context.metadata["browser_tasks"] = len(jobs)

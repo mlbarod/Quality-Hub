@@ -10,7 +10,13 @@ from auditlib.cpu_floor import cpu_floor_duties
 from auditlib.model import Finding, Status
 from auditlib.process import CommandCheck, run_command_checks
 from auditlib.report import _json_safe
-from auditlib.resources import THREAD_ENV_KEYS, child_environment, cpu_affinity_slots
+from auditlib.resources import (
+    THREAD_ENV_KEYS,
+    browser_worker_slots,
+    child_environment,
+    cpu_affinity_slots,
+    general_worker_slots,
+)
 from auditlib.static_checks import MarkupInspector
 
 
@@ -26,7 +32,7 @@ class ModelTests(unittest.TestCase):
 
 
 class ResourceTests(unittest.TestCase):
-    def test_child_environment_limits_thread_pools(self) -> None:
+    def test_child_environment_scales_thread_pools_with_selected_cpus(self) -> None:
         env = child_environment((2, 3))
         self.assertEqual(env["UV_THREADPOOL_SIZE"], "2")
         self.assertEqual(env["QUALITY_AUDIT_CPU_SET"], "2,3")
@@ -39,19 +45,25 @@ class ResourceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             cpu_floor_duties(0)
 
-    def test_cpu_target_keeps_serial_mode_and_allows_wait_hiding_headroom(self) -> None:
+    def test_cpu_target_is_tripled_and_keeps_wait_hiding_headroom(self) -> None:
         self.assertEqual(cpu_affinity_slots(1.0), 1)
         self.assertEqual(cpu_affinity_slots(1.5), 3)
         self.assertEqual(cpu_affinity_slots(1.75), 4)
         self.assertEqual(cpu_affinity_slots(2.0), 4)
+        self.assertEqual(cpu_affinity_slots(5.25), 11)
+        self.assertEqual(cpu_affinity_slots(6.0), 12)
         with self.assertRaises(ValueError):
-            cpu_affinity_slots(2.1)
+            cpu_affinity_slots(6.1)
 
-    def test_four_affinity_cpus_still_limit_child_thread_pools_to_two(self) -> None:
-        env = child_environment((0, 1, 2, 3))
-        self.assertEqual(env["UV_THREADPOOL_SIZE"], "2")
+    def test_parallel_limits_are_three_times_the_previous_caps(self) -> None:
+        cpus = tuple(range(12))
+        env = child_environment(cpus)
+        self.assertEqual(env["UV_THREADPOOL_SIZE"], "6")
         for key in THREAD_ENV_KEYS:
-            self.assertEqual(env[key], "2")
+            self.assertEqual(env[key], "6")
+        self.assertEqual(general_worker_slots(cpus), 6)
+        self.assertEqual(browser_worker_slots(cpus), 24)
+        self.assertEqual(browser_worker_slots(cpus, 14), 14)
 
 
 class ParallelCommandTests(unittest.TestCase):
