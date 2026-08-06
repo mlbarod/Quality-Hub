@@ -181,20 +181,21 @@ class CDPClient:
 
 
 class ChromiumSession:
-    def __init__(self, context: AuditContext, initial_url: str) -> None:
+    def __init__(self, context: AuditContext, initial_url: str, *, session_name: str = "main") -> None:
         self.context = context
         self.initial_url = initial_url
+        self.session_name = session_name
         self.binary = find_chromium()
         self.port = reserve_port()
         self.process: subprocess.Popen[str] | None = None
         self.client: CDPClient | None = None
-        self.log_path = context.logs_dir / "chromium.log"
+        self.log_path = context.logs_dir / f"chromium-{session_name}.log"
         self._log_handle = None
 
     def start(self) -> CDPClient:
         if not self.binary:
             raise FileNotFoundError("Chromium/Chrome 실행 파일을 찾지 못했습니다. QUALITY_AUDIT_CHROME에 경로를 지정하세요.")
-        profile = self.context.work_dir / "chromium-profile"
+        profile = self.context.work_dir / f"chromium-profile-{self.session_name}"
         profile.mkdir(parents=True, exist_ok=True)
         args = [
             self.binary,

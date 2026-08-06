@@ -109,8 +109,10 @@ def collect_git_metadata(context: AuditContext) -> None:
 def add_static_checks(report: AuditReport) -> None:
     context = report.context
     functions = (source_inventory, secret_scan, risky_api_scan, markup_contract, documentation_boundary)
-    # I/O 중심 정적 검사는 최대 두 작업만 병렬화한다. CPU affinity 상한은 그대로 유지된다.
-    with ThreadPoolExecutor(max_workers=min(2, len(context.selected_cpus))) as pool:
+    worker_count = min(2, len(context.selected_cpus), len(functions))
+    context.metadata["static_workers"] = worker_count
+    # I/O 중심 정적 검사는 affinity 범위 안에서 최대 두 작업만 병렬화한다.
+    with ThreadPoolExecutor(max_workers=worker_count) as pool:
         futures = {pool.submit(function, context): function.__name__ for function in functions}
         for future in as_completed(futures):
             try:
@@ -173,7 +175,7 @@ def main() -> int:
 
     report = AuditReport(context)
     print(f"Quality Hub 검수를 시작합니다: {context.output_dir}")
-    print(f"CPU 요청값 {context.requested_cpu_budget}, affinity {context.selected_cpus}")
+    print(f"CPU 요청값 {context.requested_cpu_budget}, affinity {context.selected_cpus}, 병렬 실행 슬롯 {len(context.selected_cpus)}")
     before_status = ""
     requested_exit = 0
     try:

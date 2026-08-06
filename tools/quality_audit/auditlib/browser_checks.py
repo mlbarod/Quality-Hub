@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import json
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
@@ -395,31 +396,76 @@ def run_browser_checks(context: AuditContext, server: BuiltServer) -> list[Findi
         return [Finding("BROWSER-00", "Chromium 브라우저 검사", Status.SKIP, "Chromium을 찾지 못했습니다. QUALITY_AUDIT_CHROME에 경로를 지정하세요.", "브라우저 UI 검사", severity="미검증")]
 
     context.metadata["chromium"] = binary
-    findings: list[Finding] = []
+    functional_checks = (
+        layout_and_motion_check,
+        axe_check,
+        role_and_state_check,
+        focus_and_search_check,
+        qna_permission_flow,
+    )
+    worker_count = min(len(context.selected_cpus), len(functional_checks))
+    context.metadata["browser_workers"] = worker_count
+
+    def run_lane(lane_index: int, jobs: list[tuple[int, Any]]) -> list[tuple[int, Finding]]:
+        lane_results: list[tuple[int, Finding]] = []
+        try:
+            with ChromiumSession(context, server.url, session_name=f"functional-{lane_index + 1}") as client:
+                _install_observers(client)
+                _navigate(client, server.url)
+                for check_index, check in jobs:
+                    try:
+                        lane_results.append((check_index, check(context, client, server.url)))
+                    except Exception as error:
+                        lane_results.append((check_index, Finding(
+                            f"BROWSER-ERROR-{check_index + 1:02d}",
+                            f"{check.__name__} 실행",
+                            Status.ERROR,
+                            str(error),
+                            "브라우저 UI 검사",
+                            severity="미검증",
+                        )))
+        except Exception as error:
+            for check_index, check in jobs:
+                lane_results.append((check_index, Finding(
+                    f"BROWSER-ERROR-{check_index + 1:02d}",
+                    f"{check.__name__} 시작",
+                    Status.ERROR,
+                    str(error),
+                    "브라우저 UI 검사",
+                    severity="미검증",
+                )))
+        return lane_results
+
+    lanes: list[list[tuple[int, Any]]] = [[] for _ in range(worker_count)]
+    for index, check in enumerate(functional_checks):
+        lanes[index % worker_count].append((index, check))
+
+    indexed_findings: list[tuple[int, Finding]] = []
+    if worker_count == 1:
+        indexed_findings.extend(run_lane(0, lanes[0]))
+    else:
+        with ThreadPoolExecutor(max_workers=worker_count, thread_name_prefix="audit-browser") as pool:
+            futures = [pool.submit(run_lane, index, jobs) for index, jobs in enumerate(lanes)]
+            for future in as_completed(futures):
+                indexed_findings.extend(future.result())
+    findings = [finding for _, finding in sorted(indexed_findings, key=lambda item: item[0])]
+
+    # 성능 수치는 다른 Chromium 부하와 겹치지 않도록 기능 검사가 끝난 뒤 단독 측정한다.
     try:
-        with ChromiumSession(context, server.url) as client:
+        with ChromiumSession(context, server.url, session_name="performance") as client:
             _install_observers(client)
             _navigate(client, server.url)
-            checks = (
-                layout_and_motion_check,
-                axe_check,
-                role_and_state_check,
-                focus_and_search_check,
-                qna_permission_flow,
-                performance_and_console_check,
-            )
-            for check in checks:
-                try:
-                    findings.append(check(context, client, server.url))
-                except Exception as error:  # 각 브라우저 영역을 독립적으로 보고한다.
-                    findings.append(Finding(
-                        f"BROWSER-ERROR-{len(findings)+1:02d}",
-                        f"{check.__name__} 실행",
-                        Status.ERROR,
-                        str(error),
-                        "브라우저 UI 검사",
-                        severity="미검증",
-                    ))
+            try:
+                findings.append(performance_and_console_check(context, client, server.url))
+            except Exception as error:
+                findings.append(Finding(
+                    "BROWSER-ERROR-06",
+                    "performance_and_console_check 실행",
+                    Status.ERROR,
+                    str(error),
+                    "브라우저 UI 검사",
+                    severity="미검증",
+                ))
     except Exception as error:
-        findings.append(Finding("BROWSER-00", "Chromium 브라우저 검사 시작", Status.ERROR, str(error), "브라우저 UI 검사", severity="미검증"))
+        findings.append(Finding("BROWSER-ERROR-06", "성능 측정 Chromium 시작", Status.ERROR, str(error), "브라우저 UI 검사", severity="미검증"))
     return findings

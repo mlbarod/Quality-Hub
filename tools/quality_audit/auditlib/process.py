@@ -4,6 +4,7 @@ import os
 import shlex
 import subprocess
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -21,6 +22,20 @@ class CommandResult:
     duration_seconds: float
     timed_out: bool
     log_path: Path
+
+
+@dataclass(frozen=True, slots=True)
+class CommandCheck:
+    check_id: str
+    title: str
+    category: str
+    args: tuple[str, ...]
+    timeout: int | None = None
+    severity: str = "높음"
+    success_summary: str = "명령이 정상 종료되었습니다."
+    cwd: Path | None = None
+    extra_env: dict[str, str] | None = None
+    priority: int = 100
 
 
 def command_exists(name: str) -> bool:
@@ -113,6 +128,58 @@ def command_finding(
         duration_seconds=result.duration_seconds,
         log_path=context.relative(result.log_path),
     )
+
+
+def run_command_checks(
+    context: AuditContext,
+    checks: Iterable[CommandCheck],
+    *,
+    max_workers: int,
+) -> list[Finding]:
+    """독립 명령을 제한된 슬롯에서 실행하고 선언 순서로 결과를 반환한다."""
+
+    declared = list(checks)
+    if not declared:
+        return []
+    worker_count = max(1, min(max_workers, len(declared)))
+
+    def execute(check: CommandCheck) -> Finding:
+        try:
+            return command_finding(
+                context,
+                check_id=check.check_id,
+                title=check.title,
+                category=check.category,
+                args=check.args,
+                timeout=check.timeout,
+                severity=check.severity,
+                success_summary=check.success_summary,
+                cwd=check.cwd,
+                extra_env=check.extra_env,
+            )
+        except Exception as error:
+            return Finding(
+                check.check_id,
+                check.title,
+                Status.ERROR,
+                f"명령 검사 실행 중 예외가 발생했습니다: {error}",
+                check.category,
+                severity="미검증",
+                evidence={"command": list(check.args)},
+            )
+
+    if worker_count == 1:
+        return [execute(check) for check in declared]
+
+    # 긴 CPU 작업을 먼저 시작하되 보고서의 결과 순서는 기존 선언 순서를 유지한다.
+    indexed = list(enumerate(declared))
+    scheduled = sorted(indexed, key=lambda item: (item[1].priority, item[0]))
+    results: list[Finding | None] = [None] * len(declared)
+    with ThreadPoolExecutor(max_workers=worker_count, thread_name_prefix="audit-command") as pool:
+        futures = {pool.submit(execute, check): index for index, check in scheduled}
+        for future in as_completed(futures):
+            results[futures[future]] = future.result()
+    return [result for result in results if result is not None]
 
 
 def git_snapshot(context: AuditContext, check_id: str) -> tuple[str, Path]:

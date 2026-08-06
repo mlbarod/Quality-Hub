@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Iterable
 
 from .model import AuditContext, Finding, Status
-from .process import command_finding
+from .process import CommandCheck, run_command_checks
 
 
 EXCLUDED_PARTS = {".git", "node_modules", "dist", "coverage", "results", "__pycache__"}
@@ -205,125 +205,125 @@ def standard_command_checks(context: AuditContext) -> list[Finding]:
     vite_bin = context.repo_root / "node_modules" / ".bin" / "vite"
     vitest_bin = context.repo_root / "node_modules" / ".bin" / "vitest"
     build_dir = context.work_dir / "build"
+    lint_finding: Finding | None = None
+    network_finding: Finding | None = None
     checks = [
-        command_finding(
-            context,
+        CommandCheck(
             check_id="CODE-01",
             title="Git 공백·충돌 표식 검사",
             category="자동 테스트·빌드",
-            args=["git", "diff", "--check"],
+            args=("git", "diff", "--check"),
             timeout=60,
             success_summary="Git diff 형식 검사를 통과했습니다.",
         ),
-        command_finding(
-            context,
+        CommandCheck(
             check_id="CODE-02",
             title="Node 실행 파일 구문 검사",
             category="자동 테스트·빌드",
-            args=["node", "--check", str(context.repo_root / "server.mjs")],
+            args=("node", "--check", str(context.repo_root / "server.mjs")),
             timeout=60,
             success_summary="server.mjs 구문 검사를 통과했습니다.",
         ),
-        command_finding(
-            context,
+        CommandCheck(
             check_id="CODE-03",
             title="브라우저 앱 모듈 구문 검사",
             category="자동 테스트·빌드",
-            args=["node", "--check", str(context.repo_root / "prototype" / "app.js")],
+            args=("node", "--check", str(context.repo_root / "prototype" / "app.js")),
             timeout=60,
             success_summary="prototype/app.js 구문 검사를 통과했습니다.",
         ),
-        command_finding(
-            context,
+        CommandCheck(
             check_id="SELF-01",
             title="Python 검수기 자체 단위 테스트",
             category="자동 테스트·빌드",
-            args=[sys.executable, "-m", "unittest", "discover", "-s", str(context.repo_root / "tools" / "quality_audit" / "tests"), "-v"],
+            args=(sys.executable, "-m", "unittest", "discover", "-s", str(context.repo_root / "tools" / "quality_audit" / "tests"), "-v"),
             timeout=120,
             extra_env={"PYTHONPATH": str(context.repo_root / "tools" / "quality_audit")},
             success_summary="검수기 자체 단위 테스트를 통과했습니다.",
         ),
-        command_finding(
-            context,
+        CommandCheck(
             check_id="DEPS-01",
             title="설치 의존성 트리 검사",
             category="자동 테스트·빌드",
-            args=["npm", "ls", "--depth=0", "--json"],
+            args=("npm", "ls", "--depth=0", "--json"),
             timeout=120,
             success_summary="설치된 최상위 의존성 트리가 일관됩니다.",
         ),
-        command_finding(
-            context,
+        CommandCheck(
             check_id="TEST-01",
             title="Node 계약·서버 테스트",
             category="자동 테스트·빌드",
-            args=["node", "--test", *tests],
+            args=("node", "--test", *tests),
             timeout=max(context.command_timeout, 300),
             success_summary="Node 계약·서버 테스트를 통과했습니다.",
+            priority=20,
         ),
-        command_finding(
-            context,
+        CommandCheck(
             check_id="TEST-02",
             title="Vitest React 컴포넌트 테스트",
             category="자동 테스트·빌드",
-            args=[str(vitest_bin), "run", "--reporter=verbose"],
+            args=(str(vitest_bin), "run", "--reporter=verbose"),
             timeout=max(context.command_timeout, 300),
             cwd=context.repo_root,
             success_summary="React 컴포넌트 테스트를 통과했습니다.",
+            priority=10,
         ),
-        command_finding(
-            context,
+        CommandCheck(
             check_id="BUILD-01",
             title="분리된 Vite 프로덕션 빌드",
             category="자동 테스트·빌드",
-            args=[str(vite_bin), "build", "--outDir", str(build_dir), "--emptyOutDir"],
+            args=(str(vite_bin), "build", "--outDir", str(build_dir), "--emptyOutDir"),
             timeout=max(context.command_timeout, 300),
             success_summary="추적 파일을 덮어쓰지 않는 별도 결과 폴더에 빌드했습니다.",
+            priority=5,
         ),
     ]
     package = json.loads((context.repo_root / "package.json").read_text(encoding="utf-8"))
     scripts = package.get("scripts", {})
     if "lint" in scripts:
-        checks.append(command_finding(
-            context,
+        checks.append(CommandCheck(
             check_id="LINT-01",
             title="프로젝트 lint",
             category="자동 테스트·빌드",
-            args=["npm", "run", "lint"],
+            args=("npm", "run", "lint"),
             timeout=max(context.command_timeout, 300),
             success_summary="프로젝트 lint를 통과했습니다.",
+            priority=20,
         ))
     else:
-        checks.append(Finding(
+        lint_finding = Finding(
             "LINT-01",
             "프로젝트 lint",
             Status.SKIP,
             "package.json에 lint 스크립트가 없어 미실행했습니다.",
             "자동 테스트·빌드",
             severity="미검증",
-        ))
+        )
     context.metadata["build_dir"] = str(build_dir)
     if context.include_network:
-        checks.append(command_finding(
-            context,
+        checks.append(CommandCheck(
             check_id="SEC-03",
             title="npm 의존성 취약점 조회",
             category="보안 검사",
-            args=["npm", "audit", "--json"],
+            args=("npm", "audit", "--json"),
             timeout=max(context.command_timeout, 300),
             severity="높음",
             success_summary="npm 취약점 조회가 0 종료 코드로 완료됐습니다.",
+            priority=30,
         ))
     else:
-        checks.append(Finding(
+        network_finding = Finding(
             "SEC-03",
             "npm 의존성 취약점 조회",
             Status.SKIP,
             "외부 레지스트리 접근을 피하기 위해 미실행했습니다. 필요하면 --include-network를 사용하세요.",
             "보안 검사",
             severity="미검증",
-        ))
-    return checks
+        )
+    command_findings = run_command_checks(context, checks, max_workers=len(context.selected_cpus))
+    context.metadata["command_workers"] = min(len(context.selected_cpus), len(checks))
+    command_findings.extend(item for item in (lint_finding, network_finding) if item is not None)
+    return command_findings
 
 
 def bundle_size_check(context: AuditContext) -> Finding:
