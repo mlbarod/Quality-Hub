@@ -57,7 +57,15 @@
   font-family: "Pretendard Variable", Inter, Pretendard, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
-.qna-scope button,
+.qna-scope button {
+  font-family: inherit;
+}
+
+/* 전역 button 글꼴 상속보다 Q&A 공통 버튼 크기를 우선한다. */
+.qna-scope button.text-\[16px\] { font-size: 16px; }
+.qna-scope button.text-\[14px\] { font-size: 14px; }
+.qna-scope button.text-\[17px\] { font-size: 17px; }
+
 .qna-scope input,
 .qna-scope textarea {
   font: inherit;
@@ -68,7 +76,7 @@
   overflow: hidden;
   background: #0673bc;
   color: #fff;
-  font-size: 16px;
+  font-size: 19px;
   box-shadow: none;
   transition: background-color 180ms ease, transform 220ms ease;
 }

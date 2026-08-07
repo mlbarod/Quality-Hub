@@ -36,6 +36,7 @@ test("스카이 톤 홈에서 정위치로 분산 배치한 네 개의 App과 �
   assert.match(styles, /\.prototype\[data-layout="top"\]\[data-agent-mode="drawer"\] \.workspace \{\s*margin-right: 0;/)
   assert.match(styles, /\.agent-drawer \{[\s\S]*inset: auto 24px 24px auto;[\s\S]*border-radius: 25px;/)
   assert.match(styles, /\.orbit-app \{[\s\S]*border-radius: 24px;/)
+  assert.match(styles, /\.orbit-app \{[\s\S]*width: clamp\(232px, 18\.5vw, 280px\);[\s\S]*height: 164px;/)
   assert.doesNotMatch(styles, /--tilt:/)
   assert.match(styles, /\.orbit-app-report \{ top: 12%; left: 4\.5%; \}/)
   assert.match(styles, /\.orbit-app-search \{ top: 17%; right: 3\.5%; \}/)
@@ -77,11 +78,13 @@ test("질문 작성 버튼의 텍스트와 아이콘 모션은 동작 감소 설
   assert.match(qnaCss, /@media \(prefers-reduced-motion: reduce\)/)
   assert.match(qnaCss, /\.qna-write-icon,[\s\S]*\.qna-write-label/)
   assert.match(qnaCss, /\.qna-scope \.qna-write-button \{[\s\S]*box-shadow: none;/)
-  assert.match(qnaCss, /\.qna-scope \.qna-write-button \{[\s\S]*font-size: 16px;/)
+  assert.match(qnaCss, /\.qna-scope \.qna-write-button \{[\s\S]*font-size: 19px;/)
+  assert.match(qnaCss, /\.qna-scope button \{\s*font-family: inherit;/)
+  assert.match(qnaCss, /button\.text-\\\[16px\\\] \{ font-size: 16px; \}/)
   assert.match(qnaCss, /\.qna-write-button \.qna-write-icon svg \{[\s\S]*width: 21px;[\s\S]*height: 21px;/)
 })
 
-test("메인 App 버튼은 original 카드 내부 UI와 hover 전용 모션을 사용한다", () => {
+test("메인 App 버튼은 original 카드 내부 UI와 카드 hover 모션·상시 연결 신호를 사용한다", () => {
   assert.match(html, /class="orbit-legacy-visual orbit-legacy-report"/)
   assert.match(html, /class="orbit-search-preview"/)
   assert.match(html, /class="orbit-legacy-visual orbit-legacy-rule"/)
@@ -94,10 +97,16 @@ test("메인 App 버튼은 original 카드 내부 UI와 hover 전용 모션을 �
   assert.match(styles, /\.orbit-app:hover \.report-screen-card \{ animation: report-screen-card-scan/)
   assert.match(styles, /\.orbit-app:hover \.rule-preview-accordion \{ animation: rule-accordion-open/)
   assert.match(styles, /\.orbit-app:hover \.message-bubble\.first \{ animation: qna-question-sequence/)
-  const connectorBase = styles.match(/\.connector-signal \{\n([\s\S]*?)\n\}/)?.[1] ?? ""
-  assert.doesNotMatch(connectorBase, /animation:/)
+  assert.match(styles, /\.connector-signal \{[\s\S]*?animation: orbit-signal-flow 4\.6s linear infinite;[\s\S]*?\n\}/)
   assert.match(styles, /\.orbit-agent-copy small \{[^}]*font-size: 10px;/)
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/)
+})
+
+test("App 상세 화면의 Main 버튼은 대시보드가 아닌 App 홈으로 돌아간다", () => {
+  assert.equal((html.match(/class="report-back-button"[^>]*data-(?:report|rule|user)-close[^>]*>[\s\S]*?<\/svg>Main<\/button>/g) ?? []).length, 3)
+  assert.match(qnaApp, /qualityhub:qna-close[\s\S]*<X[^>]*\/>Main<\/Button>/)
+  assert.equal((script.match(/setDashboardMode\("home"\);/g) ?? []).length, 4)
+  assert.doesNotMatch(script, /대시보드로 돌아왔습니다/)
 })
 
 test("이미 닫힌 작업 화면은 다시 갱신하지 않아 App 전환 경로를 단순화한다", () => {

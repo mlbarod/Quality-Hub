@@ -6327,12 +6327,12 @@ body,
   stroke-linecap: round;
   stroke-dasharray: .035 .965;
   filter: drop-shadow(0 0 4px rgb(7 136 223 / 52%));
+  animation: orbit-signal-flow 4.6s linear infinite;
 }
 
-.app-orbit:hover .connector-signal { animation: orbit-signal-flow 4.6s linear infinite; }
-.app-orbit:hover .connector-signal-two { animation-delay: -1.15s; }
-.app-orbit:hover .connector-signal-three { animation-delay: -2.3s; }
-.app-orbit:hover .connector-signal-four { animation-delay: -3.45s; }
+.connector-signal-two { animation-delay: -1.15s; }
+.connector-signal-three { animation-delay: -2.3s; }
+.connector-signal-four { animation-delay: -3.45s; }
 
 .orbit-agent {
   position: absolute;
@@ -6401,8 +6401,8 @@ body,
   position: absolute;
   z-index: 3;
   display: block;
-  width: clamp(205px, 17vw, 246px);
-  height: 142px;
+  width: clamp(232px, 18.5vw, 280px);
+  height: 164px;
   aspect-ratio: auto;
   padding: 17px 18px;
   overflow: hidden;
@@ -6447,13 +6447,13 @@ body,
   left: 13px;
   z-index: 2;
   display: block;
-  height: 34px;
+  height: 39px;
   overflow: hidden;
 }
 
 .orbit-legacy-header .app-card-header {
-  width: 125%;
-  transform: scale(.8);
+  width: 114%;
+  transform: scale(.88);
   transform-origin: top left;
 }
 
@@ -6462,9 +6462,9 @@ body,
 
 .orbit-legacy-visual {
   position: absolute;
-  top: 51px;
+  top: 57px;
   right: 38px;
-  bottom: 10px;
+  bottom: 12px;
   left: 13px;
   display: block;
   overflow: hidden;
@@ -6485,15 +6485,15 @@ body,
   transform-origin: top left;
 }
 
-.orbit-legacy-report .report-illustration { width: 217%; transform: scale(.46); }
+.orbit-legacy-report .report-illustration { width: 192%; transform: scale(.52); }
 .orbit-legacy-rule .rule-illustration,
-.orbit-legacy-qna .qna-illustration { width: 200%; transform: scale(.5); }
+.orbit-legacy-qna .qna-illustration { width: 182%; transform: scale(.55); }
 
 .orbit-search-preview {
   position: absolute;
-  top: 51px;
+  top: 57px;
   right: 38px;
-  bottom: 10px;
+  bottom: 12px;
   left: 13px;
   display: grid;
   gap: 5px;
@@ -6678,6 +6678,83 @@ body,
 .agent-composer > button { color: #fff; box-shadow: 0 8px 20px rgb(7 136 223 / 18%); }
 .agent-composer > button:hover { background: #0673bc; }
 
+/* App 카드 밖의 공통 버튼·배지는 기존 대비 약 20% 크게 표시한다. */
+.workspace-actions > button:first-child,
+.header-search { font-size: 13px; }
+.top-nav-link,
+.top-nav-group > button { font-size: 16px; }
+.agent-nav-button > span { font-size: 17px; }
+.top-nav-menu strong { font-size: 14px; }
+.top-nav-menu small { font-size: 12px; }
+.role-preview-control { font-size: 10px; }
+.role-preview-control select { font-size: 12px; }
+.system-status { font-size: 12px; }
+.orbit-agent-copy strong { font-size: 14px; }
+.orbit-agent-copy small { font-size: 12px; }
+
+.period-control button,
+.refresh-button { font-size: 13px; }
+.state-preview-control select,
+.common-state-surface > button { font-size: 12px; }
+.demo-badge { font-size: 10px; }
+.trend-badge { font-size: 12px; }
+
+.agent-suggestions button,
+.agent-citations button strong,
+.agent-history > header button,
+.agent-back-button { font-size: 11px; }
+.agent-citations button small,
+.agent-history-group button small,
+.agent-starters button small,
+.agent-context section > button small,
+.agent-context section > button em { font-size: 9px; }
+.agent-history-group button span,
+.agent-context section > button strong { font-size: 12px; }
+.agent-starters button strong { font-size: 13px; }
+.agent-context section > button > i { font-size: 7px; }
+
+.rule-category-accordion > button strong { font-size: 17px; }
+.rule-category-accordion > button small,
+.rule-sop-heading > button,
+.report-back-button,
+.report-help-button,
+.report-viewer-actions button,
+.report-filter-tabs button { font-size: 11px; }
+.rule-category-accordion > button > i,
+.rule-filter-group legend > span,
+.rule-filter-group legend small,
+.report-filter-tabs button i { font-size: 9px; }
+.rule-filter-group legend strong { font-size: 13px; }
+.rule-filter-group button { font-size: 10px; }
+.rule-source-link > button,
+.rule-admin-actions button,
+.rule-editor-form > footer button,
+.rule-delete-panel > div button { font-size: 16px; }
+
+.user-page-status,
+.role-summary-card small,
+.role-summary-card > b,
+.admin-remove-button,
+.admin-add-form > header > button,
+.access-role-options label,
+.admin-add-form > footer button { font-size: 17px; }
+.role-summary-card strong { font-size: 20px; }
+.user-page-tools > button,
+.master-list article > button,
+.phase2-list-item > button { font-size: 12px; }
+.admin-add-button,
+.access-role-options legend { font-size: 18px; }
+.access-role-badge { font-size: 17px; }
+.admin-edit-button,
+.access-row-actions .admin-remove-button { font-size: 16px; }
+
+.report-card-top i,
+.report-card-top em,
+.spotfire-embed-card > header i,
+.spotfire-placeholder-badge { font-size: 7.5px; }
+.report-create-card > em,
+.report-viewer-actions > span { font-size: 10px; }
+
 @keyframes orbit-signal-flow {
   to { stroke-dashoffset: -1; }
 }
@@ -6705,7 +6782,7 @@ body,
   .command-hero { grid-template-columns: minmax(390px, .72fr) minmax(650px, 1.28fr); }
   .command-hero-copy { padding-left: 58px; }
   .app-orbit { margin-right: 22px; }
-  .orbit-app { width: 210px; }
+  .orbit-app { width: 240px; height: 160px; }
   .orbit-app-report { left: 4%; }
   .orbit-app-search { right: 3.5%; }
   .orbit-app-rule { left: 7%; }

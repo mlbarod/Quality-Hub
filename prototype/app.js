@@ -460,7 +460,7 @@ const setReportMode = (mode, { announce = true, focus = true, restoreAgent = tru
   if (!announce) return;
   if (mode === "catalog") showToast("카테고리별 Report 목록을 열었습니다.");
   if (mode === "viewer") showToast(`${document.querySelector("[data-report-viewer-title]")?.textContent ?? "Report"} 원본 화면으로 이동했습니다.`);
-  if (mode === "closed") showToast("대시보드로 돌아왔습니다.");
+  if (mode === "closed") showToast("Main으로 돌아왔습니다.");
 };
 
 const ruleModes = new Set(["closed", "open"]);
@@ -511,7 +511,7 @@ const setRuleMode = (mode, { announce = true, focus = true, restoreAgent = true 
 
   if (!announce) return;
   if (mode === "open") showToast("Rule&SOP 분류 화면을 열었습니다.");
-  else showToast("대시보드로 돌아왔습니다.");
+  else showToast("Main으로 돌아왔습니다.");
 };
 
 const qnaModes = new Set(["closed", "open"]);
@@ -572,7 +572,7 @@ const setQnaMode = (mode, { announce = true, focus = true, restoreAgent = true, 
 
   if (!announce) return;
   if (mode === "open") showToast(view === "notifications" ? "Q&A 알림을 열었습니다." : "Q&A 게시판을 열었습니다.");
-  else showToast("대시보드로 돌아왔습니다.");
+  else showToast("Main으로 돌아왔습니다.");
 };
 
 const userModes = new Set(["closed", "open"]);
@@ -625,7 +625,7 @@ const setUserMode = (mode, { announce = true, focus = true, restoreAgent = true 
 
   if (!announce) return;
   if (mode === "open") showToast("접근 권한 규칙 관리 화면을 열었습니다.");
-  else showToast("대시보드로 돌아왔습니다.");
+  else showToast("Main으로 돌아왔습니다.");
 };
 
 const formatDate = (date) =>
@@ -681,7 +681,7 @@ document.querySelectorAll("[data-qna-notifications]").forEach((button) => {
 
 window.addEventListener("qualityhub:qna-close", () => {
   setQnaMode("closed", { announce: false, focus: false });
-  setDashboardMode("dashboard");
+  setDashboardMode("home");
 });
 
 document.querySelectorAll("[data-user-open]").forEach((button) => {
@@ -694,7 +694,7 @@ document.querySelectorAll("[data-user-open]").forEach((button) => {
 document.querySelectorAll("[data-user-close]").forEach((button) => {
   button.addEventListener("click", () => {
     setUserMode("closed", { announce: false, focus: false });
-    setDashboardMode("dashboard");
+    setDashboardMode("home");
   });
 });
 
@@ -923,7 +923,7 @@ document.querySelectorAll("[data-report-open]").forEach((button) => {
 document.querySelectorAll("[data-report-close]").forEach((button) => {
   button.addEventListener("click", () => {
     setReportMode("closed", { announce: false, focus: false });
-    setDashboardMode("dashboard");
+    setDashboardMode("home");
   });
 });
 
@@ -1371,7 +1371,7 @@ document.querySelectorAll("[data-rule-open]").forEach((button) => {
 document.querySelectorAll("[data-rule-close]").forEach((button) => {
   button.addEventListener("click", () => {
     setRuleMode("closed", { announce: false, focus: false });
-    setDashboardMode("dashboard");
+    setDashboardMode("home");
   });
 });
 

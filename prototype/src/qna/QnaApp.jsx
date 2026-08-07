@@ -61,7 +61,7 @@ function QnaTopBar({ view, unreadCount, onNavigate, role, hiddenCount, onOpenRec
   const currentLabel = view === "detail" ? "질문 상세" : view === "notifications" ? "알림" : "Q&A"
   return (
     <div role="region" aria-label="Q&A 상단 도구" className="flex h-[66px] items-center justify-between border-b border-[#d5e3ec] bg-white px-9">
-      <nav className="flex items-center gap-2 text-[12px]" aria-label="Q&A 현재 위치">
+      <nav className="flex items-center gap-2 text-[14px]" aria-label="Q&A 현재 위치">
         <button type="button" className="bg-transparent font-medium text-[#8b9198] hover:text-[#0673bc]" onClick={() => onNavigate("list")}>Quality Hub</button>
         <ChevronRight className="size-3 text-[#a7aca9]" aria-hidden="true" />
         <button type="button" className={cn("bg-transparent font-medium", view === "list" ? "text-[#0f2233]" : "text-[#8b9198] hover:text-[#0673bc]")} onClick={() => onNavigate("list")}>Q&amp;A</button>
@@ -73,9 +73,9 @@ function QnaTopBar({ view, unreadCount, onNavigate, role, hiddenCount, onOpenRec
         {role === "master" ? <Button type="button" variant="ghost" onClick={onOpenHistory}><Clock3 className="size-4" />변경 이력</Button> : null}
         <Button type="button" variant="ghost" className="relative" onClick={() => onNavigate("notifications")} aria-label={`Q&A 알림 ${unreadCount}개`}>
           <Bell className="size-4" />알림
-          {unreadCount ? <span className="grid min-w-5 place-items-center rounded-full bg-[#b64c45] px-1 text-[10px] font-bold text-white">{unreadCount}</span> : null}
+          {unreadCount ? <span className="grid min-w-5 place-items-center rounded-full bg-[#b64c45] px-1 text-[12px] font-bold text-white">{unreadCount}</span> : null}
         </Button>
-        <Button type="button" variant="outline" onClick={() => window.dispatchEvent(new CustomEvent("qualityhub:qna-close"))}><X className="size-4" />대시보드로</Button>
+        <Button type="button" variant="outline" onClick={() => window.dispatchEvent(new CustomEvent("qualityhub:qna-close"))}><X className="size-4" />Main</Button>
       </div>
     </div>
   )
@@ -150,7 +150,7 @@ function PostListView({ posts, allPosts, filters, setFilters, onSelect, onWrite 
                     key={value}
                     type="button"
                     aria-pressed={filters.status === value}
-                    className={cn("h-8 rounded-[6px] bg-transparent px-3 text-[12px] font-semibold text-[#567286] outline-none transition hover:text-[#263b4a] focus-visible:ring-[3px] focus-visible:ring-[rgba(7,136,223,.18)]", filters.status === value && "bg-white text-[#0673bc] shadow-sm")}
+                    className={cn("h-8 rounded-[6px] bg-transparent px-3 text-[14px] font-semibold text-[#567286] outline-none transition hover:text-[#263b4a] focus-visible:ring-[3px] focus-visible:ring-[rgba(7,136,223,.18)]", filters.status === value && "bg-white text-[#0673bc] shadow-sm")}
                     onClick={() => setFilters((current) => ({ ...current, status: value }))}
                   >
                     {label} {count}
@@ -196,7 +196,7 @@ function AttachmentList({ attachments }) {
   return (
     <div className="mt-5 rounded-[10px] border border-[#dce7ee] bg-[#fafbfa] p-3">
       <p className="mb-2 flex items-center gap-2 text-[11px] font-semibold text-[#52585f]"><Paperclip className="size-3.5" />첨부파일 {attachments.length}개</p>
-      <div className="flex flex-wrap gap-2">{attachments.map((file) => <button key={file.name} type="button" className="flex items-center gap-2 rounded-[7px] border border-[#d5e3ec] bg-white px-3 py-2 text-left text-[11px] hover:border-[#8bcdf7] hover:bg-[#eef6fc]" onClick={() => {}}><FileText className="size-4 text-[#0788df]" /><span><strong className="block font-semibold text-[#3a3f44]">{file.name}</strong><small className="text-[9px] text-[#60798b]">{file.size} · 목업 파일</small></span></button>)}</div>
+      <div className="flex flex-wrap gap-2">{attachments.map((file) => <button key={file.name} type="button" className="flex items-center gap-2 rounded-[7px] border border-[#d5e3ec] bg-white px-3 py-2 text-left text-[13px] hover:border-[#8bcdf7] hover:bg-[#eef6fc]" onClick={() => {}}><FileText className="size-4 text-[#0788df]" /><span><strong className="block font-semibold text-[#3a3f44]">{file.name}</strong><small className="text-[11px] text-[#60798b]">{file.size} · 목업 파일</small></span></button>)}</div>
     </div>
   )
 }
@@ -262,7 +262,7 @@ function PostDetailView({ post, onBack, onUpdatePost, onHidePost, announce, curr
   return (
     <main id="qna-main" tabIndex="-1" className="h-[calc(100%-66px)] overflow-y-auto bg-[#f1f6f9]">
       <div className="mx-auto w-full max-w-[1280px] px-10 pb-24 pt-8">
-        <button type="button" className="mb-5 inline-flex items-center gap-2 bg-transparent text-[12px] font-semibold text-[#676c73] hover:text-[#0673bc]" onClick={onBack}><ArrowLeft className="size-4" />질문 목록</button>
+        <button type="button" className="mb-5 inline-flex items-center gap-2 bg-transparent text-[14px] font-semibold text-[#676c73] hover:text-[#0673bc]" onClick={onBack}><ArrowLeft className="size-4" />질문 목록</button>
         <div className="grid grid-cols-[minmax(0,1fr)_280px] items-start gap-5">
           <div className="space-y-5">
             <article className="rounded-[14px] border border-[#dce7ee] bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,.03)]">
