@@ -24,7 +24,7 @@
   --sidebar: hsl(0 0% 98%);
   --sidebar-width: 244px;
   --header-height: 64px;
-  --agent-drawer-width: 390px;
+  --agent-drawer-width: 468px;
   --radius-sm: 6px;
   --radius: 10px;
   --radius-lg: 14px;
@@ -6655,8 +6655,8 @@ body,
   --primary-dark: #0673bc;
   --primary-soft: #e8f5fd;
   inset: auto 24px 24px auto;
-  width: min(390px, calc(100vw - 48px));
-  height: min(720px, calc(100vh - var(--header-height) - 48px));
+  width: min(468px, calc(100vw - 48px));
+  height: min(864px, calc(100vh - var(--header-height) - 48px));
   overflow: hidden;
   border: 1px solid #cfe3ef;
   border-radius: 25px;

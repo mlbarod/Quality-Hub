@@ -35,6 +35,7 @@ test("스카이 톤 홈에서 정위치로 분산 배치한 네 개의 App과 �
   assert.match(html, /id="quality-agent-floating-panel"[^>]*품질 Agent 플로팅 대화 패널/)
   assert.match(styles, /\.prototype\[data-layout="top"\]\[data-agent-mode="drawer"\] \.workspace \{\s*margin-right: 0;/)
   assert.match(styles, /\.agent-drawer \{[\s\S]*inset: auto 24px 24px auto;[\s\S]*border-radius: 25px;/)
+  assert.match(styles, /\.agent-drawer \{[\s\S]*width: min\(468px, calc\(100vw - 48px\)\);[\s\S]*height: min\(864px, calc\(100vh - var\(--header-height\) - 48px\)\);/)
   assert.match(styles, /\.orbit-app \{[\s\S]*border-radius: 24px;/)
   assert.match(styles, /\.orbit-app \{[\s\S]*width: clamp\(278px, 22\.2vw, 336px\);[\s\S]*height: 197px;/)
   assert.match(styles, /\.orbit-agent \{[\s\S]*width: 152px;[\s\S]*height: 152px;/)
