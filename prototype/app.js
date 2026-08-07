@@ -6,6 +6,8 @@ import {
   getRoleOption,
   getRolePolicy,
 } from "./src/mock/phase2.js";
+import { createLocalRepository, isRuleLocalData, LOCAL_DATA_EVENT } from "./src/data/localRepository.js";
+import { qnaRepository } from "./src/qna/repository.js";
 
 const prototype = document.querySelector(".prototype");
 const dashboardWorkspace = document.querySelector(".workspace");
@@ -96,7 +98,12 @@ let currentRolePolicy = getRolePolicy(currentRole);
 let currentCommonState = prototype?.dataset.commonState ?? "normal";
 let editingAccessRow = null;
 const hiddenItems = [];
-const historyEntries = [];
+const activityRepository = createLocalRepository({
+  key: "activity-history",
+  seed: [],
+  validate: (value) => Array.isArray(value),
+});
+const historyEntries = activityRepository.read();
 const initializedModes = {
   agent: false,
   dashboard: false,
@@ -183,6 +190,7 @@ const setDashboardMode = (mode, { announce = true, focus = true } = {}) => {
 
 const recordHistory = (entry) => {
   historyEntries.unshift(createHistoryEntry({ ...entry, actor: getRoleOption(currentRole).name }));
+  activityRepository.write(historyEntries);
   renderHistoryList();
 };
 
@@ -1047,7 +1055,7 @@ document.querySelector("[data-report-delete-confirm]")?.addEventListener("click"
   const deletedTitle = activeReportCard.dataset.reportTitle ?? "선택한 Report";
   activeReportCard = null;
   reportDeleteDialog?.close();
-  softDeleteItem({ type: "Report", name: deletedTitle, element: card, onChange: () => { updateReportCounts(); applyReportFilters(); } });
+  softDeleteItem({ type: "Report", name: deletedTitle, element: card, onChange: () => { updateReportCounts(); applyReportFilters(); syncGlobalSearchResults(); } });
   setReportMode("catalog", { announce: false });
   showToast(`${deletedTitle} Report를 숨김 처리했습니다. (목업)`);
 });
@@ -1087,6 +1095,7 @@ reportEditorForm?.addEventListener("submit", (event) => {
 
   activeReportCard = card;
   recordHistory({ action: reportEditorMode === "edit" ? "수정" : "등록", targetType: "Report", targetName: card.dataset.reportTitle });
+  syncGlobalSearchResults();
   closeReportEditor();
   updateReportCounts();
   applyReportFilters();
@@ -1154,6 +1163,29 @@ const ruleProcessesByMinor = {
 };
 
 const ruleRevisionHistory = new Map();
+const serializeRuleCard = (card) => ({
+  id: card.dataset.ruleId ?? "",
+  title: card.dataset.ruleTitle ?? "",
+  major: card.dataset.ruleMajor ?? "",
+  middle: card.dataset.ruleMiddle ?? "",
+  minor: card.dataset.ruleMinor ?? "",
+  process: card.dataset.ruleProcess ?? "",
+  type: card.dataset.ruleType ?? "rule",
+  version: card.dataset.ruleVersion ?? "0.1",
+  url: card.dataset.ruleUrl ?? "",
+  updated: card.dataset.ruleUpdated ?? "",
+  softDeleted: card.dataset.softDeleted === "true",
+});
+const initialRuleDocuments = [...document.querySelectorAll("[data-rule-card]")].map(serializeRuleCard);
+const ruleRepository = createLocalRepository({
+  key: "rules",
+  seed: { documents: initialRuleDocuments, revisions: {} },
+  validate: isRuleLocalData,
+});
+const savedRuleData = ruleRepository.read();
+Object.entries(savedRuleData.revisions).forEach(([ruleId, revisions]) => {
+  if (Array.isArray(revisions)) ruleRevisionHistory.set(ruleId, revisions);
+});
 let canManageRuleDocuments = prototype?.dataset.canManageRules === "true";
 document.body.classList.toggle("rule-manager", canManageRuleDocuments);
 
@@ -1281,6 +1313,62 @@ const openRuleEditor = (mode, card = null, returnFocus = null) => {
 
 const getRuleCards = ({ includeDeleted = false } = {}) => [...document.querySelectorAll("[data-rule-card]")]
   .filter((card) => includeDeleted || card.dataset.softDeleted !== "true");
+
+const persistRuleData = () => {
+  ruleRepository.write({
+    documents: getRuleCards({ includeDeleted: true }).map(serializeRuleCard),
+    revisions: Object.fromEntries(ruleRevisionHistory),
+  });
+};
+
+const hydrateRuleDocuments = () => {
+  const existingCards = new Map(getRuleCards({ includeDeleted: true }).map((card) => [card.dataset.ruleId, card]));
+  const savedIds = new Set(savedRuleData.documents.map((document) => document.id));
+  existingCards.forEach((card, id) => {
+    if (!savedIds.has(id)) card.remove();
+  });
+
+  savedRuleData.documents.forEach((document) => {
+    let card = existingCards.get(document.id);
+    if (!(card instanceof HTMLElement)) {
+      const fragment = ruleCardTemplate?.content.cloneNode(true);
+      card = fragment?.querySelector("[data-rule-card]");
+      if (!(card instanceof HTMLElement) || !(ruleCardGrid instanceof HTMLElement)) return;
+      ruleCardGrid.append(card);
+    }
+    card.dataset.ruleId = document.id;
+    card.dataset.ruleTitle = document.title;
+    card.dataset.ruleMajor = document.major;
+    card.dataset.ruleMiddle = document.middle;
+    card.dataset.ruleMinor = document.minor;
+    card.dataset.ruleProcess = document.process;
+    card.dataset.ruleType = document.type;
+    card.dataset.ruleVersion = document.version;
+    card.dataset.ruleUrl = document.url;
+    card.dataset.ruleUpdated = document.updated;
+    if (document.softDeleted) {
+      card.dataset.softDeleted = "true";
+      card.hidden = true;
+      hiddenItems.push({
+        id: `Rule&SOP-${document.id}`,
+        type: "Rule&SOP",
+        name: document.title,
+        element: card,
+        hiddenAt: "이전 로컬 세션",
+        hiddenBy: "저장된 사용자",
+        onChange: () => {
+          applyRuleFilters({ animate: false });
+          persistRuleData();
+          syncGlobalSearchResults();
+        },
+      });
+    } else {
+      delete card.dataset.softDeleted;
+    }
+    renderRuleCard(card);
+  });
+  renderRecoveryList();
+};
 
 const matchesRuleScope = (card, scope, value = ruleFilterState[scope]) =>
   value === "all" || card.dataset[`rule${scope[0].toUpperCase()}${scope.slice(1)}`] === value;
@@ -1432,7 +1520,16 @@ document.querySelector("[data-rule-delete-confirm]")?.addEventListener("click", 
   const deletedTitle = activeRuleCard.dataset.ruleTitle ?? "선택한 문서";
   activeRuleCard = null;
   ruleDeleteDialog?.close();
-  softDeleteItem({ type: "Rule&SOP", name: deletedTitle, element: card, onChange: () => applyRuleFilters({ animate: false }) });
+  softDeleteItem({
+    type: "Rule&SOP",
+    name: deletedTitle,
+    element: card,
+    onChange: () => {
+      applyRuleFilters({ animate: false });
+      persistRuleData();
+      syncGlobalSearchResults();
+    },
+  });
   document.querySelector("[data-rule-create-open]")?.focus();
   showToast(`${deletedTitle} 문서를 숨김 처리했습니다. (목업)`);
 });
@@ -1501,6 +1598,8 @@ ruleEditorForm?.addEventListener("submit", (event) => {
 
   activeRuleCard = card;
   recordHistory({ action: isEdit ? "수정" : "등록", targetType: "Rule&SOP", targetName: card.dataset.ruleTitle });
+  persistRuleData();
+  syncGlobalSearchResults();
   closeRuleEditor();
   applyRuleFilters();
   showToast(`${card.dataset.ruleTitle} 문서를 ${isEdit ? "수정" : "등록"}했습니다. (목업)`);
@@ -1549,6 +1648,7 @@ if (initialReportQuery === "catalog" || initialReportQuery === "viewer") {
   setReportMode("closed", { announce: false, focus: false, restoreAgent: false });
 }
 
+hydrateRuleDocuments();
 applyRuleFilters({ animate: false });
 const initialRuleQuery = new URL(window.location.href).searchParams.get("rule");
 setRuleMode(initialRuleQuery === "open" ? "open" : "closed", { announce: false, focus: false, restoreAgent: false });
@@ -1561,6 +1661,87 @@ setUserMode(initialUserQuery === "open" ? "open" : "closed", { announce: false, 
 
 const initialDashboardView = new URL(window.location.href).searchParams.get("view");
 setDashboardMode(initialDashboardView === "dashboard" ? "dashboard" : "home", { announce: false, focus: false });
+
+function createGlobalSearchResult({ target, id, type, title, description, searchText, icon }) {
+  const button = document.createElement("button");
+  const typeIcon = document.createElement("span");
+  const iconSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  const iconUse = document.createElementNS("http://www.w3.org/2000/svg", "use");
+  const copy = document.createElement("span");
+  const typeLabel = document.createElement("i");
+  const titleLabel = document.createElement("strong");
+  const descriptionLabel = document.createElement("small");
+  const arrow = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  const arrowUse = document.createElementNS("http://www.w3.org/2000/svg", "use");
+
+  button.type = "button";
+  button.dataset.globalSearchResult = "";
+  button.dataset.searchTarget = target;
+  button.dataset.searchId = id;
+  button.dataset.searchText = searchText;
+  typeIcon.className = `search-result-type is-${target}`;
+  iconSvg.classList.add("icon");
+  iconUse.setAttribute("href", icon);
+  iconSvg.append(iconUse);
+  typeIcon.append(iconSvg);
+  typeLabel.textContent = type;
+  titleLabel.textContent = title;
+  descriptionLabel.textContent = description;
+  copy.append(typeLabel, titleLabel, descriptionLabel);
+  arrow.classList.add("icon", "search-result-arrow");
+  arrowUse.setAttribute("href", "#icon-arrow");
+  arrow.append(arrowUse);
+  button.append(typeIcon, copy, arrow);
+  return button;
+}
+
+function syncGlobalSearchResults() {
+  const container = document.querySelector("[data-global-search-results]");
+  if (!(container instanceof HTMLElement)) return;
+
+  const reportResults = [...document.querySelectorAll("[data-report-card]")]
+    .filter((card) => card.dataset.softDeleted !== "true")
+    .map((card) => createGlobalSearchResult({
+      target: "report",
+      id: card.dataset.reportTitle ?? "",
+      type: `REPORT · ${card.dataset.reportCategory ?? "미분류"}`,
+      title: card.dataset.reportTitle ?? "제목 없음",
+      description: card.dataset.reportDescription ?? "설명 없음",
+      searchText: [card.dataset.reportTitle, card.dataset.reportDescription, card.dataset.reportCategory, "Report"].join(" "),
+      icon: "#icon-grid",
+    }));
+  const ruleResults = getRuleCards()
+    .map((card) => createGlobalSearchResult({
+      target: "rule",
+      id: card.dataset.ruleTitle ?? "",
+      type: `${card.dataset.ruleType === "sop" ? "SOP" : "RULE"} · ${card.dataset.ruleProcess ?? "미지정"}`,
+      title: card.dataset.ruleTitle ?? "제목 없음",
+      description: getRuleClassificationText(card),
+      searchText: [card.dataset.ruleTitle, getRuleClassificationText(card), card.dataset.ruleType].join(" "),
+      icon: "#icon-book",
+    }));
+  const qnaData = qnaRepository.read();
+  const qnaStatusLabels = { waiting: "답변 대기", active: "답변 중", completed: "답변 완료" };
+  const qnaResults = qnaData.posts
+    .filter((post) => !post.hidden)
+    .map((post) => createGlobalSearchResult({
+      target: "qna",
+      id: post.id,
+      type: `Q&A · ${post.type}`,
+      title: post.title,
+      description: `${post.id} · ${post.department} · ${qnaStatusLabels[post.status] ?? post.status}`,
+      searchText: [post.title, post.excerpt, post.process, post.department, post.type, ...post.tags].join(" "),
+      icon: "#icon-message",
+    }));
+
+  container.replaceChildren(...reportResults, ...ruleResults, ...qnaResults);
+  const unreadCount = qnaData.notifications.filter((notification) => !notification.read).length;
+  document.querySelectorAll("[data-qna-notifications]").forEach((button) => {
+    button.setAttribute("aria-label", `Q&A 알림 ${unreadCount}개`);
+    button.querySelector(":scope > i")?.replaceChildren(String(unreadCount));
+  });
+  applyGlobalSearch();
+}
 
 const getVisibleGlobalSearchResults = () =>
   [...document.querySelectorAll("[data-global-search-result]")].filter((result) => !result.hidden);
@@ -1602,19 +1783,21 @@ globalSearchInput?.addEventListener("keydown", (event) => {
   getVisibleGlobalSearchResults()[0]?.focus();
 });
 
-document.querySelectorAll("[data-global-search-result]").forEach((result) => {
-  result.addEventListener("keydown", (event) => {
-    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
-    event.preventDefault();
-    const visibleResults = getVisibleGlobalSearchResults();
-    const currentIndex = visibleResults.indexOf(result);
-    const nextIndex = event.key === "ArrowDown"
-      ? Math.min(currentIndex + 1, visibleResults.length - 1)
-      : Math.max(currentIndex - 1, 0);
-    visibleResults[nextIndex]?.focus();
-  });
+document.querySelector("[data-global-search-results]")?.addEventListener("keydown", (event) => {
+  const result = event.target instanceof Element ? event.target.closest("[data-global-search-result]") : null;
+  if (!(result instanceof HTMLButtonElement) || (event.key !== "ArrowDown" && event.key !== "ArrowUp")) return;
+  event.preventDefault();
+  const visibleResults = getVisibleGlobalSearchResults();
+  const currentIndex = visibleResults.indexOf(result);
+  const nextIndex = event.key === "ArrowDown"
+    ? Math.min(currentIndex + 1, visibleResults.length - 1)
+    : Math.max(currentIndex - 1, 0);
+  visibleResults[nextIndex]?.focus();
+});
 
-  result.addEventListener("click", () => {
+document.querySelector("[data-global-search-results]")?.addEventListener("click", (event) => {
+    const result = event.target instanceof Element ? event.target.closest("[data-global-search-result]") : null;
+    if (!(result instanceof HTMLButtonElement)) return;
     const target = result.dataset.searchTarget;
     const contentId = result.dataset.searchId;
     suppressGlobalSearchFocusRestore = true;
@@ -1644,8 +1827,12 @@ document.querySelectorAll("[data-global-search-result]").forEach((result) => {
     if (target === "qna") {
       setQnaMode("open", { view: "detail", postId: contentId });
     }
-  });
 });
+
+window.addEventListener(LOCAL_DATA_EVENT, (event) => {
+  if (event.detail?.key === "qna") syncGlobalSearchResults();
+});
+syncGlobalSearchResults();
 
 globalSearch?.addEventListener("click", (event) => {
   if (event.target === globalSearch) globalSearch.close();

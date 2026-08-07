@@ -1275,7 +1275,7 @@ kbd {
   border-radius: 999px;
   background: var(--primary-soft);
   color: var(--primary-dark);
-  font-size: 9px;
+  font-size: 12px;
   font-style: normal;
   font-weight: 650;
 }
@@ -4154,6 +4154,8 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
 
 @media (prefers-reduced-motion: reduce) {
   .rule-document-create-card:hover { transform: none; }
+  .rule-filter-icon.is-middle > i,
+  .rule-filter-icon.is-minor > i { animation: none !important; }
 }
 
 /* 사용자 및 권한: 인원별 3단계 역할 관리 */
@@ -5738,7 +5740,7 @@ body:not(.report-manager) .report-admin-only { display: none !important; }
   background: white;
 }
 
-.global-search-panel > header {
+.global-search-header {
   display: flex;
   align-items: center;
   gap: 11px;
@@ -5756,11 +5758,11 @@ body:not(.report-manager) .report-admin-only { display: none !important; }
 }
 
 .global-search-mark .icon { width: 18px; height: 18px; }
-.global-search-panel > header > span:nth-child(2) { display: grid; gap: 1px; }
-.global-search-panel > header strong { font-size: 14px; }
-.global-search-panel > header small { color: var(--muted-foreground); font-size: 9px; }
-.global-search-panel > header form { margin-left: auto; }
-.global-search-panel > header button {
+.global-search-header > span:nth-child(2) { display: grid; gap: 1px; }
+.global-search-header strong { font-size: 14px; }
+.global-search-header small { color: var(--muted-foreground); font-size: 9px; }
+.global-search-header form { margin-left: auto; }
+.global-search-header button {
   display: grid;
   width: 32px;
   height: 32px;
@@ -5770,8 +5772,8 @@ body:not(.report-manager) .report-admin-only { display: none !important; }
   color: var(--muted-foreground);
   cursor: pointer;
 }
-.global-search-panel > header button:hover { background: var(--surface-muted); color: var(--foreground); }
-.global-search-panel > header button .icon { width: 16px; height: 16px; }
+.global-search-header button:hover { background: var(--surface-muted); color: var(--foreground); }
+.global-search-header button .icon { width: 16px; height: 16px; }
 
 .global-search-input {
   display: flex;
@@ -5958,7 +5960,7 @@ body:not(.report-manager) .report-admin-only { display: none !important; }
 .report-category-section header p,
 .report-card-copy em,
 .spotfire-embed-placeholder small,
-.global-search-panel > header small {
+.global-search-header small {
   font-size: var(--description-md);
   line-height: 1.55;
 }
@@ -6835,15 +6837,15 @@ body,
 .report-editor-body > label > small,
 .report-permission-note small { font-size: 12px; }
 
-.global-search-panel > header strong { font-size: 18px; }
-.global-search-panel > header small,
+.global-search-header strong { font-size: 18px; }
+.global-search-header small,
 .global-search-result-heading span,
 .global-search-results small,
 .global-search-empty span { font-size: 12px; }
 .global-search-result-heading strong,
 .global-search-results i { font-size: 13px; }
 .global-search-results strong { font-size: 15px; }
-.global-search-panel > header button { width: 40px; height: 40px; }
+.global-search-header button { width: 40px; height: 40px; }
 .global-search-empty strong { font-size: 14px; }
 .global-search-panel > footer { font-size: 12px; }
 

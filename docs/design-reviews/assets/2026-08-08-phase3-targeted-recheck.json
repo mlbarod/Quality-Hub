@@ -1,0 +1,175 @@
+{
+  "viewport": {
+    "width": 1920,
+    "height": 1080,
+    "dpr": 1,
+    "scale": 1,
+    "url": "http://127.0.0.1:4173/#home"
+  },
+  "home": {
+    "mode": "home",
+    "statuses": [
+      "12px",
+      "12px",
+      "12px",
+      "12px"
+    ],
+    "cards": [
+      {
+        "name": "orbit-app-report",
+        "rect": {
+          "x": 798.7,
+          "y": 231,
+          "width": 336,
+          "height": 197,
+          "right": 1134.7,
+          "bottom": 428
+        },
+        "status": "12px",
+        "agentOverlap": 0
+      },
+      {
+        "name": "orbit-app-search",
+        "rect": {
+          "x": 1483.7,
+          "y": 275.9,
+          "width": 336,
+          "height": 197,
+          "right": 1819.7,
+          "bottom": 472.9
+        },
+        "status": "12px",
+        "agentOverlap": 0
+      },
+      {
+        "name": "orbit-app-rule",
+        "rect": {
+          "x": 832,
+          "y": 751.8,
+          "width": 336,
+          "height": 197,
+          "right": 1168,
+          "bottom": 948.8
+        },
+        "status": "12px",
+        "agentOverlap": 0
+      },
+      {
+        "name": "orbit-app-qna",
+        "rect": {
+          "x": 1461.5,
+          "y": 707,
+          "width": 336,
+          "height": 197,
+          "right": 1797.5,
+          "bottom": 904
+        },
+        "status": "12px",
+        "agentOverlap": 0
+      }
+    ],
+    "agent": {
+      "x": 1227.7,
+      "y": 496,
+      "width": 152,
+      "height": 152,
+      "right": 1379.7,
+      "bottom": 648
+    },
+    "pairOverlaps": [],
+    "overflowX": 0
+  },
+  "qna": {
+    "list": {
+      "fontSize": "12px",
+      "lineHeight": "18px",
+      "rect": {
+        "width": 1340,
+        "height": 18
+      },
+      "text": "가상 테스트 데이터입니다. 작성·답변·상태 변경 내용은 이 브라우저에만 저장됩니다."
+    },
+    "transition": {
+      "noteFont": "12px",
+      "noteRect": {
+        "width": 333.20703125,
+        "height": 17.72998046875
+      },
+      "buttonRect": {
+        "width": 106.302978515625,
+        "height": 40.385009765625
+      },
+      "editorPreparing": true
+    },
+    "final": {
+      "noteFont": "12px",
+      "noteRect": {
+        "width": 338.28125,
+        "height": 18
+      },
+      "buttonRect": {
+        "width": 107.921875,
+        "height": 41
+      },
+      "editorPreparing": false
+    },
+    "history": {
+      "fontSize": "12px",
+      "rect": {
+        "width": 656.9218139648438,
+        "height": 17.861907958984375
+      },
+      "text": "이 브라우저의 가상 데이터에서 변경한 질문·답변·상태를 표시합니다."
+    }
+  },
+  "ruleReduced": {
+    "matches": true,
+    "mode": "open",
+    "middle": [
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none"
+    ],
+    "minor": [
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none"
+    ],
+    "visibleRunning": [
+      null,
+      null
+    ]
+  },
+  "searchFlows": null,
+  "errors": []
+}

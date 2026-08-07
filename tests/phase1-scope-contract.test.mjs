@@ -9,6 +9,7 @@ const qnaApp = await readFile(new URL("../prototype/src/qna/QnaApp.jsx", import.
 const requirements = await readFile(new URL("../docs/QUALITY_PORTAL_REQUIREMENTS.md", import.meta.url), "utf8")
 const developmentPlan = await readFile(new URL("../docs/DEVELOPMENT_PLAN.md", import.meta.url), "utf8")
 const phase2CompletionReport = await readFile(new URL("../docs/PHASE2_COMPLETION_REPORT.md", import.meta.url), "utf8")
+const phase3CompletionReport = await readFile(new URL("../docs/PHASE3_COMPLETION_REPORT.md", import.meta.url), "utf8")
 
 test("데이터 원천 관리 진입점을 제거하고 현재 요구사항에 기록한다", () => {
   assert.doesNotMatch(html, /data-planned="데이터 원천"/)
@@ -78,9 +79,9 @@ test("확정한 공통 화면 상태와 역할별 문의 대상을 문서에 기
   assert.match(requirements, /권한이 없으면 일반유저는 관리자, 관리자는 마스터에게 문의/)
 })
 
-test("현재 목업과 운영 검증 경계를 요구사항에 기록한다", () => {
-  assert.match(requirements, /현재 화면은 새로고침 시 초기화되는 예시 데이터 기반 목업/)
-  assert.match(requirements, /실제 SSO·Spotfire·사내 LLM·DB·Parquet·공유 폴더 연동과 운영 보안·성능 검증은 후속 단계/)
+test("현재 로컬 가상 데이터와 운영 검증 경계를 요구사항에 기록한다", () => {
+  assert.match(requirements, /현재 브라우저의 로컬 저장소에만 보관/)
+  assert.match(requirements, /실제 SSO·Spotfire·사내 LLM·DB·Parquet·공유 폴더 연동과 실제 DB 스키마 호환성, 운영 보안·성능 검증은 후속 단계/)
   assert.match(developmentPlan, /별도 설명 없이 찾고 전체 사용 흐름을 체험할 수 있으며/)
 })
 
@@ -104,11 +105,13 @@ test("품질 Agent UI와 실제 연동 경계를 요구사항에 명시한다", 
   assert.match(requirements, /실제 API 규격, 인증과 Report 참조 범위는 연동 단계에서 확정/)
 })
 
-test("현재 2단계 완료 상태를 계획·요구사항·화면에 일치시킨다", () => {
+test("현재 3단계 부분 완료 상태와 실제 연동 제외 범위를 계획·요구사항·보고서에 일치시킨다", () => {
   assert.match(developmentPlan, /현재 상태:\*\* 1단계 UI\/UX 설계 완료/)
   assert.match(developmentPlan, /2단계: UI 프로토타입 구현 · 완료/)
-  assert.match(developmentPlan, /3단계: 로컬 기능 구현 · 다음 단계/)
-  assert.match(requirements, /1단계 UI\/UX 설계와 2단계 UI 프로토타입 구현을 완료/)
+  assert.match(developmentPlan, /3단계: 로컬 기능 구현 · 부분 완료/)
+  assert.match(requirements, /3단계 로컬 기능은 구현했으나.*`부분 완료`/)
+  assert.match(phase3CompletionReport, /`부분 완료`.*독립 디자인 게이트는 `보류`/)
+  assert.match(phase3CompletionReport, /현재 브라우저에만 적용/)
   assert.match(phase2CompletionReport, /\*\*판정:\*\* `완료`/)
   assert.match(phase2CompletionReport, /실제 SSO, 데이터 원천, 문서 검색, Spotfire와 LLM 연동은 미구현/)
   assert.match(html, /예시 원천 상태/)

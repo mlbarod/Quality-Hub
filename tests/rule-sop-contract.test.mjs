@@ -70,7 +70,7 @@ test("관리자는 빈 카드에서 문서를 등록하고 카드 상세에서 �
   assert.match(script, /document\.body\.classList\.toggle\("rule-manager", canManageRuleDocuments\)/)
   assert.match(script, /ruleCardGrid\?\.addEventListener\("click"/)
   assert.match(script, /ruleEditorForm\?\.addEventListener\("submit"/)
-  assert.match(script, /softDeleteItem\(\{ type: "Rule&SOP"/)
+  assert.match(script, /softDeleteItem\(\{\s*type: "Rule&SOP"/)
 })
 
 test("등록·수정 분류는 대분류부터 담당 공정까지 드릴다운하고 URL 컬럼을 보관한다", () => {

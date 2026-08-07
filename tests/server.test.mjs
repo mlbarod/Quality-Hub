@@ -1,8 +1,7 @@
 import assert from "node:assert/strict"
 import { once } from "node:events"
+import { readFile } from "node:fs/promises"
 import test from "node:test"
-
-import viteConfig from "../vite.config.mjs"
 
 import {
   builtStaticDir,
@@ -14,6 +13,8 @@ import {
   sourceStaticDir,
 } from "../server.mjs"
 
+const viteConfigSource = await readFile(new URL("../vite.config.mjs", import.meta.url), "utf8")
+
 async function startTestServer() {
   const server = createQualityHubServer({ staticDir: sourceStaticDir })
   server.listen(0, "127.0.0.1")
@@ -24,6 +25,13 @@ async function startTestServer() {
     server,
     baseUrl: `http://127.0.0.1:${address.port}`,
   }
+}
+
+async function closeTestServer(server) {
+  const closed = once(server, "close")
+  server.close()
+  server.closeIdleConnections?.()
+  await closed
 }
 
 test("PORT는 유효한 포트 번호만 허용한다", () => {
@@ -56,12 +64,12 @@ test("server.mjs는 기본적으로 소스를 실시간 제공하고 정적 모�
 })
 
 test("외부 개발 도메인을 Vite 서버에서 허용한다", () => {
-  assert.ok(viteConfig.server.allowedHosts.includes("sanghyun--sanghyun-dev.cdep1.samsungds.net"))
+  assert.match(viteConfigSource, /allowedHosts:\s*\[[^\]]*"sanghyun--sanghyun-dev\.cdep1\.samsungds\.net"/s)
 })
 
 test("메인 화면과 정적 자산을 제공한다", async (t) => {
   const { server, baseUrl } = await startTestServer()
-  t.after(() => server.close())
+  t.after(() => closeTestServer(server))
 
   const indexResponse = await fetch(`${baseUrl}/`)
   assert.equal(indexResponse.status, 200)
@@ -76,7 +84,7 @@ test("메인 화면과 정적 자산을 제공한다", async (t) => {
 
 test("HEAD, 미존재 경로와 허용하지 않는 메서드를 처리한다", async (t) => {
   const { server, baseUrl } = await startTestServer()
-  t.after(() => server.close())
+  t.after(() => closeTestServer(server))
 
   const headResponse = await fetch(`${baseUrl}/app.js`, { method: "HEAD" })
   assert.equal(headResponse.status, 200)

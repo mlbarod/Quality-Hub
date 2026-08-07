@@ -1223,18 +1223,18 @@
 
     <dialog class="phase2-dialog" aria-labelledby="history-title" data-history-dialog>
       <section class="phase2-dialog-panel">
-        <header><span><svg class="icon"><use href="#icon-history"></use></svg></span><div><strong id="history-title">변경 이력</strong><small>현재 세션의 콘텐츠·권한 변경을 시간순으로 표시합니다.</small></div><button type="button" aria-label="변경 이력 닫기" data-history-close><svg class="icon"><use href="#icon-close"></use></svg></button></header>
+        <header><span><svg class="icon"><use href="#icon-history"></use></svg></span><div><strong id="history-title">변경 이력</strong><small>이 브라우저의 가상 데이터 변경을 시간순으로 표시합니다.</small></div><button type="button" aria-label="변경 이력 닫기" data-history-close><svg class="icon"><use href="#icon-close"></use></svg></button></header>
         <div class="phase2-dialog-body" data-history-list><p class="phase2-empty">아직 변경 이력이 없습니다.</p></div>
       </section>
     </dialog>
 
     <dialog class="global-search-dialog" aria-labelledby="global-search-title" aria-describedby="global-search-description" data-global-search>
       <div class="global-search-panel">
-        <header>
+        <div class="global-search-header">
           <span class="global-search-mark"><svg class="icon"><use href="#icon-search"></use></svg></span>
           <span><strong id="global-search-title">통합 검색</strong><small id="global-search-description">Report, Rule&amp;SOP, Q&amp;A 콘텐츠를 한 번에 찾습니다.</small></span>
           <form method="dialog"><button type="submit" aria-label="통합 검색 닫기"><svg class="icon"><use href="#icon-close"></use></svg></button></form>
-        </header>
+        </div>
 
         <label class="global-search-input">
           <svg class="icon"><use href="#icon-search"></use></svg>

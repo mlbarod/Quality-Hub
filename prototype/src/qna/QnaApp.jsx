@@ -32,10 +32,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { canDeleteQuestion, canEditQna, createHistoryEntry, getRoleOption, getRolePolicy } from "@/mock/phase2"
+import { qnaRepository } from "@/qna/repository"
 import {
   DEPARTMENT_OPTIONS,
   filterPosts,
-  initialNotifications,
   initialPosts,
   PROCESS_OPTIONS,
   STATUS,
@@ -185,7 +185,7 @@ function PostListView({ posts, allPosts, filters, setFilters, onSelect, onWrite 
           )}
         </section>
 
-        <p className="mt-4 flex items-center gap-2 text-[10px] text-[#60798b]"><CircleHelp className="size-3.5" />UI 검토용 예시 데이터입니다. 작성·답변·상태 변경 내용은 새로고침하면 초기화됩니다.</p>
+        <p className="mt-4 flex items-center gap-2 text-[12px] text-[#60798b]"><CircleHelp className="size-3.5" />가상 테스트 데이터입니다. 작성·답변·상태 변경 내용은 이 브라우저에만 저장됩니다.</p>
       </div>
     </main>
   )
@@ -226,7 +226,7 @@ function EditQuestionDialog({ post, open, onOpenChange, onSave }) {
   )
 }
 
-function PostDetailView({ post, onBack, onUpdatePost, onHidePost, announce, currentRole, currentUser, recordChange }) {
+function PostDetailView({ post, onBack, onUpdatePost, onHidePost, announce, currentRole, currentUser, recordChange, notify }) {
   const [reply, setReply] = useState("")
   const [editQuestionOpen, setEditQuestionOpen] = useState(false)
   const [editingMessageId, setEditingMessageId] = useState(null)
@@ -240,6 +240,7 @@ function PostDetailView({ post, onBack, onUpdatePost, onHidePost, announce, curr
   const updateStatus = (status) => {
     onUpdatePost({ ...post, status, updatedAt: "방금 전" })
     recordChange("상태 변경", post.title, STATUS[status].label)
+    notify(post, `질문 상태가 ${STATUS[status].label}(으)로 변경되었습니다`, "complete")
     announce(`상태를 ${STATUS[status].label}(으)로 변경했습니다.`)
   }
 
@@ -249,6 +250,7 @@ function PostDetailView({ post, onBack, onUpdatePost, onHidePost, announce, curr
     const message = { id: `m-${Date.now()}`, author: currentUser.name, role: currentRole === "master" ? "마스터" : currentRole === "admin" ? "관리자" : "일반유저", time: "방금 전", body }
     onUpdatePost({ ...post, status: post.status === "waiting" ? "active" : post.status, updatedAt: "방금 전", messages: [...post.messages, message] })
     recordChange("답변 등록", post.title, currentUser.name)
+    notify(post, `${currentUser.name}님이 답변을 등록했습니다`, "reply")
     setReply("")
     announce("답변을 등록했습니다.")
   }
@@ -256,6 +258,7 @@ function PostDetailView({ post, onBack, onUpdatePost, onHidePost, announce, curr
   const markFinal = (messageId) => {
     onUpdatePost({ ...post, status: "completed", updatedAt: "방금 전", messages: post.messages.map((message) => ({ ...message, isFinal: message.id === messageId })) })
     recordChange("최종 답변 지정", post.title)
+    notify(post, "최종 답변이 지정되었습니다", "complete")
     announce("최종 답변을 지정하고 상태를 답변 완료로 변경했습니다.")
   }
 
@@ -388,22 +391,23 @@ function WriteQuestionDialog({ open, onOpenChange, onSubmit, returnFocusRef }) {
           <label className="mt-5 grid gap-1.5 text-[11px] font-semibold text-[#4c5257]">태그 <Input value={tags} onChange={(event) => setTags(event.target.value)} placeholder="예: 이상률, 적용시점, 장비A (쉼표로 구분)" /><small className="font-normal text-[#60798b]">최대 5개까지 입력할 수 있으며 중요도는 사용하지 않습니다.</small></label>
           <div className="mt-5 rounded-[10px] border border-dashed border-[#c6d6e0] bg-[#fafbfa] p-4"><div className="flex items-center justify-between"><span><strong className="flex items-center gap-2 text-[11px] text-[#4c5257]"><Paperclip className="size-4" />파일 첨부</strong><small className="mt-1 block text-[9px] text-[#60798b]">프로토타입 표시용 · 최대 5개</small></span><Button type="button" variant="outline" size="sm" onClick={() => attachmentInputRef.current?.click()}>파일 선택</Button><input ref={attachmentInputRef} className="sr-only" type="file" multiple aria-label="첨부파일 선택" onChange={addAttachments} /></div>{attachments.length ? <div className="mt-3 flex flex-wrap gap-2">{attachments.map((file, index) => <span key={`${file.name}-${index}`} className="flex items-center gap-2 rounded-[7px] border border-[#d5e3ec] bg-white px-2.5 py-2 text-[10px]"><FileText className="size-3.5 text-[#0788df]" /><span><strong className="block max-w-48 truncate">{file.name}</strong><small className="text-[8px] text-[#60798b]">{file.size}</small></span><button type="button" aria-label={`${file.name} 삭제`} className="grid size-6 place-items-center rounded bg-transparent hover:bg-[#edf3f7]" onClick={() => setAttachments((current) => current.filter((_, itemIndex) => itemIndex !== index))}><X className="size-3" /></button></span>)}</div> : null}</div>
         </form>
-        <footer className="flex items-center justify-between border-t border-[#e3ebf0] bg-[#fafbfa] px-7 py-4"><span className="text-[9px] text-[#60798b]">등록 내용은 UI 검토용이며 새로고침하면 초기화됩니다.</span><div className="flex gap-2"><Button type="button" variant="outline" onClick={() => onOpenChange(false)}>취소</Button><Button type="submit" form="qna-write-form"><Send className="size-4" />질문 등록</Button></div></footer>
+        <footer className="flex items-center justify-between border-t border-[#e3ebf0] bg-[#fafbfa] px-7 py-4"><span className="text-[12px] text-[#60798b]">등록 내용은 가상 데이터이며 이 브라우저의 로컬 저장소에만 보관됩니다.</span><div className="flex gap-2"><Button type="button" variant="outline" onClick={() => onOpenChange(false)}>취소</Button><Button type="submit" form="qna-write-form" className="h-[41px]"><Send className="size-4" />질문 등록</Button></div></footer>
       </DialogContent>
     </Dialog>
   )
 }
 
 export function QnaApp({ initialView = "list" }) {
-  const [posts, setPosts] = useState(initialPosts)
-  const [notifications, setNotifications] = useState(initialNotifications)
+  const [savedQna] = useState(() => qnaRepository.read())
+  const [posts, setPosts] = useState(savedQna.posts)
+  const [notifications, setNotifications] = useState(savedQna.notifications)
   const [filters, setFilters] = useState(initialFilters)
   const [view, setView] = useState(initialView)
-  const [selectedId, setSelectedId] = useState(initialPosts[0].id)
+  const [selectedId, setSelectedId] = useState(savedQna.posts[0]?.id ?? initialPosts[0].id)
   const [writeOpen, setWriteOpen] = useState(false)
   const [recoveryOpen, setRecoveryOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
-  const [historyEntries, setHistoryEntries] = useState([])
+  const [historyEntries, setHistoryEntries] = useState(savedQna.history)
   const [currentRole, setCurrentRole] = useState(document.querySelector(".prototype")?.dataset.currentRole ?? "master")
   const [liveMessage, setLiveMessage] = useState("")
   const liveTimerRef = useRef(null)
@@ -439,6 +443,10 @@ export function QnaApp({ initialView = "list" }) {
     return () => window.removeEventListener("qualityhub:role-change", handleRole)
   }, [])
 
+  useEffect(() => {
+    qnaRepository.write({ posts, notifications, history: historyEntries })
+  }, [posts, notifications, historyEntries])
+
   useEffect(() => () => window.clearTimeout(liveTimerRef.current), [])
 
   const announce = (message) => {
@@ -463,8 +471,21 @@ export function QnaApp({ initialView = "list" }) {
     setHistoryEntries((current) => [createHistoryEntry({ action, targetType: "Q&A", targetName, actor: currentUser.name, detail }), ...current])
   }
 
+  const createNotification = (post, title, icon = "reply") => {
+    setNotifications((current) => [{
+      id: `n-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      postId: post.id,
+      title,
+      detail: post.title,
+      time: "방금 전",
+      read: false,
+      icon,
+    }, ...current])
+  }
+
   const createPost = (draft) => {
-    const id = `Q-2026-${String(85 + posts.length).padStart(3, "0")}`
+    const nextNumber = Math.max(0, ...posts.map((post) => Number.parseInt(post.id.split("-").at(-1), 10) || 0)) + 1
+    const id = `Q-2026-${String(nextNumber).padStart(3, "0")}`
     const post = {
       id,
       title: draft.title,
@@ -499,11 +520,11 @@ export function QnaApp({ initialView = "list" }) {
     <div className="qna-scope h-full text-[#0f2233] antialiased">
       <QnaTopBar view={view} unreadCount={unreadCount} onNavigate={navigate} role={currentRole} hiddenCount={hiddenPosts.length + hiddenMessages.length} onOpenRecovery={() => setRecoveryOpen(true)} onOpenHistory={() => setHistoryOpen(true)} />
       {view === "list" ? <PostListView posts={filteredPosts} allPosts={activePosts} filters={filters} setFilters={setFilters} onSelect={selectPost} onWrite={(event) => { writeReturnFocusRef.current = event.currentTarget; setWriteOpen(true) }} /> : null}
-      {view === "detail" ? <PostDetailView post={selectedPost} onBack={() => navigate("list")} onUpdatePost={updatePost} onHidePost={(post) => { updatePost({ ...post, hidden: true, hiddenAt: "방금 전", hiddenBy: currentUser.name }); recordChange("질문 숨김", post.title); navigate("list"); announce("질문을 숨김 처리했습니다.") }} announce={announce} currentRole={currentRole} currentUser={currentUser} recordChange={recordChange} /> : null}
+      {view === "detail" ? <PostDetailView post={selectedPost} onBack={() => navigate("list")} onUpdatePost={updatePost} onHidePost={(post) => { updatePost({ ...post, hidden: true, hiddenAt: "방금 전", hiddenBy: currentUser.name }); recordChange("질문 숨김", post.title); navigate("list"); announce("질문을 숨김 처리했습니다.") }} announce={announce} currentRole={currentRole} currentUser={currentUser} recordChange={recordChange} notify={createNotification} /> : null}
       {view === "notifications" ? <NotificationsView notifications={notifications} onReadAll={() => { setNotifications((current) => current.map((item) => ({ ...item, read: true }))); announce("모든 알림을 읽음 처리했습니다.") }} onOpenPost={openNotification} /> : null}
       <WriteQuestionDialog open={writeOpen} onOpenChange={setWriteOpen} onSubmit={createPost} returnFocusRef={writeReturnFocusRef} />
       <Dialog open={recoveryOpen} onOpenChange={setRecoveryOpen}><DialogContent className="w-[min(720px,calc(100vw-64px))]"><header className="border-b border-[#e3ebf0] px-7 py-5"><DialogTitle className="text-[18px] font-[680]">Q&A 숨김 항목 복구</DialogTitle><DialogDescription className="mt-1 text-[11px] text-[#60798b]">마스터만 숨김 질문과 답변·댓글을 복구할 수 있습니다.</DialogDescription></header><div className="grid max-h-[440px] gap-2 overflow-y-auto px-7 py-6">{hiddenPosts.map((post) => <article key={post.id} className="flex items-center gap-3 rounded-[9px] border border-[#dce7ee] bg-[#fafbfa] p-4"><span className="min-w-0 flex-1"><Badge variant="muted">질문</Badge><strong className="mt-1 block truncate text-[12px]">{post.title}</strong><small className="mt-1 block text-[10px] text-[#60798b]">{post.hiddenAt} · {post.hiddenBy} 숨김</small></span><Button type="button" size="sm" variant="outline" onClick={() => { updatePost({ ...post, hidden: false, hiddenAt: undefined, hiddenBy: undefined }); recordChange("질문 복구", post.title); announce("질문을 복구했습니다.") }}><ArchiveRestore className="size-3.5" />복구</Button></article>)}{hiddenMessages.map(({ post, message }) => <article key={`${post.id}-${message.id}`} className="flex items-center gap-3 rounded-[9px] border border-[#dce7ee] bg-[#fafbfa] p-4"><span className="min-w-0 flex-1"><Badge variant="muted">답변·댓글</Badge><strong className="mt-1 block truncate text-[12px]">{post.title}</strong><small className="mt-1 block truncate text-[10px] text-[#60798b]">{message.author} · {message.body}</small></span><Button type="button" size="sm" variant="outline" onClick={() => { updatePost({ ...post, messages: post.messages.map((item) => item.id === message.id ? { ...item, hidden: false, hiddenAt: undefined, hiddenBy: undefined } : item) }); recordChange("답변 복구", post.title, message.author); announce("답변을 복구했습니다.") }}><ArchiveRestore className="size-3.5" />복구</Button></article>)}{!hiddenPosts.length && !hiddenMessages.length ? <p className="py-12 text-center text-[12px] text-[#60798b]">숨김 처리된 Q&A 항목이 없습니다.</p> : null}</div></DialogContent></Dialog>
-      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}><DialogContent className="w-[min(720px,calc(100vw-64px))]"><header className="border-b border-[#e3ebf0] px-7 py-5"><DialogTitle className="text-[18px] font-[680]">Q&A 변경 이력</DialogTitle><DialogDescription className="mt-1 text-[11px] text-[#60798b]">현재 목업 세션에서 변경한 질문·답변·상태를 표시합니다.</DialogDescription></header><div className="grid max-h-[440px] gap-2 overflow-y-auto px-7 py-6">{historyEntries.length ? historyEntries.map((entry) => <article key={entry.id} className="flex items-center gap-3 rounded-[9px] border border-[#dce7ee] bg-[#fafbfa] p-4"><span className="min-w-0 flex-1"><strong className="block truncate text-[12px]">{entry.targetName}</strong><small className="mt-1 block text-[10px] text-[#60798b]">{entry.occurredAt} · {entry.actor}{entry.detail ? ` · ${entry.detail}` : ""}</small></span><Badge variant="muted">{entry.action}</Badge></article>) : <p className="py-12 text-center text-[12px] text-[#60798b]">아직 변경 이력이 없습니다.</p>}</div></DialogContent></Dialog>
+      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}><DialogContent className="w-[min(720px,calc(100vw-64px))]"><header className="border-b border-[#e3ebf0] px-7 py-5"><DialogTitle className="text-[18px] font-[680]">Q&A 변경 이력</DialogTitle><DialogDescription className="mt-1 text-[12px] text-[#60798b]">이 브라우저의 가상 데이터에서 변경한 질문·답변·상태를 표시합니다.</DialogDescription></header><div className="grid max-h-[440px] gap-2 overflow-y-auto px-7 py-6">{historyEntries.length ? historyEntries.map((entry) => <article key={entry.id} className="flex items-center gap-3 rounded-[9px] border border-[#dce7ee] bg-[#fafbfa] p-4"><span className="min-w-0 flex-1"><strong className="block truncate text-[12px]">{entry.targetName}</strong><small className="mt-1 block text-[10px] text-[#60798b]">{entry.occurredAt} · {entry.actor}{entry.detail ? ` · ${entry.detail}` : ""}</small></span><Badge variant="muted">{entry.action}</Badge></article>) : <p className="py-12 text-center text-[12px] text-[#60798b]">아직 변경 이력이 없습니다.</p>}</div></DialogContent></Dialog>
       <div className={cn("pointer-events-none fixed bottom-7 left-1/2 z-[130] -translate-x-1/2 rounded-[9px] bg-[#172c3c] px-4 py-2.5 text-[12px] font-medium text-white shadow-xl transition", liveMessage ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0")} role="status" aria-live="polite" aria-atomic="true">{liveMessage}</div>
     </div>
   )
