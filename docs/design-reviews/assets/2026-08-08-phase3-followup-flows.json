@@ -1,0 +1,59 @@
+{
+  "viewport": "1920x1080 DPR1",
+  "report": {
+    "title": "종합 품질 현황",
+    "target": "report",
+    "mode": {
+      "report": "viewer",
+      "rule": "closed",
+      "qna": "closed"
+    },
+    "focus": {
+      "id": "report-viewer-main",
+      "tag": "DIV",
+      "text": "Report 목록\n              각종 Report 조회/종합 품질 현황\n            \n            \n              Spotfire 연결 예정"
+    }
+  },
+  "rule": {
+    "title": "예시 Rule 문서 A-01",
+    "target": "rule",
+    "mode": {
+      "report": "closed",
+      "rule": "open",
+      "qna": "closed"
+    },
+    "focus": {
+      "id": "",
+      "tag": "BUTTON",
+      "text": "RULE예시 데이터\n                  예시 Rule 문서 A-01예시 대분류 A · 예시 중분류 A-1 · 예시 소분류 01 · 식각 공정v0.1 MOCK"
+    }
+  },
+  "qna": {
+    "title": "식각 Rate 관리 기준 변경 시 적용 시점을 확인하고 싶습니다",
+    "target": "qna",
+    "mode": {
+      "report": "closed",
+      "rule": "closed",
+      "qna": "open"
+    },
+    "focus": {
+      "id": "qna-main",
+      "tag": "MAIN",
+      "text": "질문 목록답변 중식각공정기술기준 문의Q-2026-084질문 수정질문 숨김식각 Rate 관리 기준 변경 시 적용 시점을 확인하고 싶습니다김품질오늘 10:24조회 38이상률 관리 기준"
+    }
+  },
+  "notification": {
+    "before": [
+      "Q&A 알림 3개",
+      "Q&A 알림 3개",
+      "Q&A 알림 3개"
+    ],
+    "after": [
+      "Q&A 알림 4개",
+      "Q&A 알림 4개",
+      "Q&A 알림 4개"
+    ],
+    "toast": true,
+    "replyVisible": true
+  }
+}

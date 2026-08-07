@@ -92,6 +92,7 @@ let qnaReturnFocus;
 let userReturnFocus;
 let accessAddReturnFocus;
 let globalSearchReturnFocus;
+let pendingGlobalSearchReportCard;
 let suppressGlobalSearchFocusRestore = false;
 let currentRole = prototype?.dataset.currentRole ?? "master";
 let currentRolePolicy = getRolePolicy(currentRole);
@@ -1801,16 +1802,15 @@ document.querySelector("[data-global-search-results]")?.addEventListener("click"
     const target = result.dataset.searchTarget;
     const contentId = result.dataset.searchId;
     suppressGlobalSearchFocusRestore = true;
-    globalSearch?.close();
 
     if (target === "report") {
       const card = [...document.querySelectorAll("[data-report-card]")].find((item) => item.dataset.reportTitle === contentId);
-      if (card) {
-        setReportMode("viewer", { card, focus: false });
-        window.setTimeout(() => reportViewer?.focus(), 220);
-      }
+      pendingGlobalSearchReportCard = card instanceof HTMLElement ? card : null;
+      globalSearch?.close();
       return;
     }
+
+    globalSearch?.close();
 
     if (target === "rule") {
       const card = [...document.querySelectorAll("[data-rule-card]")].find((item) => item.dataset.ruleTitle === contentId);
@@ -1839,7 +1839,19 @@ globalSearch?.addEventListener("click", (event) => {
 });
 
 globalSearch?.addEventListener("close", () => {
-  if (!suppressGlobalSearchFocusRestore) globalSearchReturnFocus?.focus();
+  if (pendingGlobalSearchReportCard instanceof HTMLElement) {
+    setReportMode("viewer", { card: pendingGlobalSearchReportCard, focus: false });
+    let focusFrames = 3;
+    const focusReportViewer = () => {
+      reportViewer?.focus();
+      focusFrames -= 1;
+      if (focusFrames > 0) window.requestAnimationFrame(focusReportViewer);
+    };
+    window.requestAnimationFrame(focusReportViewer);
+  } else if (!suppressGlobalSearchFocusRestore) {
+    globalSearchReturnFocus?.focus();
+  }
+  pendingGlobalSearchReportCard = null;
   suppressGlobalSearchFocusRestore = false;
 });
 

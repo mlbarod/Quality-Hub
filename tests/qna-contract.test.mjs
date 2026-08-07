@@ -7,6 +7,7 @@ import { filterPosts, initialNotifications, initialPosts, STATUS } from "../prot
 const html = await readFile(new URL("../prototype/index.html", import.meta.url), "utf8")
 const script = await readFile(new URL("../prototype/app.js", import.meta.url), "utf8")
 const qnaEntry = await readFile(new URL("../prototype/src/main.jsx", import.meta.url), "utf8")
+const styles = await readFile(new URL("../prototype/styles.css", import.meta.url), "utf8")
 const qnaStyles = await readFile(new URL("../prototype/src/qna.css", import.meta.url), "utf8")
 const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"))
 
@@ -19,9 +20,12 @@ test("기존 Quality Hub 안에 Q&A React 작업 화면 진입점을 제공한�
   assert.match(script, /qualityhub:qna-view/)
   assert.match(qnaEntry, /function loadQnaModules\(\)/)
   assert.match(qnaEntry, /button\.addEventListener\("pointerenter", prepareQna/)
-  assert.match(qnaEntry, /function cancelQnaWarmup\(\)/)
-  assert.match(qnaEntry, /\}, 1800\)/)
+  assert.match(qnaEntry, /import\("@\/qna\.css"\)/)
+  assert.doesNotMatch(qnaEntry, /^import "@\/qna\.css"/m)
+  assert.doesNotMatch(qnaEntry, /scheduleQnaWarmup|requestIdleCallback/)
   assert.match(html, /class="qna-boot-loading" role="status"/)
+  assert.match(styles, /\.qna-workspace \{[\s\S]*visibility: hidden;/)
+  assert.match(styles, /\.prototype\[data-qna-mode="open"\] \.qna-workspace/)
   assert.match(qnaStyles, /\.qna-boot-spinner \{[\s\S]*animation: qna-boot-spin/)
 })
 

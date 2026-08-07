@@ -24,7 +24,10 @@ test("통합 검색 팝업에서 Report, Rule&SOP, Q&A 콘텐츠로 연결한다
   assert.match(html, /data-search-target="rule"/)
   assert.match(html, /data-search-target="qna"/)
   assert.match(script, /const openGlobalSearch/)
-  assert.match(script, /setReportMode\("viewer", \{ card, focus: false \}\)/)
+  assert.match(script, /pendingGlobalSearchReportCard = card instanceof HTMLElement \? card : null/)
+  assert.match(script, /setReportMode\("viewer", \{ card: pendingGlobalSearchReportCard, focus: false \}\)/)
+  assert.match(script, /let focusFrames = 3/)
+  assert.match(script, /window\.requestAnimationFrame\(focusReportViewer\)/)
   assert.match(script, /setRuleMode\("open", \{ focus: false \}\)/)
   assert.match(script, /setQnaMode\("open", \{ view: "detail", postId: contentId \}\)/)
   assert.match(qnaApp, /hasRequestedPost \? "detail" : "list"/)
@@ -105,11 +108,11 @@ test("품질 Agent UI와 실제 연동 경계를 요구사항에 명시한다", 
   assert.match(requirements, /실제 API 규격, 인증과 Report 참조 범위는 연동 단계에서 확정/)
 })
 
-test("현재 3단계 부분 완료 상태와 실제 연동 제외 범위를 계획·요구사항·보고서에 일치시킨다", () => {
+test("현재 3단계 후속 검토 보류 상태와 실제 연동 제외 범위를 계획·요구사항·보고서에 일치시킨다", () => {
   assert.match(developmentPlan, /현재 상태:\*\* 1단계 UI\/UX 설계 완료/)
   assert.match(developmentPlan, /2단계: UI 프로토타입 구현 · 완료/)
   assert.match(developmentPlan, /3단계: 로컬 기능 구현 · 부분 완료/)
-  assert.match(requirements, /3단계 로컬 기능은 구현했으나.*`부분 완료`/)
+  assert.match(requirements, /3단계 로컬 기능과.*`부분 완료`/)
   assert.match(phase3CompletionReport, /`부분 완료`.*독립 디자인 게이트는 `보류`/)
   assert.match(phase3CompletionReport, /현재 브라우저에만 적용/)
   assert.match(phase2CompletionReport, /\*\*판정:\*\* `완료`/)

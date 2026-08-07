@@ -1,0 +1,113 @@
+{
+  "scale": "125% equivalent: 1536x864 CSS viewport, DPR 1.25",
+  "reducedMotion": true,
+  "home": {
+    "viewport": {
+      "width": 1536,
+      "height": 864,
+      "dpr": 1.25,
+      "visualScale": 1
+    },
+    "documentOverflow": {
+      "x": 0,
+      "y": 0
+    },
+    "cards": [
+      {
+        "name": "orbit-app-report",
+        "rect": {
+          "x": 591.4,
+          "y": 196.1,
+          "width": 288,
+          "height": 192,
+          "right": 879.4,
+          "bottom": 388.1
+        },
+        "statusFont": "12px"
+      },
+      {
+        "name": "orbit-app-search",
+        "rect": {
+          "x": 1192.4,
+          "y": 231.4,
+          "width": 288,
+          "height": 192,
+          "right": 1480.4,
+          "bottom": 423.4
+        },
+        "statusFont": "12px"
+      },
+      {
+        "name": "orbit-app-rule",
+        "rect": {
+          "x": 620.2,
+          "y": 568.1,
+          "width": 288,
+          "height": 192,
+          "right": 908.2,
+          "bottom": 760.1
+        },
+        "statusFont": "12px"
+      },
+      {
+        "name": "orbit-app-qna",
+        "rect": {
+          "x": 1178,
+          "y": 532.8,
+          "width": 288,
+          "height": 192,
+          "right": 1466,
+          "bottom": 724.8
+        },
+        "statusFont": "12px"
+      }
+    ],
+    "agent": {
+      "x": 957.5,
+      "y": 388,
+      "width": 152,
+      "height": 152,
+      "right": 1109.5,
+      "bottom": 540
+    },
+    "agentOverlaps": [
+      {
+        "name": "orbit-app-report",
+        "area": 0
+      },
+      {
+        "name": "orbit-app-search",
+        "area": 0
+      },
+      {
+        "name": "orbit-app-rule",
+        "area": 0
+      },
+      {
+        "name": "orbit-app-qna",
+        "area": 0
+      }
+    ],
+    "pairOverlaps": [],
+    "outsideViewport": []
+  },
+  "search": {
+    "open": true,
+    "focused": true,
+    "rect": {
+      "x": 411.6,
+      "y": 107.2,
+      "width": 712.8,
+      "height": 633.7,
+      "right": 1124.4,
+      "bottom": 740.8
+    },
+    "insideViewport": true,
+    "scroll": {
+      "clientWidth": 718,
+      "scrollWidth": 718,
+      "clientHeight": 638,
+      "scrollHeight": 638
+    }
+  }
+}

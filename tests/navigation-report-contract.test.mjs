@@ -46,6 +46,7 @@ test("스카이 톤 홈에서 정위치로 분산 배치한 네 개의 App과 �
   assert.match(styles, /\.orbit-app-qna \{ right: 5\.5%; bottom: 13%; \}/)
   assert.match(styles, /@keyframes orbit-signal-flow/)
   assert.match(styles, /\.orbit-agent:hover \.orbit-agent-rings \{ animation: agent-orbit-breathe/)
+  assert.match(styles, /@media \(max-width: 1600px\) \{[\s\S]*\.orbit-app \{ width: 288px; height: 192px; \}/)
 })
 
 test("초기 홈에서 그래프를 숨기고 대시보드 버튼으로 별도 화면을 연다", () => {
