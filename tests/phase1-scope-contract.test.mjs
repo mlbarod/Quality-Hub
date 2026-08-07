@@ -108,11 +108,14 @@ test("품질 Agent UI와 실제 연동 경계를 요구사항에 명시한다", 
   assert.match(requirements, /실제 API 규격, 인증과 Report 참조 범위는 연동 단계에서 확정/)
 })
 
-test("현재 3단계 후속 검토 보류 상태와 실제 연동 제외 범위를 계획·요구사항·보고서에 일치시킨다", () => {
+test("현재 3단계 후속 검토 보류 상태와 125% 확대 제외 범위를 계획·요구사항·보고서에 일치시킨다", () => {
   assert.match(developmentPlan, /현재 상태:\*\* 1단계 UI\/UX 설계 완료/)
   assert.match(developmentPlan, /2단계: UI 프로토타입 구현 · 완료/)
   assert.match(developmentPlan, /3단계: 로컬 기능 구현 · 부분 완료/)
-  assert.match(requirements, /3단계 로컬 기능과.*`부분 완료`/)
+  assert.match(requirements, /3단계 로컬 기능.*`부분 완료`/)
+  assert.match(requirements, /125% 확대 검증은 사용자 결정으로 `해당 없음`/)
+  assert.match(developmentPlan, /125% 확대 검증은 사용자 결정으로 `해당 없음`/)
+  assert.match(phase3CompletionReport, /125% 확대 검증은 사용자 결정으로 `해당 없음`/)
   assert.match(phase3CompletionReport, /`부분 완료`.*독립 디자인 게이트는 `보류`/)
   assert.match(phase3CompletionReport, /현재 브라우저에만 적용/)
   assert.match(phase2CompletionReport, /\*\*판정:\*\* `완료`/)
