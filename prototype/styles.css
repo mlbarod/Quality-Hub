@@ -15,9 +15,9 @@
   --primary: hsl(204 94% 45%);
   --primary-dark: hsl(204 94% 33%);
   --primary-soft: hsl(204 90% 94%);
-  --description-sm: 10px;
-  --description-md: 11px;
-  --description-lg: 12px;
+  --description-sm: 12px;
+  --description-md: 13px;
+  --description-lg: 14px;
   --amber: #a76812;
   --amber-soft: #fff6e5;
   --danger: #b64c45;
@@ -4652,7 +4652,7 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
   top: 0;
   z-index: 12;
   display: flex;
-  min-height: 62px;
+  min-height: 66px;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
@@ -4672,7 +4672,7 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 10px;
+  font-size: 14px;
 }
 
 .report-page-header > div:first-child > span i,
@@ -4686,16 +4686,16 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
 .report-help-button,
 .report-viewer-actions button {
   display: inline-flex;
-  height: 34px;
+  height: 40px;
   align-items: center;
   gap: 7px;
-  padding: 0 11px;
+  padding: 0 16px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
   color: var(--muted-foreground);
   cursor: pointer;
-  font-size: 9px;
+  font-size: 16px;
   font-weight: 620;
   box-shadow: var(--shadow-xs);
   transition: border-color 180ms ease, background 180ms ease, color 180ms ease, transform 180ms ease;
@@ -4711,15 +4711,15 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
 }
 
 .report-back-button .icon {
-  width: 13px;
-  height: 13px;
+  width: 16px;
+  height: 16px;
   transform: rotate(180deg);
 }
 
 .report-help-button .icon,
 .report-viewer-actions button .icon {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
 }
 
 .report-catalog-content {
@@ -4787,7 +4787,7 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
 
 .report-catalog-controls {
   position: sticky;
-  top: 62px;
+  top: 66px;
   z-index: 10;
   display: flex;
   align-items: center;
@@ -6340,10 +6340,10 @@ body,
   left: 50%;
   z-index: 4;
   display: grid;
-  width: 138px;
-  height: 138px;
+  width: 152px;
+  height: 152px;
   place-items: center;
-  padding: 21px 12px 14px;
+  padding: 23px 13px 15px;
   border: 1px solid rgb(82 174 226 / 50%);
   border-radius: 50%;
   background: linear-gradient(145deg, #fff 14%, #d9effb 100%);
@@ -6379,13 +6379,13 @@ body,
 
 .orbit-agent-mark {
   display: grid;
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   place-items: center;
   border-radius: 15px;
   background: linear-gradient(145deg, #1598e7, #0673bc);
   color: #fff;
-  font-size: 23px;
+  font-size: 25px;
   box-shadow: 0 10px 24px rgb(7 136 223 / 25%);
 }
 
@@ -6401,10 +6401,10 @@ body,
   position: absolute;
   z-index: 3;
   display: block;
-  width: clamp(232px, 18.5vw, 280px);
-  height: 164px;
+  width: clamp(278px, 22.2vw, 336px);
+  height: 197px;
   aspect-ratio: auto;
-  padding: 17px 18px;
+  padding: 20px 22px;
   overflow: hidden;
   border: 1px solid rgb(94 167 208 / 36%);
   border-radius: 24px;
@@ -6442,18 +6442,18 @@ body,
 
 .orbit-legacy-header {
   position: absolute;
-  top: 12px;
-  right: 13px;
-  left: 13px;
+  top: 14px;
+  right: 16px;
+  left: 16px;
   z-index: 2;
   display: block;
-  height: 39px;
+  height: 47px;
   overflow: hidden;
 }
 
 .orbit-legacy-header .app-card-header {
-  width: 114%;
-  transform: scale(.88);
+  width: 100%;
+  transform: scale(1);
   transform-origin: top left;
 }
 
@@ -6462,10 +6462,10 @@ body,
 
 .orbit-legacy-visual {
   position: absolute;
-  top: 57px;
-  right: 38px;
-  bottom: 12px;
-  left: 13px;
+  top: 68px;
+  right: 45px;
+  bottom: 14px;
+  left: 16px;
   display: block;
   overflow: hidden;
   border: 1px solid rgb(102 171 210 / 22%);
@@ -6491,10 +6491,10 @@ body,
 
 .orbit-search-preview {
   position: absolute;
-  top: 57px;
-  right: 38px;
-  bottom: 12px;
-  left: 13px;
+  top: 68px;
+  right: 45px;
+  bottom: 14px;
+  left: 16px;
   display: grid;
   gap: 5px;
   padding: 8px;
@@ -6552,10 +6552,10 @@ body,
 
 .orbit-app-arrow {
   position: absolute;
-  right: 15px;
-  bottom: 14px;
-  width: 14px;
-  height: 14px;
+  right: 18px;
+  bottom: 17px;
+  width: 17px;
+  height: 17px;
   color: #4d87aa;
   transform: rotate(-32deg);
   transition: transform 220ms ease;
@@ -6678,7 +6678,7 @@ body,
 .agent-composer > button { color: #fff; box-shadow: 0 8px 20px rgb(7 136 223 / 18%); }
 .agent-composer > button:hover { background: #0673bc; }
 
-/* App 카드 밖의 공통 버튼·배지는 기존 대비 약 20% 크게 표시한다. */
+/* Main Header를 제외한 업무 화면은 Q&A의 12~16px 본문·40px 버튼 체계를 따른다. */
 .workspace-actions > button:first-child,
 .header-search { font-size: 13px; }
 .top-nav-link,
@@ -6693,39 +6693,100 @@ body,
 .orbit-agent-copy small { font-size: 12px; }
 
 .period-control button,
-.refresh-button { font-size: 13px; }
+.refresh-button { font-size: 16px; }
 .state-preview-control select,
-.common-state-surface > button { font-size: 12px; }
-.demo-badge { font-size: 10px; }
-.trend-badge { font-size: 12px; }
+.common-state-surface > button { font-size: 14px; }
+.common-state-surface > button { height: 40px; padding: 0 16px; }
+.demo-badge { font-size: 12px; }
+.trend-badge { font-size: 13px; }
+
+.dashboard-view .demo-notice,
+.dashboard-view .common-state-surface p,
+.dashboard-view .chart-meta,
+.dashboard-view .line-labels,
+.dashboard-view .bar-scale,
+.dashboard-view .bars span,
+.dashboard-view .page-footer { font-size: 12px; }
+.dashboard-view .card-heading p,
+.dashboard-view .section-heading > p { font-size: 14px; }
+.dashboard-view .period-control button { font-size: 14px; }
+.dashboard-view .bars b { font-size: 12px; }
+
+.hero-meta dt,
+.orbit-heading p { font-size: 12px; }
+.hero-meta dd { font-size: 13px; }
+.orbit-heading h2 { font-size: 17px; }
 
 .agent-suggestions button,
 .agent-citations button strong,
 .agent-history > header button,
-.agent-back-button { font-size: 11px; }
+.agent-back-button { font-size: 14px; }
 .agent-citations button small,
 .agent-history-group button small,
 .agent-starters button small,
 .agent-context section > button small,
-.agent-context section > button em { font-size: 9px; }
+.agent-context section > button em { font-size: 12px; }
 .agent-history-group button span,
-.agent-context section > button strong { font-size: 12px; }
-.agent-starters button strong { font-size: 13px; }
-.agent-context section > button > i { font-size: 7px; }
+.agent-context section > button strong { font-size: 14px; }
+.agent-starters button strong { font-size: 15px; }
+.agent-context section > button > i { font-size: 12px; }
+.agent-context-label,
+.agent-starters > p,
+.agent-history-group > p,
+.agent-context h2,
+.agent-citations > p { font-size: 12px; }
+.agent-identity small,
+.agent-message time,
+.agent-composer > small,
+.agent-answer-note { font-size: 12px; }
+.agent-message,
+.agent-composer input,
+.agent-full-composer input { font-size: 14px; }
+.agent-message li strong { font-size: 14px; }
+.agent-message li span { font-size: 13px; }
+.agent-suggestions button,
+.agent-history > header button,
+.agent-back-button { min-height: 40px; padding-right: 14px; padding-left: 14px; }
+.agent-window-actions button,
+.agent-context > header button { width: 40px; height: 40px; }
 
 .rule-category-accordion > button strong { font-size: 17px; }
 .rule-category-accordion > button small,
-.rule-sop-heading > button,
+.rule-sop-heading > button { font-size: 14px; }
 .report-back-button,
 .report-help-button,
-.report-viewer-actions button,
-.report-filter-tabs button { font-size: 11px; }
+.report-viewer-actions button { font-size: 16px; }
+.report-filter-tabs button { font-size: 14px; }
 .rule-category-accordion > button > i,
 .rule-filter-group legend > span,
 .rule-filter-group legend small,
-.report-filter-tabs button i { font-size: 9px; }
-.rule-filter-group legend strong { font-size: 13px; }
-.rule-filter-group button { font-size: 10px; }
+.report-filter-tabs button i { font-size: 12px; }
+.rule-filter-group legend strong { font-size: 14px; }
+.rule-filter-group button { min-height: 40px; font-size: 14px; }
+.rule-sop-heading > button,
+.report-filter-tabs button { height: 40px; padding-right: 14px; padding-left: 14px; }
+.rule-mock-notice strong,
+.rule-category-panel strong,
+.rule-results-heading > div > strong { font-size: 14px; }
+.rule-category-accordion > button > i,
+.rule-category-panel > i,
+.rule-results-heading > div > span,
+.rule-results-heading p,
+.rule-document-meta { font-size: 12px; }
+.rule-document-card > strong { font-size: 16px; }
+.rule-document-card > small { font-size: 12px; }
+.rule-document-type > i,
+.rule-document-type > em,
+.rule-document-meta > i { font-size: 12px; }
+.rule-empty-state strong { font-size: 14px; }
+.rule-document-create-card > em { font-size: 12px; }
+.rule-detail-panel > header small,
+.rule-detail-classification dt,
+.rule-revision-section li > b,
+.rule-revision-section li small,
+.rule-detail-panel > footer > span,
+.rule-editor-taxonomy legend small,
+.rule-editor-url small { font-size: 12px; }
 .rule-source-link > button,
 .rule-admin-actions button,
 .rule-editor-form > footer button,
@@ -6751,9 +6812,57 @@ body,
 .report-card-top i,
 .report-card-top em,
 .spotfire-embed-card > header i,
-.spotfire-placeholder-badge { font-size: 7.5px; }
+.spotfire-placeholder-badge { font-size: 12px; }
 .report-create-card > em,
-.report-viewer-actions > span { font-size: 10px; }
+.report-viewer-actions > span { font-size: 12px; }
+.report-summary-card small,
+.report-category-section header p,
+.report-card-copy em,
+.report-card-meta,
+.report-empty-state span,
+.report-viewer-heading > div:last-child span,
+.report-viewer-note small { font-size: 12px; }
+.report-search { height: 40px; }
+.report-search input { font-size: 13px; }
+.report-category-section > header > i,
+.report-card-copy small { font-size: 12px; }
+.report-card-copy strong { font-size: 16px; }
+.report-viewer-heading > div:last-child strong,
+.spotfire-embed-card > header strong,
+.report-viewer-note strong { font-size: 14px; }
+.spotfire-embed-card > header > span,
+.spotfire-embed-placeholder p,
+.report-editor-body > label > small,
+.report-permission-note small { font-size: 12px; }
+
+.global-search-panel > header strong { font-size: 18px; }
+.global-search-panel > header small,
+.global-search-result-heading span,
+.global-search-results small,
+.global-search-empty span { font-size: 12px; }
+.global-search-result-heading strong,
+.global-search-results i { font-size: 13px; }
+.global-search-results strong { font-size: 15px; }
+.global-search-panel > header button { width: 40px; height: 40px; }
+.global-search-empty strong { font-size: 14px; }
+.global-search-panel > footer { font-size: 12px; }
+
+.master-list article strong { font-size: 14px; }
+.master-list article small,
+.master-list article > b { font-size: 12px; }
+.user-page-tools > button,
+.master-list article > button { height: 40px; padding-right: 14px; padding-left: 14px; font-size: 14px; }
+
+.access-blocked dt { font-size: 12px; }
+.access-blocked dd { font-size: 14px; }
+.phase2-dialog-panel > header small { font-size: 13px; }
+.phase2-dialog-panel > header button { width: 40px; height: 40px; }
+.phase2-list-item strong { font-size: 14px; }
+.phase2-list-item small,
+.phase2-list-item > b { font-size: 12px; }
+.phase2-list-item > button { height: 40px; padding-right: 14px; padding-left: 14px; font-size: 14px; }
+
+.toast { font-size: 14px; }
 
 @keyframes orbit-signal-flow {
   to { stroke-dashoffset: -1; }
@@ -6782,7 +6891,7 @@ body,
   .command-hero { grid-template-columns: minmax(390px, .72fr) minmax(650px, 1.28fr); }
   .command-hero-copy { padding-left: 58px; }
   .app-orbit { margin-right: 22px; }
-  .orbit-app { width: 240px; height: 160px; }
+  .orbit-app { width: 288px; height: 192px; }
   .orbit-app-report { left: 4%; }
   .orbit-app-search { right: 3.5%; }
   .orbit-app-rule { left: 7%; }

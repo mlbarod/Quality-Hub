@@ -36,7 +36,8 @@ test("스카이 톤 홈에서 정위치로 분산 배치한 네 개의 App과 �
   assert.match(styles, /\.prototype\[data-layout="top"\]\[data-agent-mode="drawer"\] \.workspace \{\s*margin-right: 0;/)
   assert.match(styles, /\.agent-drawer \{[\s\S]*inset: auto 24px 24px auto;[\s\S]*border-radius: 25px;/)
   assert.match(styles, /\.orbit-app \{[\s\S]*border-radius: 24px;/)
-  assert.match(styles, /\.orbit-app \{[\s\S]*width: clamp\(232px, 18\.5vw, 280px\);[\s\S]*height: 164px;/)
+  assert.match(styles, /\.orbit-app \{[\s\S]*width: clamp\(278px, 22\.2vw, 336px\);[\s\S]*height: 197px;/)
+  assert.match(styles, /\.orbit-agent \{[\s\S]*width: 152px;[\s\S]*height: 152px;/)
   assert.doesNotMatch(styles, /--tilt:/)
   assert.match(styles, /\.orbit-app-report \{ top: 12%; left: 4\.5%; \}/)
   assert.match(styles, /\.orbit-app-search \{ top: 17%; right: 3\.5%; \}/)
@@ -107,6 +108,9 @@ test("App 상세 화면의 Main 버튼은 대시보드가 아닌 App 홈으로 �
   assert.match(qnaApp, /qualityhub:qna-close[\s\S]*<X[^>]*\/>Main<\/Button>/)
   assert.equal((script.match(/setDashboardMode\("home"\);/g) ?? []).length, 4)
   assert.doesNotMatch(script, /대시보드로 돌아왔습니다/)
+  assert.match(styles, /\.report-page-header \{[\s\S]*min-height: 66px;/)
+  assert.match(styles, /\.report-page-header > div:first-child > span \{[\s\S]*font-size: 14px;/)
+  assert.match(styles, /\.report-back-button,[\s\S]*height: 40px;[\s\S]*font-size: 16px;/)
 })
 
 test("이미 닫힌 작업 화면은 다시 갱신하지 않아 App 전환 경로를 단순화한다", () => {
@@ -118,10 +122,10 @@ test("이미 닫힌 작업 화면은 다시 갱신하지 않아 App 전환 경�
   assert.match(script, /initializedModes\.user && prototype\.dataset\.userMode === mode/)
 })
 
-test("제목 크기는 유지하고 주요 설명 문구를 10px 이상으로 표시한다", () => {
-  assert.match(styles, /--description-sm: 10px;/)
-  assert.match(styles, /--description-md: 11px;/)
-  assert.match(styles, /--description-lg: 12px;/)
+test("제목 크기는 유지하고 주요 설명 문구를 Q&A 기준인 12px 이상으로 표시한다", () => {
+  assert.match(styles, /--description-sm: 12px;/)
+  assert.match(styles, /--description-md: 13px;/)
+  assert.match(styles, /--description-lg: 14px;/)
   assert.match(styles, /\.section-heading > p,[\s\S]*font-size: var\(--description-lg\);/)
   assert.match(styles, /\.top-nav-menu small,[\s\S]*font-size: var\(--description-md\);/)
   assert.match(styles, /\.agent-citations button small,[\s\S]*font-size: var\(--description-sm\);/)
