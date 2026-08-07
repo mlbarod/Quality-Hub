@@ -115,6 +115,7 @@ test("품질 Agent UI 확정과 실제 연동 후속 처리를 메모에 명시�
 test("1단계 완료 근거를 유지하고 현재 2단계 완료 상태를 문서와 화면에 일치시킨다", () => {
   assert.match(memo, /\[x\] 요구사항·개발 계획·UI\/UX 설계 문서와 현재 화면 대조/)
   assert.match(memo, /1단계 UI\/UX 설계를 종료한다/)
+  assert.match(memo, /2단계 구현과 검증 결과는 \[2단계 완료 보고서\]/)
   assert.match(developmentPlan, /현재 상태:\*\* 1단계 UI\/UX 설계 완료/)
   assert.match(developmentPlan, /2단계: UI 프로토타입 구현 · 완료/)
   assert.match(developmentPlan, /3단계: 로컬 기능 구현 · 다음 단계/)
