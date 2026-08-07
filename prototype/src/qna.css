@@ -11,7 +11,7 @@
   opacity: 0;
   pointer-events: none;
   transform: translateY(8px);
-  transition: opacity 200ms ease, transform 240ms ease, visibility 0s linear 240ms;
+  transition: opacity 140ms ease, transform 160ms ease, visibility 0s linear 160ms;
 }
 
 .prototype[data-qna-mode="open"] .qna-workspace {
@@ -25,6 +25,32 @@
 #qna-root,
 .qna-scope {
   height: 100%;
+}
+
+.qna-boot-loading {
+  display: grid;
+  height: 100%;
+  place-content: center;
+  place-items: center;
+  gap: 7px;
+  color: #263b4a;
+}
+
+.qna-boot-loading strong { font-size: 14px; }
+.qna-boot-loading small { color: #60798b; font-size: 11px; }
+
+.qna-boot-spinner {
+  width: 26px;
+  height: 26px;
+  margin-bottom: 4px;
+  border: 3px solid #d4e7f2;
+  border-top-color: #0788df;
+  border-radius: 50%;
+  animation: qna-boot-spin 700ms linear infinite;
+}
+
+@keyframes qna-boot-spin {
+  to { transform: rotate(360deg); }
 }
 
 .qna-scope {
@@ -251,7 +277,8 @@
   [data-qna-modal],
   .qna-write-button,
   .qna-write-icon,
-  .qna-write-label {
+  .qna-write-label,
+  .qna-boot-spinner {
     transition: none !important;
     animation: none !important;
   }

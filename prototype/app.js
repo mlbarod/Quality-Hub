@@ -97,6 +97,15 @@ let currentCommonState = prototype?.dataset.commonState ?? "normal";
 let editingAccessRow = null;
 const hiddenItems = [];
 const historyEntries = [];
+const initializedModes = {
+  agent: false,
+  dashboard: false,
+  qna: false,
+  report: false,
+  rule: false,
+  user: false,
+};
+let activeQnaViewKey = "";
 
 const chartPeriods = DASHBOARD_PERIODS;
 
@@ -132,6 +141,8 @@ const dashboardModes = new Set(["home", "dashboard"]);
 
 const setDashboardMode = (mode, { announce = true, focus = true } = {}) => {
   if (!(prototype instanceof HTMLElement) || !dashboardModes.has(mode)) return;
+  if (initializedModes.dashboard && prototype.dataset.dashboardMode === mode) return;
+  initializedModes.dashboard = true;
 
   const isDashboard = mode === "dashboard";
   prototype.dataset.dashboardMode = mode;
@@ -268,6 +279,8 @@ const agentModes = new Set(["closed", "drawer", "full"]);
 
 const setAgentMode = (mode, { announce = true, focus = true } = {}) => {
   if (!prototype || !agentModes.has(mode)) return;
+  if (initializedModes.agent && prototype.dataset.agentMode === mode) return;
+  initializedModes.agent = true;
 
   prototype.dataset.agentMode = mode;
   document.body.classList.toggle("agent-full-active", mode === "full");
@@ -384,6 +397,9 @@ const updateReportViewer = (card) => {
 
 const setReportMode = (mode, { announce = true, focus = true, restoreAgent = true, card = null } = {}) => {
   if (!prototype || !reportModes.has(mode)) return;
+  const isSameViewer = mode === "viewer" && card instanceof HTMLElement && card !== activeReportCard;
+  if (initializedModes.report && prototype.dataset.reportMode === mode && !isSameViewer) return;
+  initializedModes.report = true;
 
   if (mode !== "closed" && prototype.dataset.ruleMode === "open") {
     setRuleMode("closed", { announce: false, focus: false, restoreAgent: false });
@@ -451,6 +467,8 @@ const ruleModes = new Set(["closed", "open"]);
 
 const setRuleMode = (mode, { announce = true, focus = true, restoreAgent = true } = {}) => {
   if (!prototype || !ruleModes.has(mode)) return;
+  if (initializedModes.rule && prototype.dataset.ruleMode === mode) return;
+  initializedModes.rule = true;
 
   if (mode === "open" && prototype.dataset.reportMode !== "closed") {
     setReportMode("closed", { announce: false, focus: false, restoreAgent: false });
@@ -500,6 +518,10 @@ const qnaModes = new Set(["closed", "open"]);
 
 const setQnaMode = (mode, { announce = true, focus = true, restoreAgent = true, view = "list", postId = null } = {}) => {
   if (!prototype || !qnaModes.has(mode)) return;
+  const qnaViewKey = `${view}:${postId ?? ""}`;
+  if (initializedModes.qna && prototype.dataset.qnaMode === mode && (mode === "closed" || activeQnaViewKey === qnaViewKey)) return;
+  initializedModes.qna = true;
+  activeQnaViewKey = mode === "open" ? qnaViewKey : "";
 
   if (mode === "open") {
     if (prototype.dataset.reportMode !== "closed") {
@@ -557,6 +579,8 @@ const userModes = new Set(["closed", "open"]);
 
 const setUserMode = (mode, { announce = true, focus = true, restoreAgent = true } = {}) => {
   if (!prototype || !userModes.has(mode)) return;
+  if (initializedModes.user && prototype.dataset.userMode === mode) return;
+  initializedModes.user = true;
 
   if (mode === "open") {
     if (prototype.dataset.reportMode !== "closed") {

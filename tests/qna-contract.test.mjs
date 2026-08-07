@@ -6,6 +6,8 @@ import { filterPosts, initialNotifications, initialPosts, STATUS } from "../prot
 
 const html = await readFile(new URL("../prototype/index.html", import.meta.url), "utf8")
 const script = await readFile(new URL("../prototype/app.js", import.meta.url), "utf8")
+const qnaEntry = await readFile(new URL("../prototype/src/main.jsx", import.meta.url), "utf8")
+const qnaStyles = await readFile(new URL("../prototype/src/qna.css", import.meta.url), "utf8")
 const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"))
 
 test("기존 Quality Hub 안에 Q&A React 작업 화면 진입점을 제공한다", () => {
@@ -15,6 +17,12 @@ test("기존 Quality Hub 안에 Q&A React 작업 화면 진입점을 제공한�
   assert.match(html, /id="qna-root"/)
   assert.match(script, /const setQnaMode/)
   assert.match(script, /qualityhub:qna-view/)
+  assert.match(qnaEntry, /function loadQnaModules\(\)/)
+  assert.match(qnaEntry, /button\.addEventListener\("pointerenter", prepareQna/)
+  assert.match(qnaEntry, /function cancelQnaWarmup\(\)/)
+  assert.match(qnaEntry, /\}, 1800\)/)
+  assert.match(html, /class="qna-boot-loading" role="status"/)
+  assert.match(qnaStyles, /\.qna-boot-spinner \{[\s\S]*animation: qna-boot-spin/)
 })
 
 test("정적 실행 경로도 React Q&A를 빌드한 뒤 제공한다", () => {

@@ -21,7 +21,7 @@ test("품질 업무 메뉴에서 각종 Report 조회로 진입한다", () => {
   assert.match(qualityMenu, /<strong>각종 Report 조회<\/strong>/)
 })
 
-test("스카이 톤 홈에서 네 개의 사선형 App과 중앙 품질 Agent를 제공한다", () => {
+test("스카이 톤 홈에서 정위치로 분산 배치한 네 개의 App과 중앙 품질 Agent를 제공한다", () => {
   const orbit = html.match(/<div class="app-orbit"[\s\S]*?<\/div>\s*<\/section>/)?.[0] ?? ""
   assert.match(orbit, /orbit-app-report[^>]*data-report-open/)
   assert.match(orbit, /orbit-app-search[^>]*data-global-search-open/)
@@ -36,9 +36,13 @@ test("스카이 톤 홈에서 네 개의 사선형 App과 중앙 품질 Agent를
   assert.match(styles, /\.prototype\[data-layout="top"\]\[data-agent-mode="drawer"\] \.workspace \{\s*margin-right: 0;/)
   assert.match(styles, /\.agent-drawer \{[\s\S]*inset: auto 24px 24px auto;[\s\S]*border-radius: 25px;/)
   assert.match(styles, /\.orbit-app \{[\s\S]*border-radius: 24px;/)
-  assert.match(styles, /\.orbit-app-report \{ --tilt: -4deg;/)
+  assert.doesNotMatch(styles, /--tilt:/)
+  assert.match(styles, /\.orbit-app-report \{ top: 12%; left: 4\.5%; \}/)
+  assert.match(styles, /\.orbit-app-search \{ top: 17%; right: 3\.5%; \}/)
+  assert.match(styles, /\.orbit-app-rule \{ bottom: 8%; left: 7\.5%; \}/)
+  assert.match(styles, /\.orbit-app-qna \{ right: 5\.5%; bottom: 13%; \}/)
   assert.match(styles, /@keyframes orbit-signal-flow/)
-  assert.match(styles, /\.orbit-agent-rings \{[\s\S]*animation: agent-orbit-breathe/)
+  assert.match(styles, /\.orbit-agent:hover \.orbit-agent-rings \{ animation: agent-orbit-breathe/)
 })
 
 test("초기 홈에서 그래프를 숨기고 대시보드 버튼으로 별도 화면을 연다", () => {
@@ -77,18 +81,32 @@ test("질문 작성 버튼의 텍스트와 아이콘 모션은 동작 감소 설
   assert.match(qnaCss, /\.qna-write-button \.qna-write-icon svg \{[\s\S]*width: 21px;[\s\S]*height: 21px;/)
 })
 
-test("메인 App 버튼은 기능별 미니 UI와 개별 모션을 사용한다", () => {
-  assert.match(html, /class="orbit-mini orbit-mini-report"/)
-  assert.match(html, /class="orbit-mini orbit-mini-search"/)
-  assert.match(html, /class="orbit-mini orbit-mini-rule"/)
-  assert.match(html, /class="orbit-mini orbit-mini-qna"/)
-  assert.match(styles, /@keyframes mini-bar-pulse/)
+test("메인 App 버튼은 original 카드 내부 UI와 hover 전용 모션을 사용한다", () => {
+  assert.match(html, /class="orbit-legacy-visual orbit-legacy-report"/)
+  assert.match(html, /class="orbit-search-preview"/)
+  assert.match(html, /class="orbit-legacy-visual orbit-legacy-rule"/)
+  assert.match(html, /class="orbit-legacy-visual orbit-legacy-qna"/)
+  assert.match(html, /각종 Report 조회[\s\S]*Report catalog/)
+  assert.match(html, /변승위 Category분류/)
+  assert.match(html, /검사 주기 기준 문의/)
+  assert.doesNotMatch(styles, /\.orbit-mini-report/)
   assert.match(styles, /@keyframes mini-search-scan/)
-  assert.match(styles, /@keyframes mini-route-dot/)
-  assert.match(styles, /@keyframes mini-answer-in/)
-  assert.match(styles, /\.orbit-app small \{[^}]*font-size: 10px;/)
+  assert.match(styles, /\.orbit-app:hover \.report-screen-card \{ animation: report-screen-card-scan/)
+  assert.match(styles, /\.orbit-app:hover \.rule-preview-accordion \{ animation: rule-accordion-open/)
+  assert.match(styles, /\.orbit-app:hover \.message-bubble\.first \{ animation: qna-question-sequence/)
+  const connectorBase = styles.match(/\.connector-signal \{\n([\s\S]*?)\n\}/)?.[1] ?? ""
+  assert.doesNotMatch(connectorBase, /animation:/)
   assert.match(styles, /\.orbit-agent-copy small \{[^}]*font-size: 10px;/)
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/)
+})
+
+test("이미 닫힌 작업 화면은 다시 갱신하지 않아 App 전환 경로를 단순화한다", () => {
+  assert.match(script, /const initializedModes = \{/)
+  assert.match(script, /initializedModes\.agent && prototype\.dataset\.agentMode === mode/)
+  assert.match(script, /initializedModes\.report && prototype\.dataset\.reportMode === mode/)
+  assert.match(script, /initializedModes\.rule && prototype\.dataset\.ruleMode === mode/)
+  assert.match(script, /initializedModes\.qna && prototype\.dataset\.qnaMode === mode/)
+  assert.match(script, /initializedModes\.user && prototype\.dataset\.userMode === mode/)
 })
 
 test("제목 크기는 유지하고 주요 설명 문구를 10px 이상으로 표시한다", () => {
