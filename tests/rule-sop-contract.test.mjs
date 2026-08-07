@@ -4,7 +4,7 @@ import test from "node:test"
 
 const html = await readFile(new URL("../prototype/index.html", import.meta.url), "utf8")
 const script = await readFile(new URL("../prototype/app.js", import.meta.url), "utf8")
-const phase1Memo = await readFile(new URL("../docs/PHASE1_REMAINING_TASKS.md", import.meta.url), "utf8")
+const requirements = await readFile(new URL("../docs/QUALITY_PORTAL_REQUIREMENTS.md", import.meta.url), "utf8")
 
 test("관리 Rule 앱 명칭과 진입점을 Rule&SOP로 제공한다", () => {
   assert.match(html, /<strong>Rule&amp;SOP<\/strong>/)
@@ -94,10 +94,10 @@ test("카드 상세 팝업에 개정 이력을 누적하되 이전 버전 조회
   assert.doesNotMatch(html, /data-rule-previous-version-view/)
 })
 
-test("1단계 문서에 Rule&SOP 설계 완료와 실제 DB 연동 경계를 기록한다", () => {
-  assert.match(phase1Memo, /\[x\] 마스터·관리자 전용 신규 등록 카드와 등록·수정·삭제 팝업 흐름/)
-  assert.match(phase1Memo, /\[x\] 대분류·중분류·소분류·담당 공정 드릴다운 설정 흐름/)
-  assert.match(phase1Memo, /이전 버전 조회 미제공 원칙 확정/)
-  assert.match(phase1Memo, /Rule&SOP 분류·원문 URL의 실제 DB 연동과 운영 저장/)
-  assert.match(phase1Memo, /1단계 UI\/UX 설계를 종료한다/)
+test("현재 요구사항에 Rule&SOP 관리와 실제 DB 연동 경계를 기록한다", () => {
+  assert.match(requirements, /분류, 담당 공정, 원문 링크와 개정 이력을 상세 팝업에 표시/)
+  assert.match(requirements, /목록 마지막의 신규 등록 카드와 상세 팝업에서 마스터와 관리자가/)
+  assert.match(requirements, /대분류·중분류·소분류·담당 공정을 순서대로 선택/)
+  assert.match(requirements, /이전 버전 원문 조회 기능은 제공하지 않음/)
+  assert.match(requirements, /별도 DB의 분류 컬럼과 URL 컬럼을 참조/)
 })

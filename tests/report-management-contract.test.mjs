@@ -6,7 +6,6 @@ const html = await readFile(new URL("../prototype/index.html", import.meta.url),
 const script = await readFile(new URL("../prototype/app.js", import.meta.url), "utf8")
 const styles = await readFile(new URL("../prototype/styles.css", import.meta.url), "utf8")
 const requirements = await readFile(new URL("../docs/QUALITY_PORTAL_REQUIREMENTS.md", import.meta.url), "utf8")
-const phase1Memo = await readFile(new URL("../docs/PHASE1_REMAINING_TASKS.md", import.meta.url), "utf8")
 
 test("Report는 Rule&SOP와 같은 관리자 전용 등록 흐름을 제공한다", () => {
   assert.match(html, /data-can-manage-reports="true"/)
@@ -42,6 +41,5 @@ test("포털 권한 설정 없이 Spotfire 자체 조회 권한을 적용한다"
   assert.match(html, /포털 공개 범위는 별도로 설정하지 않습니다\./)
   assert.match(html, /조회 가능 여부는 Spotfire 자체 권한을 그대로 따릅니다\./)
   assert.match(requirements, /포털에서 Report별 공개 범위나 조회 권한을 추가로 설정하지 않고/)
-  assert.match(phase1Memo, /\[x\] 사용 중지 흐름 미제공 및 Spotfire 자체 조회 권한 적용 원칙/)
-  assert.match(phase1Memo, /1단계 UI\/UX 설계를 종료한다/)
+  assert.match(requirements, /별도의 사용 중지 상태는 두지 않음/)
 })

@@ -112,4 +112,4 @@
 
 ## 후속 근거
 
-1단계 UI/UX 설계를 종료한다. 2단계 구현과 검증 결과는 [2단계 완료 보고서](PHASE2_COMPLETION_REPORT.md)를 따른다.
+1단계 UI/UX 설계를 종료한다. 2단계 구현과 검증 결과는 [2단계 완료 보고서](../../PHASE2_COMPLETION_REPORT.md)를 따른다.
