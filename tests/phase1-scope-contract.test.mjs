@@ -8,6 +8,7 @@ const styles = await readFile(new URL("../prototype/styles.css", import.meta.url
 const qnaApp = await readFile(new URL("../prototype/src/qna/QnaApp.jsx", import.meta.url), "utf8")
 const requirements = await readFile(new URL("../docs/QUALITY_PORTAL_REQUIREMENTS.md", import.meta.url), "utf8")
 const developmentPlan = await readFile(new URL("../docs/DEVELOPMENT_PLAN.md", import.meta.url), "utf8")
+const readme = await readFile(new URL("../README.md", import.meta.url), "utf8")
 const phase2CompletionReport = await readFile(new URL("../docs/PHASE2_COMPLETION_REPORT.md", import.meta.url), "utf8")
 const phase3CompletionReport = await readFile(new URL("../docs/PHASE3_COMPLETION_REPORT.md", import.meta.url), "utf8")
 
@@ -108,15 +109,19 @@ test("품질 Agent UI와 실제 연동 경계를 요구사항에 명시한다", 
   assert.match(requirements, /실제 API 규격, 인증과 Report 참조 범위는 연동 단계에서 확정/)
 })
 
-test("현재 3단계 후속 검토 보류 상태와 125% 확대 제외 범위를 계획·요구사항·보고서에 일치시킨다", () => {
+test("현재 단계는 개발 계획을 단일 기준으로 삼고 완료 보고서는 당시 증거를 보존한다", () => {
   assert.match(developmentPlan, /현재 상태:\*\* 1단계 UI\/UX 설계 완료/)
   assert.match(developmentPlan, /2단계: UI 프로토타입 구현 · 완료/)
   assert.match(developmentPlan, /3단계: 로컬 기능 구현 · 부분 완료/)
-  assert.match(requirements, /3단계 로컬 기능.*`부분 완료`/)
-  assert.match(requirements, /125% 확대 검증은 사용자 결정으로 `해당 없음`/)
+  assert.match(developmentPlan, /현재 단계와 판정의 단일 기준/)
+  assert.match(requirements, /단계별 현재 상태와 판정의 단일 기준은 \[개발 계획\]/)
+  assert.doesNotMatch(requirements, /3단계 로컬 기능.*`부분 완료`/)
+  assert.match(readme, /최신 단계·판정과 남은 검증은 \[개발 계획\]/)
   assert.match(developmentPlan, /125% 확대 검증은 사용자 결정으로 `해당 없음`/)
   assert.match(phase3CompletionReport, /125% 확대 검증은 사용자 결정으로 `해당 없음`/)
   assert.match(phase3CompletionReport, /`부분 완료`.*독립 디자인 게이트는 `보류`/)
+  assert.match(phase3CompletionReport, /실행 당시의 증거 스냅샷/)
+  assert.match(phase2CompletionReport, /실행 당시의 증거 스냅샷/)
   assert.match(phase3CompletionReport, /현재 브라우저에만 적용/)
   assert.match(phase2CompletionReport, /\*\*판정:\*\* `완료`/)
   assert.match(phase2CompletionReport, /실제 SSO, 데이터 원천, 문서 검색, Spotfire와 LLM 연동은 미구현/)
