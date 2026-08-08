@@ -85,6 +85,40 @@ body.user-active {
   transition-delay: 0s;
 }
 
+#qna-root,
+.qna-boot-loading {
+  height: 100%;
+}
+
+.qna-boot-loading {
+  display: grid;
+  place-content: center;
+  place-items: center;
+  gap: 7px;
+  color: #263b4a;
+}
+
+.qna-boot-loading strong { font-size: 14px; }
+.qna-boot-loading small { color: #4f687a; font-size: 12px; }
+
+.qna-boot-spinner {
+  width: 26px;
+  height: 26px;
+  margin-bottom: 4px;
+  border: 3px solid #d4e7f2;
+  border-top-color: #0788df;
+  border-radius: 50%;
+  animation: qna-boot-spin 700ms linear infinite;
+}
+
+@keyframes qna-boot-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qna-boot-spinner { animation: none; }
+}
+
 button,
 input,
 select {

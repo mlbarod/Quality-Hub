@@ -273,17 +273,6 @@ const restoreItem = (id) => {
   showToast(`${item.name} 항목을 복구했습니다. (목업)`);
 };
 
-document.querySelectorAll("[data-home-refresh]").forEach((link) => {
-  link.addEventListener("click", (event) => {
-    event.preventDefault();
-    const homeUrl = new URL(window.location.href);
-    homeUrl.search = "";
-    homeUrl.hash = "home";
-    window.history.replaceState({}, "", homeUrl);
-    window.location.reload();
-  });
-});
-
 const agentModes = new Set(["closed", "drawer", "full"]);
 
 const setAgentMode = (mode, { announce = true, focus = true } = {}) => {
@@ -660,6 +649,26 @@ const openDashboard = ({ announce = true, focus = true } = {}) => {
   setDashboardMode("dashboard", { announce, focus });
 };
 
+const openHome = ({ announce = true, focus = true } = {}) => {
+  setReportMode("closed", { announce: false, focus: false, restoreAgent: false });
+  setRuleMode("closed", { announce: false, focus: false, restoreAgent: false });
+  setQnaMode("closed", { announce: false, focus: false, restoreAgent: false });
+  setUserMode("closed", { announce: false, focus: false, restoreAgent: false });
+  setAgentMode("closed", { announce: false, focus: false });
+  if (globalSearch instanceof HTMLDialogElement && globalSearch.open) globalSearch.close();
+  setDashboardMode("home", { announce: false, focus: false });
+
+  if (focus) focusAfterTransition(homeView, 80);
+  if (announce) showToast("App 홈으로 돌아왔습니다.");
+};
+
+document.querySelectorAll("[data-home-refresh]").forEach((link) => {
+  link.addEventListener("click", (event) => {
+    event.preventDefault();
+    openHome();
+  });
+});
+
 document.querySelectorAll("[data-dashboard-open]").forEach((button) => {
   button.addEventListener("click", () => openDashboard());
 });
@@ -689,8 +698,7 @@ document.querySelectorAll("[data-qna-notifications]").forEach((button) => {
 });
 
 window.addEventListener("qualityhub:qna-close", () => {
-  setQnaMode("closed", { announce: false, focus: false });
-  setDashboardMode("home");
+  openHome();
 });
 
 document.querySelectorAll("[data-user-open]").forEach((button) => {
@@ -701,10 +709,7 @@ document.querySelectorAll("[data-user-open]").forEach((button) => {
 });
 
 document.querySelectorAll("[data-user-close]").forEach((button) => {
-  button.addEventListener("click", () => {
-    setUserMode("closed", { announce: false, focus: false });
-    setDashboardMode("home");
-  });
+  button.addEventListener("click", () => openHome());
 });
 
 const getAccessRows = ({ includeDeleted = false } = {}) => [...document.querySelectorAll("[data-access-row]")]
@@ -930,10 +935,7 @@ document.querySelectorAll("[data-report-open]").forEach((button) => {
 });
 
 document.querySelectorAll("[data-report-close]").forEach((button) => {
-  button.addEventListener("click", () => {
-    setReportMode("closed", { announce: false, focus: false });
-    setDashboardMode("home");
-  });
+  button.addEventListener("click", () => openHome());
 });
 
 document.querySelectorAll("[data-report-back]").forEach((button) => {
@@ -1458,10 +1460,7 @@ document.querySelectorAll("[data-rule-open]").forEach((button) => {
 });
 
 document.querySelectorAll("[data-rule-close]").forEach((button) => {
-  button.addEventListener("click", () => {
-    setRuleMode("closed", { announce: false, focus: false });
-    setDashboardMode("home");
-  });
+  button.addEventListener("click", () => openHome());
 });
 
 document.querySelectorAll("[data-rule-action]").forEach((button) => {

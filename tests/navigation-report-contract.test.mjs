@@ -8,11 +8,12 @@ const styles = await readFile(new URL("../prototype/styles.css", import.meta.url
 const qnaCss = await readFile(new URL("../prototype/src/qna.css", import.meta.url), "utf8")
 const qnaApp = await readFile(new URL("../prototype/src/qna/QnaApp.jsx", import.meta.url), "utf8")
 
-test("Quality Hub 브랜드가 쿼리를 제거하고 메인 화면을 새로고침한다", () => {
+test("Quality Hub 브랜드가 새로고침 없이 열린 업무 화면을 닫고 App 홈으로 돌아간다", () => {
   assert.match(html, /class="brand"[^>]*data-home-refresh/)
   assert.match(script, /querySelectorAll\("\[data-home-refresh\]"\)/)
-  assert.match(script, /homeUrl\.search = ""/)
-  assert.match(script, /window\.location\.reload\(\)/)
+  assert.match(script, /const openHome = \(/)
+  assert.match(script, /setReportMode\("closed", \{ announce: false, focus: false, restoreAgent: false \}\)[\s\S]*setRuleMode\("closed", \{ announce: false, focus: false, restoreAgent: false \}\)[\s\S]*setQnaMode\("closed", \{ announce: false, focus: false, restoreAgent: false \}\)[\s\S]*setDashboardMode\("home", \{ announce: false, focus: false \}\)/)
+  assert.doesNotMatch(script, /window\.location\.reload\(\)/)
 })
 
 test("품질 업무 메뉴에서 각종 Report 조회로 진입한다", () => {
@@ -108,7 +109,8 @@ test("메인 App 버튼은 original 카드 내부 UI와 카드 hover 모션·상
 test("App 상세 화면의 Main 버튼은 대시보드가 아닌 App 홈으로 돌아간다", () => {
   assert.equal((html.match(/class="report-back-button"[^>]*data-(?:report|rule|user)-close[^>]*>[\s\S]*?<\/svg>Main<\/button>/g) ?? []).length, 3)
   assert.match(qnaApp, /className="report-back-button"[\s\S]*qualityhub:qna-close[\s\S]*<ArrowLeft[^>]*\/>Main<\/Button>/)
-  assert.equal((script.match(/setDashboardMode\("home"\);/g) ?? []).length, 4)
+  assert.match(script, /qualityhub:qna-close[\s\S]*openHome\(\)/)
+  assert.equal((script.match(/button\.addEventListener\("click", \(\) => openHome\(\)\)/g) ?? []).length, 3)
   assert.doesNotMatch(script, /대시보드로 돌아왔습니다/)
   assert.match(styles, /\.report-page-header \{[\s\S]*min-height: 66px;/)
   assert.match(styles, /\.report-page-header > div:first-child > span \{[\s\S]*font-size: 14px;/)

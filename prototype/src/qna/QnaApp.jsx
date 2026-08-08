@@ -428,6 +428,7 @@ export function QnaApp({ initialView = "list" }) {
   const [liveMessage, setLiveMessage] = useState("")
   const liveTimerRef = useRef(null)
   const writeReturnFocusRef = useRef(null)
+  const hasPersistedChangeRef = useRef(false)
 
   const filteredPosts = useMemo(() => filterPosts(posts, filters), [posts, filters])
   const activePosts = useMemo(() => posts.filter((post) => !post.hidden), [posts])
@@ -460,6 +461,10 @@ export function QnaApp({ initialView = "list" }) {
   }, [])
 
   useEffect(() => {
+    if (!hasPersistedChangeRef.current) {
+      hasPersistedChangeRef.current = true
+      return
+    }
     qnaRepository.write({ posts, notifications, history: historyEntries })
   }, [posts, notifications, historyEntries])
 

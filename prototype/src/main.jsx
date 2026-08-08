@@ -2,6 +2,7 @@ const rootElement = document.querySelector("#qna-root")
 let qnaRoot
 let modulePromise
 let mountPromise
+let cancelScheduledPreparation
 
 function loadQnaModules() {
   if (!modulePromise) {
@@ -27,7 +28,21 @@ async function mountQna(initialView = "list") {
 }
 
 function prepareQna() {
+  cancelScheduledPreparation?.()
+  cancelScheduledPreparation = undefined
   void loadQnaModules()
+}
+
+function scheduleQnaPreparation() {
+  if (modulePromise || cancelScheduledPreparation) return
+
+  const run = () => {
+    cancelScheduledPreparation = undefined
+    void loadQnaModules()
+  }
+
+  const timeoutId = window.setTimeout(run, 180)
+  cancelScheduledPreparation = () => window.clearTimeout(timeoutId)
 }
 
 window.addEventListener("qualityhub:qna-view", (event) => {
@@ -36,8 +51,11 @@ window.addEventListener("qualityhub:qna-view", (event) => {
 
 document.querySelectorAll("[data-qna-open], [data-qna-notifications]").forEach((button) => {
   button.addEventListener("pointerenter", prepareQna, { once: true, passive: true })
+  button.addEventListener("pointerdown", prepareQna, { once: true, passive: true })
   button.addEventListener("focus", prepareQna, { once: true, passive: true })
 })
+
+scheduleQnaPreparation()
 
 if (document.querySelector(".prototype")?.dataset.qnaMode === "open") {
   void mountQna("list")
