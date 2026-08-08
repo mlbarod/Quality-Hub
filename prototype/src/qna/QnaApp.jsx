@@ -63,7 +63,7 @@ function QnaTopBar({ view, unreadCount, onNavigate, role, deletedCount, onOpenDe
   return (
     <div role="region" aria-label="Q&A 상단 도구" className="flex h-[66px] items-center justify-between border-b border-[#d5e3ec] bg-white px-9">
       <div className="flex items-center gap-4">
-        <Button type="button" variant="outline" onClick={() => window.dispatchEvent(new CustomEvent("qualityhub:qna-close"))}><ArrowLeft className="size-4" />MAIN</Button>
+        <Button type="button" variant="outline" className="report-back-button" onClick={() => window.dispatchEvent(new CustomEvent("qualityhub:qna-close"))}><ArrowLeft className="size-4" />Main</Button>
         <nav className="flex items-center gap-2 text-[14px]" aria-label="Q&A 현재 위치">
           <button type="button" className="bg-transparent font-medium text-[#8b9198] hover:text-[#0673bc]" onClick={() => onNavigate("list")}>Quality Hub</button>
           <ChevronRight className="size-3 text-[#a7aca9]" aria-hidden="true" />

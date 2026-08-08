@@ -37,15 +37,16 @@ describe("Q&A 프로토타입", () => {
     expect(screen.queryByText("기존 투입 LOT의 기준 적용 시점을 확인 부탁드립니다.")).not.toBeInTheDocument()
   })
 
-  test("Q&A 좌측 상단 MAIN 버튼으로 메인 복귀 이벤트를 보낸다", async () => {
+  test("Q&A 좌측 상단 Main 버튼으로 메인 복귀 이벤트를 보낸다", async () => {
     const user = userEvent.setup()
     const closeHandler = vi.fn()
     window.addEventListener("qualityhub:qna-close", closeHandler)
     render(<QnaApp />)
 
     const topBar = screen.getByRole("region", { name: "Q&A 상단 도구" })
-    const mainButton = within(topBar).getByRole("button", { name: "MAIN" })
+    const mainButton = within(topBar).getByRole("button", { name: "Main" })
     expect(topBar.querySelector("button")).toBe(mainButton)
+    expect(mainButton).toHaveClass("report-back-button")
     await user.click(mainButton)
     expect(closeHandler).toHaveBeenCalledOnce()
 
