@@ -8,6 +8,14 @@ export const STATUS = {
   completed: { label: "답변 완료", variant: "default" },
 }
 
+export function normalizeQnaPosts(posts) {
+  return posts.map((post) => {
+    const [firstMessage, ...remainingMessages] = post.messages ?? []
+    if (firstMessage?.role !== "질문자") return post
+    return { ...post, messages: remainingMessages }
+  })
+}
+
 export const initialPosts = [
   {
     id: "Q-2026-084",
@@ -25,7 +33,6 @@ export const initialPosts = [
     content: "<p>이상률 관리 기준 v2.4가 8월 1일 배포되었습니다. 배포 이전에 투입되어 현재 검사 중인 LOT에도 새 기준을 적용해야 하는지 확인 부탁드립니다.</p><p>현재 현장에서는 배포 시점 이후 검사 결과부터 적용하는 것으로 이해하고 있습니다.</p><blockquote>확인이 필요한 항목: 기존 투입 LOT의 판정 기준과 재검사 필요 여부</blockquote>",
     attachments: [{ name: "이상률_관리기준_v2.4.pdf", size: "1.8 MB" }],
     messages: [
-      { id: "m1", author: "김품질", role: "질문자", time: "오늘 10:24", body: "기존 투입 LOT의 기준 적용 시점을 확인 부탁드립니다." },
       { id: "m2", author: "박담당", role: "공정 담당자", time: "오늘 10:41", body: "기준 배포 공지와 변경 이력을 확인하고 있습니다. 기존 LOT의 검사 시작 시점도 함께 확인하겠습니다." },
     ],
   },
@@ -44,7 +51,7 @@ export const initialPosts = [
     views: 24,
     content: "<p>최근 3일간 AOI 오경보율이 기존 평균보다 높아졌습니다. 장비별 오경보율과 주요 검출 유형 비교 자료를 요청드립니다.</p>",
     attachments: [],
-    messages: [{ id: "m1", author: "이분석", role: "질문자", time: "오늘 09:18", body: "장비별 비교가 가능하도록 최근 3일 자료를 부탁드립니다." }],
+    messages: [],
   },
   {
     id: "Q-2026-081",
@@ -62,7 +69,6 @@ export const initialPosts = [
     content: "<p>세정 후 경계 수준의 잔류물이 발견됐습니다. 동일 조건의 과거 사례에서는 재세정을 진행했으나 최신 SOP 기준을 확인하고 싶습니다.</p>",
     attachments: [{ name: "잔류물_검사이미지.png", size: "824 KB" }],
     messages: [
-      { id: "m1", author: "최공정", role: "질문자", time: "어제 16:32", body: "재세정과 보류 중 우선 조치 기준을 문의드립니다." },
       { id: "m2", author: "정품질", role: "품질 담당자", time: "어제 17:14", body: "현행 SOP 4.2절에 따라 우선 보류 후 담당자 확인이 필요합니다. 임의 재세정은 진행하지 않습니다.", isFinal: true },
       { id: "m3", author: "최공정", role: "질문자", time: "어제 18:05", body: "확인했습니다. LOT 보류 후 담당자 확인 요청으로 진행하겠습니다." },
     ],
@@ -83,7 +89,6 @@ export const initialPosts = [
     content: "<p>장비별 초기 안정화 시간이 다르게 운영되고 있어 두께 편차의 원인으로 의심됩니다. 표준 안정화 시간을 정의하고 시범 적용하는 방안을 제안합니다.</p>",
     attachments: [{ name: "챔버별_두께편차.xlsx", size: "312 KB" }],
     messages: [
-      { id: "m1", author: "한개선", role: "질문자", time: "8월 3일", body: "안정화 시간 표준화 시범 적용을 제안합니다." },
       { id: "m2", author: "오담당", role: "공정 담당자", time: "어제", body: "장비별 조건 차이를 검토한 뒤 시범 장비 범위를 답변드리겠습니다." },
     ],
   },
@@ -103,7 +108,6 @@ export const initialPosts = [
     content: "<p>주간 품질회의 이상 건수 집계 시 동일 주차에 재작업이 완료된 건의 포함 여부를 문의드립니다.</p>",
     attachments: [],
     messages: [
-      { id: "m1", author: "서지표", role: "질문자", time: "8월 2일 09:10", body: "재작업 완료 건의 집계 기준을 확인 부탁드립니다." },
       { id: "m2", author: "정품질", role: "품질 담당자", time: "8월 2일 11:22", body: "최초 이상 판정일 기준으로 포함하며, 재작업 완료 여부는 조치 상태로 별도 표기합니다.", isFinal: true },
     ],
   },
@@ -122,7 +126,7 @@ export const initialPosts = [
     views: 29,
     content: "<p>7월 25일부터 31일까지 장비 A 챔버의 온도 로그와 이상 판정 시각을 함께 요청드립니다.</p>",
     attachments: [],
-    messages: [{ id: "m1", author: "문분석", role: "질문자", time: "8월 1일", body: "분 단위 온도 로그를 받을 수 있는지 확인 부탁드립니다." }],
+    messages: [],
   },
   {
     id: "Q-2026-072",
@@ -140,7 +144,6 @@ export const initialPosts = [
     content: "<p>반복 불량의 장기 추이를 분석하기 위해 검사 이미지 보관 기간 확대를 제안합니다.</p>",
     attachments: [],
     messages: [
-      { id: "m1", author: "조분석", role: "질문자", time: "7월 31일", body: "보관 기간을 6개월로 확대할 수 있는지 검토 부탁드립니다." },
       { id: "m2", author: "윤담당", role: "시스템 담당자", time: "8월 1일", body: "저장 용량과 개인정보 보존 기준을 함께 검토하고 있습니다." },
     ],
   },
@@ -160,7 +163,6 @@ export const initialPosts = [
     content: "<p>7월 개정된 세정액 교체 주기 기준 문서의 위치를 알려주세요.</p>",
     attachments: [],
     messages: [
-      { id: "m1", author: "강공정", role: "질문자", time: "7월 30일 13:20", body: "최신 SOP 링크를 요청드립니다." },
       { id: "m2", author: "정품질", role: "품질 담당자", time: "7월 30일 14:02", body: "Rule&SOP의 세정 > 자재관리 > 세정액 교체 기준에서 v3.1 문서를 확인할 수 있습니다.", isFinal: true },
     ],
   },

@@ -102,7 +102,7 @@ export function canDeleteQuestion(role, currentUserName, post) {
   const policy = getRolePolicy(role)
   if (policy.canDeleteAnyQna) return true
   const isAuthor = policy.canAccess && currentUserName === post?.author
-  return isAuthor && (post?.messages?.length ?? 0) <= 1
+  return isAuthor && (post?.messages?.length ?? 0) === 0
 }
 
 export function createHistoryEntry({ action, targetType, targetName, actor = "김품질", detail = "" }) {

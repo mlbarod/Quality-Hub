@@ -67,7 +67,7 @@ body.user-active {
 .qna-workspace {
   position: fixed;
   inset: var(--header-height) 0 0 0;
-  z-index: 62;
+  z-index: 59;
   visibility: hidden;
   overflow: hidden;
   background: #f1f6f9;

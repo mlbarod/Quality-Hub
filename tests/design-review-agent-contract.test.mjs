@@ -24,6 +24,10 @@ test("영구 디자인 전문 검토 에이전트를 읽기 전용 프로젝트 
   assert.match(designReviewChecklist, /`prefers-reduced-motion: reduce` 환경/)
   assert.match(designReviewChecklist, /pseudo-element, 외곽 링, outline/)
   assert.match(designReviewChecklist, /내부 미니 화면은 같은 안전 영역/)
+  assert.match(designReviewChecklist, /각 전체 화면 작업 영역을 연 상태에서 공통 상단 헤더의 모든 드롭다운·팝오버·툴팁을 실제로 열어/)
+  assert.match(designReviewChecklist, /`elementsFromPoint\(\)` hit-test로 실제 최상단 표시를 검증했다/)
+  assert.match(designReviewChecklist, /전역 오버레이 종류와 전체 화면 작업 영역의 교차 상태를 기록하고/)
+  assert.match(designReviewChecklist, /목업 첨부파일처럼 실제 데이터가 없어 실행할 수 없는 조작은 무반응으로 끝나지 않고/)
   assert.match(agentConfig, /저장소 보고서는 직접 만들지 않고 구조화된 결과를 메인 개발자에게 반환한다/)
 })
 

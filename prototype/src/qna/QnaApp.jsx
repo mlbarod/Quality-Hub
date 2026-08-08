@@ -37,6 +37,7 @@ import {
   DEPARTMENT_OPTIONS,
   filterPosts,
   initialPosts,
+  normalizeQnaPosts,
   PROCESS_OPTIONS,
   STATUS,
   TYPE_OPTIONS,
@@ -57,25 +58,27 @@ function StatusBadge({ status }) {
   return <Badge variant={config.variant}><span className="size-1.5 rounded-full bg-current opacity-70" />{config.label}</Badge>
 }
 
-function QnaTopBar({ view, unreadCount, onNavigate, role, hiddenCount, onOpenRecovery, onOpenHistory }) {
+function QnaTopBar({ view, unreadCount, onNavigate, role, deletedCount, onOpenDeleted, onOpenHistory }) {
   const currentLabel = view === "detail" ? "질문 상세" : view === "notifications" ? "알림" : "Q&A"
   return (
     <div role="region" aria-label="Q&A 상단 도구" className="flex h-[66px] items-center justify-between border-b border-[#d5e3ec] bg-white px-9">
-      <nav className="flex items-center gap-2 text-[14px]" aria-label="Q&A 현재 위치">
-        <button type="button" className="bg-transparent font-medium text-[#8b9198] hover:text-[#0673bc]" onClick={() => onNavigate("list")}>Quality Hub</button>
-        <ChevronRight className="size-3 text-[#a7aca9]" aria-hidden="true" />
-        <button type="button" className={cn("bg-transparent font-medium", view === "list" ? "text-[#0f2233]" : "text-[#8b9198] hover:text-[#0673bc]")} onClick={() => onNavigate("list")}>Q&amp;A</button>
-        {view !== "list" ? <><ChevronRight className="size-3 text-[#a7aca9]" aria-hidden="true" /><strong className="text-[#263b4a]">{currentLabel}</strong></> : null}
-      </nav>
+      <div className="flex items-center gap-4">
+        <Button type="button" variant="outline" onClick={() => window.dispatchEvent(new CustomEvent("qualityhub:qna-close"))}><ArrowLeft className="size-4" />MAIN</Button>
+        <nav className="flex items-center gap-2 text-[14px]" aria-label="Q&A 현재 위치">
+          <button type="button" className="bg-transparent font-medium text-[#8b9198] hover:text-[#0673bc]" onClick={() => onNavigate("list")}>Quality Hub</button>
+          <ChevronRight className="size-3 text-[#a7aca9]" aria-hidden="true" />
+          <button type="button" className={cn("bg-transparent font-medium", view === "list" ? "text-[#0f2233]" : "text-[#8b9198] hover:text-[#0673bc]")} onClick={() => onNavigate("list")}>Q&amp;A</button>
+          {view !== "list" ? <><ChevronRight className="size-3 text-[#a7aca9]" aria-hidden="true" /><strong className="text-[#263b4a]">{currentLabel}</strong></> : null}
+        </nav>
+      </div>
       <div className="flex items-center gap-2">
         <Badge variant="muted">{getRoleOption(role).label} 목업</Badge>
-        {role === "master" ? <Button type="button" variant="ghost" onClick={onOpenRecovery}><ArchiveRestore className="size-4" />숨김 {hiddenCount}</Button> : null}
+        {role === "master" ? <Button type="button" variant="ghost" onClick={onOpenDeleted}><Trash2 className="size-4" />삭제 목록 {deletedCount}</Button> : null}
         {role === "master" ? <Button type="button" variant="ghost" onClick={onOpenHistory}><Clock3 className="size-4" />변경 이력</Button> : null}
         <Button type="button" variant="ghost" className="relative" onClick={() => onNavigate("notifications")} aria-label={`Q&A 알림 ${unreadCount}개`}>
           <Bell className="size-4" />알림
           {unreadCount ? <span className="grid min-w-5 place-items-center rounded-full bg-[#b64c45] px-1 text-[12px] font-bold text-white">{unreadCount}</span> : null}
         </Button>
-        <Button type="button" variant="outline" onClick={() => window.dispatchEvent(new CustomEvent("qualityhub:qna-close"))}><X className="size-4" />Main</Button>
       </div>
     </div>
   )
@@ -172,7 +175,7 @@ function PostListView({ posts, allPosts, filters, setFilters, onSelect, onWrite 
                       <span className="mt-1.5 block truncate text-[12px] text-[#567286]">{post.excerpt}</span>
                       <span className="mt-3 flex flex-wrap gap-1.5">{post.tags.slice(0, 3).map((tag) => <small key={tag} className="rounded-full bg-[#edf3f7] px-2 py-0.5 text-[9px] font-medium text-[#567286]">#{tag}</small>)}</span>
                     </span>
-                    <span className="grid gap-1.5 text-[11px] text-[#567286]"><span className="flex items-center gap-1.5"><UserRound className="size-3.5" />{post.author}</span><span className="flex items-center gap-1.5"><Clock3 className="size-3.5" />{post.updatedAt}</span><span className="flex items-center gap-1.5"><MessageCircle className="size-3.5" />답변 {post.messages.length - 1}</span></span>
+                    <span className="grid gap-1.5 text-[11px] text-[#567286]"><span className="flex items-center gap-1.5"><UserRound className="size-3.5" />{post.author}</span><span className="flex items-center gap-1.5"><Clock3 className="size-3.5" />{post.updatedAt}</span><span className="flex items-center gap-1.5"><MessageCircle className="size-3.5" />답변 {post.messages.filter((message) => !message.hidden).length}</span></span>
                     <span className="flex items-center justify-end gap-2 text-[11px] text-[#60798b]"><Eye className="size-3.5" />{post.views}<ChevronRight className="ml-2 size-4 transition group-hover:translate-x-0.5 group-hover:text-[#0673bc]" /></span>
                   </button>
                 </article>
@@ -191,34 +194,42 @@ function PostListView({ posts, allPosts, filters, setFilters, onSelect, onWrite 
   )
 }
 
-function AttachmentList({ attachments }) {
+function AttachmentList({ attachments, onOpen }) {
   if (!attachments?.length) return null
   return (
     <div className="mt-5 rounded-[10px] border border-[#dce7ee] bg-[#fafbfa] p-3">
       <p className="mb-2 flex items-center gap-2 text-[11px] font-semibold text-[#52585f]"><Paperclip className="size-3.5" />첨부파일 {attachments.length}개</p>
-      <div className="flex flex-wrap gap-2">{attachments.map((file) => <button key={file.name} type="button" className="flex items-center gap-2 rounded-[7px] border border-[#d5e3ec] bg-white px-3 py-2 text-left text-[13px] hover:border-[#8bcdf7] hover:bg-[#eef6fc]" onClick={() => {}}><FileText className="size-4 text-[#0788df]" /><span><strong className="block font-semibold text-[#3a3f44]">{file.name}</strong><small className="text-[11px] text-[#60798b]">{file.size} · 목업 파일</small></span></button>)}</div>
+      <div className="flex flex-wrap gap-2">{attachments.map((file) => <button key={file.name} type="button" className="flex items-center gap-2 rounded-[7px] border border-[#d5e3ec] bg-white px-3 py-2 text-left text-[13px] hover:border-[#8bcdf7] hover:bg-[#eef6fc]" onClick={() => onOpen(file)}><FileText className="size-4 text-[#0788df]" /><span><strong className="block font-semibold text-[#3a3f44]">{file.name}</strong><small className="text-[11px] text-[#60798b]">{file.size} · 목업 파일</small></span></button>)}</div>
     </div>
   )
 }
 
 function EditQuestionDialog({ post, open, onOpenChange, onSave }) {
   const [title, setTitle] = useState(post?.title ?? "")
-  const [content, setContent] = useState("")
+  const [content, setContent] = useState(post?.content ?? "")
+  const [plainText, setPlainText] = useState("")
 
   useEffect(() => {
     if (!open || !post) return
     setTitle(post.title)
     const documentBody = new DOMParser().parseFromString(post.content, "text/html").body.textContent ?? ""
-    setContent(documentBody)
+    setContent(post.content)
+    setPlainText(documentBody)
   }, [open, post])
+
+  const submit = (event) => {
+    event.preventDefault()
+    if (!title.trim() || !plainText.trim()) return
+    onSave({ title: title.trim(), content, excerpt: plainText.trim().slice(0, 100) })
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[min(680px,calc(100vw-64px))]">
+      <DialogContent className="grid-rows-[auto_minmax(0,1fr)_auto] w-[min(760px,calc(100vw-64px))]">
         <header className="border-b border-[#e3ebf0] px-7 py-5"><DialogTitle className="text-[18px] font-[680]">질문 수정</DialogTitle><DialogDescription className="mt-1 text-[11px] text-[#60798b]">현재 역할과 작성자 권한을 확인한 뒤 목업 질문을 변경합니다.</DialogDescription></header>
-        <form id="qna-edit-form" className="grid gap-4 px-7 py-6" onSubmit={(event) => { event.preventDefault(); if (title.trim() && content.trim()) onSave({ title: title.trim(), content: `<p>${content.trim().replaceAll("<", "&lt;").replaceAll(">", "&gt;")}</p>`, excerpt: content.trim().slice(0, 100) }) }}>
+        <form id="qna-edit-form" className="grid gap-4 overflow-y-auto px-7 py-6" onSubmit={submit}>
           <label className="grid gap-1.5 text-[11px] font-semibold">제목<Input value={title} onChange={(event) => setTitle(event.target.value)} /></label>
-          <label className="grid gap-1.5 text-[11px] font-semibold">본문<Textarea className="min-h-40" value={content} onChange={(event) => setContent(event.target.value)} /></label>
+          <div><label className="mb-1.5 block text-[11px] font-semibold">본문</label><Suspense fallback={<div className="grid min-h-[280px] place-items-center rounded-[10px] border border-[#d5e3ec] bg-[#fafbfa] text-[11px] text-[#7b8287]">편집기를 준비하고 있습니다.</div>}><RichTextEditor initialContent={post?.content ?? ""} onChange={(html, text) => { setContent(html); setPlainText(text) }} /></Suspense></div>
         </form>
         <footer className="flex justify-end gap-2 border-t border-[#e3ebf0] bg-[#fafbfa] px-7 py-4"><Button type="button" variant="outline" onClick={() => onOpenChange(false)}>취소</Button><Button type="submit" form="qna-edit-form"><Pencil className="size-4" />수정 저장</Button></footer>
       </DialogContent>
@@ -236,6 +247,7 @@ function PostDetailView({ post, onBack, onUpdatePost, onHidePost, announce, curr
   const policy = getRolePolicy(currentRole)
   const canEditQuestion = canEditQna(currentRole, currentUser.name, post.author)
   const canRemoveQuestion = canDeleteQuestion(currentRole, currentUser.name, post)
+  const visibleMessages = post.messages.filter((message) => !message.hidden)
 
   const updateStatus = (status) => {
     onUpdatePost({ ...post, status, updatedAt: "방금 전" })
@@ -269,18 +281,18 @@ function PostDetailView({ post, onBack, onUpdatePost, onHidePost, announce, curr
         <div className="grid grid-cols-[minmax(0,1fr)_280px] items-start gap-5">
           <div className="space-y-5">
             <article className="rounded-[14px] border border-[#dce7ee] bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,.03)]">
-              <div className="flex flex-wrap items-center gap-2"><StatusBadge status={post.status} /><Badge variant="outline">{post.process}</Badge><Badge variant="muted">{post.department}</Badge><Badge variant="muted">{post.type}</Badge><span className="ml-auto text-[10px] font-semibold text-[#60798b]">{post.id}</span>{canEditQuestion ? <Button type="button" size="sm" variant="ghost" onClick={() => setEditQuestionOpen(true)}><Pencil className="size-3.5" />질문 수정</Button> : null}{canRemoveQuestion ? <Button type="button" size="sm" variant="ghost" className="text-[#a13f39]" onClick={() => onHidePost(post)}><Trash2 className="size-3.5" />질문 숨김</Button> : null}</div>
+              <div className="flex flex-wrap items-center gap-2"><StatusBadge status={post.status} /><Badge variant="outline">{post.process}</Badge><Badge variant="muted">{post.department}</Badge><Badge variant="muted">{post.type}</Badge><span className="ml-auto text-[10px] font-semibold text-[#60798b]">{post.id}</span>{canEditQuestion ? <Button type="button" size="sm" variant="ghost" onClick={() => setEditQuestionOpen(true)}><Pencil className="size-3.5" />질문 수정</Button> : null}{canRemoveQuestion ? <Button type="button" size="sm" variant="ghost" className="text-[#a13f39]" onClick={() => onHidePost(post)}><Trash2 className="size-3.5" />질문 삭제</Button> : null}</div>
               <h1 className="mb-3 mt-5 text-[26px] font-[680] leading-[1.35] tracking-[-.035em] text-[#172c3c]">{post.title}</h1>
               <div className="flex items-center gap-4 border-b border-[#e8eef2] pb-5 text-[11px] text-[#567286]"><span className="flex items-center gap-1.5"><UserRound className="size-3.5" />{post.author}</span><span className="flex items-center gap-1.5"><Clock3 className="size-3.5" />{post.createdAt}</span><span className="flex items-center gap-1.5"><Eye className="size-3.5" />조회 {post.views}</span></div>
               <div className="qna-rendered-content py-6" dangerouslySetInnerHTML={{ __html: post.content }} />
               <div className="flex flex-wrap items-center gap-1.5"><Tag className="mr-1 size-3.5 text-[#8b9198]" />{post.tags.map((tag) => <Badge key={tag} variant="muted">#{tag}</Badge>)}</div>
-              <AttachmentList attachments={post.attachments} />
+              <AttachmentList attachments={post.attachments} onOpen={(file) => announce(`${file.name} 파일은 가상 첨부파일입니다. 실제 파일 저장소 연동 후 열 수 있습니다.`)} />
             </article>
 
             <section className="overflow-hidden rounded-[14px] border border-[#dce7ee] bg-white shadow-[0_1px_2px_rgba(15,23,42,.03)]" aria-labelledby="conversation-title">
-              <header className="flex items-center justify-between border-b border-[#e3ebf0] px-6 py-4"><div><h2 id="conversation-title" className="text-[15px] font-[680]">답변과 추가 대화</h2><p className="mt-1 text-[12px] text-[#60798b]">질문자와 담당자가 같은 흐름에서 내용을 보완합니다.</p></div><Badge variant="outline">{post.messages.filter((message) => !message.hidden).length}개 메시지</Badge></header>
+              <header className="flex items-center justify-between border-b border-[#e3ebf0] px-6 py-4"><div><h2 id="conversation-title" className="text-[15px] font-[680]">답변과 추가 대화</h2><p className="mt-1 text-[12px] text-[#60798b]">별도로 작성한 답변과 댓글만 표시합니다.</p></div><Badge variant="outline">{visibleMessages.length}개 메시지</Badge></header>
               <div className="space-y-0 px-6 py-2">
-                {post.messages.filter((message) => !message.hidden).map((message, index, visibleMessages) => {
+                {visibleMessages.map((message, index) => {
                   const isOwner = message.role.includes("담당자")
                   return (
                     <article key={message.id} className="relative flex gap-4 py-5">
@@ -289,11 +301,12 @@ function PostDetailView({ post, onBack, onUpdatePost, onHidePost, announce, curr
                       <div className={cn("min-w-0 flex-1 rounded-[11px] border p-4", message.isFinal ? "border-[#a9d8c1] bg-[#f3fbf7]" : "border-[#e1e9ef] bg-[#fbfcfb]")}>
                         <div className="mb-2 flex items-center gap-2"><strong className="text-[12px]">{message.author}</strong><Badge variant={isOwner ? "blue" : "muted"}>{message.role}</Badge>{message.isFinal ? <Badge><CheckCheck className="size-3" />최종 답변</Badge> : null}<time className="ml-auto text-[9px] text-[#60798b]">{message.time}</time></div>
                         {editingMessageId === message.id ? <div className="grid gap-2"><Textarea value={editingMessageBody} onChange={(event) => setEditingMessageBody(event.target.value)} /><div className="flex justify-end gap-2"><Button type="button" size="sm" variant="ghost" onClick={() => setEditingMessageId(null)}>취소</Button><Button type="button" size="sm" onClick={() => { const body = editingMessageBody.trim(); if (!body) return; onUpdatePost({ ...post, updatedAt: "방금 전", messages: post.messages.map((item) => item.id === message.id ? { ...item, body } : item) }); recordChange("답변 수정", post.title, message.author); setEditingMessageId(null); announce("작성 내용을 수정했습니다.") }}>저장</Button></div></div> : <p className="m-0 whitespace-pre-wrap text-[13px] leading-6 text-[#454a4f]">{message.body}</p>}
-                        {index > 0 && canEditQna(currentRole, currentUser.name, message.author) ? <div className="mt-3 flex justify-end gap-1"><Button type="button" size="sm" variant="ghost" onClick={() => { setEditingMessageId(message.id); setEditingMessageBody(message.body) }}><Pencil className="size-3.5" />수정</Button><Button type="button" size="sm" variant="ghost" className="text-[#a13f39]" onClick={() => { onUpdatePost({ ...post, updatedAt: "방금 전", messages: post.messages.map((item) => item.id === message.id ? { ...item, hidden: true, hiddenAt: "방금 전", hiddenBy: currentUser.name } : item) }); recordChange("답변 숨김", post.title, message.author); announce("답변을 숨김 처리했습니다.") }}><Trash2 className="size-3.5" />숨김</Button>{policy.canMarkFinalAnswer && !message.isFinal ? <Button type="button" size="sm" variant="ghost" onClick={() => markFinal(message.id)}><CheckCheck className="size-3.5" />최종 답변으로 지정</Button> : null}</div> : policy.canMarkFinalAnswer && index > 0 && !message.isFinal ? <div className="mt-3 flex justify-end"><Button type="button" size="sm" variant="ghost" onClick={() => markFinal(message.id)}><CheckCheck className="size-3.5" />최종 답변으로 지정</Button></div> : null}
+                        {canEditQna(currentRole, currentUser.name, message.author) ? <div className="mt-3 flex justify-end gap-1"><Button type="button" size="sm" variant="ghost" onClick={() => { setEditingMessageId(message.id); setEditingMessageBody(message.body) }}><Pencil className="size-3.5" />수정</Button><Button type="button" size="sm" variant="ghost" className="text-[#a13f39]" onClick={() => { onUpdatePost({ ...post, updatedAt: "방금 전", messages: post.messages.map((item) => item.id === message.id ? { ...item, hidden: true, hiddenAt: "방금 전", hiddenBy: currentUser.name } : item) }); recordChange("답변 삭제", post.title, message.author); announce("답변을 삭제했습니다.") }}><Trash2 className="size-3.5" />삭제</Button>{policy.canMarkFinalAnswer && !message.isFinal ? <Button type="button" size="sm" variant="ghost" onClick={() => markFinal(message.id)}><CheckCheck className="size-3.5" />최종 답변으로 지정</Button> : null}</div> : policy.canMarkFinalAnswer && !message.isFinal ? <div className="mt-3 flex justify-end"><Button type="button" size="sm" variant="ghost" onClick={() => markFinal(message.id)}><CheckCheck className="size-3.5" />최종 답변으로 지정</Button></div> : null}
                       </div>
                     </article>
                   )
                 })}
+                {!visibleMessages.length ? <p className="py-10 text-center text-[12px] text-[#60798b]">등록된 답변이나 댓글이 없습니다.</p> : null}
               </div>
               <div className="border-t border-[#e3ebf0] bg-[#fafbfa] p-5">
                 <label htmlFor="qna-reply" className="mb-2 block text-[11px] font-semibold text-[#42474c]">추가 답변</label>
@@ -398,7 +411,10 @@ function WriteQuestionDialog({ open, onOpenChange, onSubmit, returnFocusRef }) {
 }
 
 export function QnaApp({ initialView = "list" }) {
-  const [savedQna] = useState(() => qnaRepository.read())
+  const [savedQna] = useState(() => {
+    const saved = qnaRepository.read()
+    return { ...saved, posts: normalizeQnaPosts(saved.posts) }
+  })
   const [posts, setPosts] = useState(savedQna.posts)
   const [notifications, setNotifications] = useState(savedQna.notifications)
   const [filters, setFilters] = useState(initialFilters)
@@ -501,7 +517,7 @@ export function QnaApp({ initialView = "list" }) {
       views: 1,
       content: draft.content,
       attachments: draft.attachments,
-      messages: [{ id: `m-${Date.now()}`, author: currentUser.name, role: "질문자", time: "방금 전", body: draft.plainText }],
+      messages: [],
     }
     setPosts((current) => [post, ...current])
     setSelectedId(id)
@@ -518,12 +534,12 @@ export function QnaApp({ initialView = "list" }) {
 
   return (
     <div className="qna-scope h-full text-[#0f2233] antialiased">
-      <QnaTopBar view={view} unreadCount={unreadCount} onNavigate={navigate} role={currentRole} hiddenCount={hiddenPosts.length + hiddenMessages.length} onOpenRecovery={() => setRecoveryOpen(true)} onOpenHistory={() => setHistoryOpen(true)} />
+      <QnaTopBar view={view} unreadCount={unreadCount} onNavigate={navigate} role={currentRole} deletedCount={hiddenPosts.length + hiddenMessages.length} onOpenDeleted={() => setRecoveryOpen(true)} onOpenHistory={() => setHistoryOpen(true)} />
       {view === "list" ? <PostListView posts={filteredPosts} allPosts={activePosts} filters={filters} setFilters={setFilters} onSelect={selectPost} onWrite={(event) => { writeReturnFocusRef.current = event.currentTarget; setWriteOpen(true) }} /> : null}
-      {view === "detail" ? <PostDetailView post={selectedPost} onBack={() => navigate("list")} onUpdatePost={updatePost} onHidePost={(post) => { updatePost({ ...post, hidden: true, hiddenAt: "방금 전", hiddenBy: currentUser.name }); recordChange("질문 숨김", post.title); navigate("list"); announce("질문을 숨김 처리했습니다.") }} announce={announce} currentRole={currentRole} currentUser={currentUser} recordChange={recordChange} notify={createNotification} /> : null}
+      {view === "detail" ? <PostDetailView post={selectedPost} onBack={() => navigate("list")} onUpdatePost={updatePost} onHidePost={(post) => { updatePost({ ...post, hidden: true, hiddenAt: "방금 전", hiddenBy: currentUser.name }); recordChange("질문 삭제", post.title); navigate("list"); announce("질문을 삭제했습니다.") }} announce={announce} currentRole={currentRole} currentUser={currentUser} recordChange={recordChange} notify={createNotification} /> : null}
       {view === "notifications" ? <NotificationsView notifications={notifications} onReadAll={() => { setNotifications((current) => current.map((item) => ({ ...item, read: true }))); announce("모든 알림을 읽음 처리했습니다.") }} onOpenPost={openNotification} /> : null}
       <WriteQuestionDialog open={writeOpen} onOpenChange={setWriteOpen} onSubmit={createPost} returnFocusRef={writeReturnFocusRef} />
-      <Dialog open={recoveryOpen} onOpenChange={setRecoveryOpen}><DialogContent className="w-[min(720px,calc(100vw-64px))]"><header className="border-b border-[#e3ebf0] px-7 py-5"><DialogTitle className="text-[18px] font-[680]">Q&A 숨김 항목 복구</DialogTitle><DialogDescription className="mt-1 text-[11px] text-[#60798b]">마스터만 숨김 질문과 답변·댓글을 복구할 수 있습니다.</DialogDescription></header><div className="grid max-h-[440px] gap-2 overflow-y-auto px-7 py-6">{hiddenPosts.map((post) => <article key={post.id} className="flex items-center gap-3 rounded-[9px] border border-[#dce7ee] bg-[#fafbfa] p-4"><span className="min-w-0 flex-1"><Badge variant="muted">질문</Badge><strong className="mt-1 block truncate text-[12px]">{post.title}</strong><small className="mt-1 block text-[10px] text-[#60798b]">{post.hiddenAt} · {post.hiddenBy} 숨김</small></span><Button type="button" size="sm" variant="outline" onClick={() => { updatePost({ ...post, hidden: false, hiddenAt: undefined, hiddenBy: undefined }); recordChange("질문 복구", post.title); announce("질문을 복구했습니다.") }}><ArchiveRestore className="size-3.5" />복구</Button></article>)}{hiddenMessages.map(({ post, message }) => <article key={`${post.id}-${message.id}`} className="flex items-center gap-3 rounded-[9px] border border-[#dce7ee] bg-[#fafbfa] p-4"><span className="min-w-0 flex-1"><Badge variant="muted">답변·댓글</Badge><strong className="mt-1 block truncate text-[12px]">{post.title}</strong><small className="mt-1 block truncate text-[10px] text-[#60798b]">{message.author} · {message.body}</small></span><Button type="button" size="sm" variant="outline" onClick={() => { updatePost({ ...post, messages: post.messages.map((item) => item.id === message.id ? { ...item, hidden: false, hiddenAt: undefined, hiddenBy: undefined } : item) }); recordChange("답변 복구", post.title, message.author); announce("답변을 복구했습니다.") }}><ArchiveRestore className="size-3.5" />복구</Button></article>)}{!hiddenPosts.length && !hiddenMessages.length ? <p className="py-12 text-center text-[12px] text-[#60798b]">숨김 처리된 Q&A 항목이 없습니다.</p> : null}</div></DialogContent></Dialog>
+      <Dialog open={recoveryOpen} onOpenChange={setRecoveryOpen}><DialogContent className="w-[min(720px,calc(100vw-64px))]"><header className="border-b border-[#e3ebf0] px-7 py-5"><DialogTitle className="text-[18px] font-[680]">Q&A 삭제 목록</DialogTitle><DialogDescription className="mt-1 text-[11px] text-[#60798b]">삭제한 질문과 답변·댓글은 실제로 지워지지 않으며 마스터가 복구할 수 있습니다.</DialogDescription></header><div className="grid max-h-[440px] gap-2 overflow-y-auto px-7 py-6">{hiddenPosts.map((post) => <article key={post.id} className="flex items-center gap-3 rounded-[9px] border border-[#dce7ee] bg-[#fafbfa] p-4"><span className="min-w-0 flex-1"><Badge variant="muted">질문</Badge><strong className="mt-1 block truncate text-[12px]">{post.title}</strong><small className="mt-1 block text-[10px] text-[#60798b]">{post.hiddenAt} · {post.hiddenBy} 삭제</small></span><Button type="button" size="sm" variant="outline" onClick={() => { updatePost({ ...post, hidden: false, hiddenAt: undefined, hiddenBy: undefined }); recordChange("질문 복구", post.title); announce("질문을 복구했습니다.") }}><ArchiveRestore className="size-3.5" />복구</Button></article>)}{hiddenMessages.map(({ post, message }) => <article key={`${post.id}-${message.id}`} className="flex items-center gap-3 rounded-[9px] border border-[#dce7ee] bg-[#fafbfa] p-4"><span className="min-w-0 flex-1"><Badge variant="muted">답변·댓글</Badge><strong className="mt-1 block truncate text-[12px]">{post.title}</strong><small className="mt-1 block truncate text-[10px] text-[#60798b]">{message.author} · {message.body}</small></span><Button type="button" size="sm" variant="outline" onClick={() => { updatePost({ ...post, messages: post.messages.map((item) => item.id === message.id ? { ...item, hidden: false, hiddenAt: undefined, hiddenBy: undefined } : item) }); recordChange("답변 복구", post.title, message.author); announce("답변을 복구했습니다.") }}><ArchiveRestore className="size-3.5" />복구</Button></article>)}{!hiddenPosts.length && !hiddenMessages.length ? <p className="py-12 text-center text-[12px] text-[#60798b]">삭제된 Q&A 항목이 없습니다.</p> : null}</div></DialogContent></Dialog>
       <Dialog open={historyOpen} onOpenChange={setHistoryOpen}><DialogContent className="w-[min(720px,calc(100vw-64px))]"><header className="border-b border-[#e3ebf0] px-7 py-5"><DialogTitle className="text-[18px] font-[680]">Q&A 변경 이력</DialogTitle><DialogDescription className="mt-1 text-[12px] text-[#60798b]">이 브라우저의 가상 데이터에서 변경한 질문·답변·상태를 표시합니다.</DialogDescription></header><div className="grid max-h-[440px] gap-2 overflow-y-auto px-7 py-6">{historyEntries.length ? historyEntries.map((entry) => <article key={entry.id} className="flex items-center gap-3 rounded-[9px] border border-[#dce7ee] bg-[#fafbfa] p-4"><span className="min-w-0 flex-1"><strong className="block truncate text-[12px]">{entry.targetName}</strong><small className="mt-1 block text-[10px] text-[#60798b]">{entry.occurredAt} · {entry.actor}{entry.detail ? ` · ${entry.detail}` : ""}</small></span><Badge variant="muted">{entry.action}</Badge></article>) : <p className="py-12 text-center text-[12px] text-[#60798b]">아직 변경 이력이 없습니다.</p>}</div></DialogContent></Dialog>
       <div className={cn("pointer-events-none fixed bottom-7 left-1/2 z-[130] -translate-x-1/2 rounded-[9px] bg-[#172c3c] px-4 py-2.5 text-[12px] font-medium text-white shadow-xl transition", liveMessage ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0")} role="status" aria-live="polite" aria-atomic="true">{liveMessage}</div>
     </div>

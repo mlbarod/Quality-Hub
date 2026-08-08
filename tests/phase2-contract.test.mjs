@@ -29,8 +29,8 @@ test("2단계 역할과 접근 차단 정책을 한 데이터 계약으로 제�
 })
 
 test("Q&A 수정·삭제 정책이 역할, 작성자와 답변 존재 여부를 구분한다", () => {
-  const unanswered = { author: "김품질", messages: [{ id: "question" }] }
-  const answered = { author: "김품질", messages: [{ id: "question" }, { id: "answer" }] }
+  const unanswered = { author: "김품질", messages: [] }
+  const answered = { author: "김품질", messages: [{ id: "answer" }] }
   assert.equal(canEditQna("general", "김품질", "김품질"), true)
   assert.equal(canEditQna("general", "김품질", "다른사용자"), false)
   assert.equal(canDeleteQuestion("general", "김품질", unanswered), true)

@@ -107,7 +107,7 @@ test("메인 App 버튼은 original 카드 내부 UI와 카드 hover 모션·상
 
 test("App 상세 화면의 Main 버튼은 대시보드가 아닌 App 홈으로 돌아간다", () => {
   assert.equal((html.match(/class="report-back-button"[^>]*data-(?:report|rule|user)-close[^>]*>[\s\S]*?<\/svg>Main<\/button>/g) ?? []).length, 3)
-  assert.match(qnaApp, /qualityhub:qna-close[\s\S]*<X[^>]*\/>Main<\/Button>/)
+  assert.match(qnaApp, /qualityhub:qna-close[\s\S]*<ArrowLeft[^>]*\/>MAIN<\/Button>/)
   assert.equal((script.match(/setDashboardMode\("home"\);/g) ?? []).length, 4)
   assert.doesNotMatch(script, /대시보드로 돌아왔습니다/)
   assert.match(styles, /\.report-page-header \{[\s\S]*min-height: 66px;/)
