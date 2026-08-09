@@ -47,14 +47,14 @@ test("대분류, 중분류, 소분류 필터가 모든 예시 카드 분류값�
   })
 })
 
-test("필터 결과 수, 요약과 카드 재배치 상태를 갱신한다", () => {
+test("필터 결과 수, 요약과 목록 재배치 상태를 갱신한다", () => {
   assert.match(script, /data-rule-result-count/)
   assert.match(script, /data-rule-filter-summary/)
   assert.match(script, /playRuleCardArrangement/)
   assert.match(script, /prefers-reduced-motion: reduce/)
 })
 
-test("관리자는 빈 카드에서 문서를 등록하고 카드 상세에서 조회·수정·삭제한다", () => {
+test("관리자는 목록 마지막 행에서 문서를 등록하고 상세에서 조회·수정·삭제한다", () => {
   const cardGrid = html.match(/<div class="rule-card-grid"[^>]*>([\s\S]*?)<\/div>\s*<template data-rule-card-template>/)?.[1] ?? ""
 
   assert.match(html, /data-can-manage-rules="true"/)
@@ -86,7 +86,7 @@ test("등록·수정 분류는 대분류부터 담당 공정까지 드릴다운�
   assert.match(script, /card\.dataset\.ruleUrl = ruleEditorUrl\.value\.trim\(\)/)
 })
 
-test("카드 상세 팝업에 개정 이력을 누적하되 이전 버전 조회는 제공하지 않는다", () => {
+test("문서 상세 팝업에 개정 이력을 누적하되 이전 버전 조회는 제공하지 않는다", () => {
   assert.match(html, /data-rule-revision-list/)
   assert.match(html, /이전 버전 원문 조회는 제공하지 않습니다\./)
   assert.match(script, /const ruleRevisionHistory = new Map\(\)/)
@@ -96,7 +96,8 @@ test("카드 상세 팝업에 개정 이력을 누적하되 이전 버전 조회
 
 test("현재 요구사항에 Rule&SOP 관리와 실제 DB 연동 경계를 기록한다", () => {
   assert.match(requirements, /분류, 담당 공정, 원문 링크와 개정 이력을 상세 팝업에 표시/)
-  assert.match(requirements, /목록 마지막의 신규 등록 카드와 상세 팝업에서 마스터와 관리자가/)
+  assert.match(requirements, /긴 제목을 읽기 쉬운 목록 형태로 배치/)
+  assert.match(requirements, /목록 마지막의 신규 등록 행과 상세 팝업에서 마스터와 관리자가/)
   assert.match(requirements, /대분류·중분류·소분류·담당 공정을 순서대로 선택/)
   assert.match(requirements, /이전 버전 원문 조회 기능은 제공하지 않음/)
   assert.match(requirements, /별도 DB의 분류 컬럼과 URL 컬럼을 참조/)
