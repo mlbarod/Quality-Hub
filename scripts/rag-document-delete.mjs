@@ -1,16 +1,16 @@
 import { inspect } from "node:util"
 
-import { RagApiError, RagResponseParseError, searchRagDocuments } from "../server/ragClient.mjs"
+import { deleteRagDocument, RagApiError, RagResponseParseError } from "../server/ragClient.mjs"
 
-const queryText = process.argv.slice(2).join(" ").trim()
+const docId = process.argv.slice(2).join(" ").trim()
 
-if (!queryText) {
-  console.error('사용법: npm run rag:search -- "검색할 질문"')
+if (!docId) {
+  console.error('사용법: npm run rag:document:delete -- "삭제할 doc_id"')
   process.exitCode = 1
 } else {
   try {
-    const result = await searchRagDocuments(queryText)
-    console.log(`RAG API 응답: HTTP ${result.status}`)
+    const result = await deleteRagDocument(docId)
+    console.log(`RAG 문서 삭제 응답: HTTP ${result.status}`)
     console.log(`Content-Type: ${result.contentType ?? "확인되지 않음"}`)
     console.log("응답 원문:")
     console.log(result.responseText)

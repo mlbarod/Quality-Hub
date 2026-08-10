@@ -10,6 +10,9 @@
     "preview": "vite preview --host 0.0.0.0",
     "start:static": "npm run build && node server.mjs --built",
     "rag:search": "node --env-file-if-exists=.env.rag scripts/rag-search.mjs",
+    "rag:index": "node --env-file-if-exists=.env.rag scripts/rag-index.mjs",
+    "rag:document:add": "node --env-file-if-exists=.env.rag scripts/rag-document-add.mjs",
+    "rag:document:delete": "node --env-file-if-exists=.env.rag scripts/rag-document-delete.mjs",
     "test": "node --test tests/*.test.mjs && vitest run"
   },
   "dependencies": {

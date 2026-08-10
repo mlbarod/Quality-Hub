@@ -60,13 +60,21 @@ npm run dev
 
 목업의 모든 수치와 상태는 실제 데이터가 아닌 UI 검토용 예시입니다.
 
-## RAG 문서 검색 Client 확인
+## RAG API Client 확인
 
-루트의 `.env.rag.example`을 `.env.rag`으로 복사하고 사내에서 발급받은 네 값을 입력합니다. `.env.rag`은 Git에서 제외됩니다.
+루트의 `.env.rag.example`을 `.env.rag`으로 복사하고 문서 검색·인덱스 조회·문서 추가·문서 삭제 URL과 사내에서 발급받은 공통 설정을 입력합니다. `.env.rag`은 Git에서 제외됩니다.
 
 ```bash
 cp .env.rag.example .env.rag
-npm run rag:search -- "반도체에 대해 알려주세요"
 ```
 
-이 명령은 RAG 문서 검색 API만 호출합니다. 품질 Agent UI, GPT-OSS, DB 저장과 전체 대화 흐름에는 아직 연결되지 않습니다.
+각 API는 다음 명령으로 독립 호출합니다.
+
+```bash
+npm run rag:search -- "반도체에 대해 알려주세요"
+npm run rag:index
+npm run rag:document:add
+npm run rag:document:delete -- "0000ABCD"
+```
+
+`rag:document:add`는 공식 가이드의 예시 문서 `ABCD00001`을 실제 인덱스에 추가하며, `rag:document:delete`는 전달한 `doc_id`의 문서를 실제로 삭제합니다. 실행 전 대상 인덱스와 문서 ID를 확인해야 합니다. 이 Client들은 품질 Agent UI, GPT-OSS, DB 저장과 전체 대화 흐름에는 아직 연결되지 않습니다.
