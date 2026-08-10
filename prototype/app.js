@@ -1768,7 +1768,7 @@ const openGlobalSearch = (opener) => {
   if (!currentRolePolicy.canAccess || !(globalSearch instanceof HTMLDialogElement) || globalSearch.open) return;
   globalSearchReturnFocus = opener instanceof HTMLElement ? opener : null;
   if (globalSearchInput instanceof HTMLInputElement) globalSearchInput.value = "";
-  applyGlobalSearch();
+  syncGlobalSearchResults();
   globalSearch.showModal();
   window.requestAnimationFrame(() => globalSearchInput?.focus());
 };

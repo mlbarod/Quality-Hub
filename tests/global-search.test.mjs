@@ -10,6 +10,7 @@ import {
 } from "../prototype/src/search/globalSearch.js"
 
 const requirements = await readFile(new URL("../docs/QUALITY_PORTAL_REQUIREMENTS.md", import.meta.url), "utf8")
+const app = await readFile(new URL("../prototype/app.js", import.meta.url), "utf8")
 
 test("Report와 Rule&SOP는 제목만 검색하고 여러 단어의 위치와 순서를 허용한다", () => {
   const reportTitle = buildTitleSearchText("AOI 검사 분석")
@@ -51,4 +52,8 @@ test("통합 검색 대상과 역할 공통 결과 계약을 요구사항에 기
   assert.match(requirements, /Q&A의 검색 대상은 게시글 제목, 질문 본문과 숨김 처리되지 않은 답변·댓글 내용/)
   assert.match(requirements, /입력한 모든 단어를 검색 대상 내용에 포함한 게시글/)
   assert.match(requirements, /마스터·관리자·일반유저 사이에는 통합 검색 결과 차등을 두지 않음/)
+})
+
+test("통합 검색을 열 때 현재 저장 데이터에서 결과를 다시 구성한다", () => {
+  assert.match(app, /if \(globalSearchInput instanceof HTMLInputElement\) globalSearchInput\.value = "";\s+syncGlobalSearchResults\(\);\s+globalSearch\.showModal\(\);/)
 })
