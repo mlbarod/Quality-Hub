@@ -59,3 +59,14 @@ npm run dev
 다른 PC에서 접속하려면 사내 서버와 네트워크 방화벽에서 선택한 TCP 포트의 인바운드 연결이 허용되어야 합니다. 현재 서버는 목업 공유용이며 인증과 HTTPS를 제공하지 않으므로 인터넷에 직접 공개하지 않습니다.
 
 목업의 모든 수치와 상태는 실제 데이터가 아닌 UI 검토용 예시입니다.
+
+## RAG 문서 검색 Client 확인
+
+루트의 `.env.rag.example`을 `.env.rag`으로 복사하고 사내에서 발급받은 네 값을 입력합니다. `.env.rag`은 Git에서 제외됩니다.
+
+```bash
+cp .env.rag.example .env.rag
+npm run rag:search -- "반도체에 대해 알려주세요"
+```
+
+이 명령은 RAG 문서 검색 API만 호출합니다. 품질 Agent UI, GPT-OSS, DB 저장과 전체 대화 흐름에는 아직 연결되지 않습니다.
