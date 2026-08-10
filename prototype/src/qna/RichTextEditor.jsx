@@ -46,7 +46,15 @@ function ToolbarButton({ label, active = false, disabled = false, onClick, child
   )
 }
 
-export function RichTextEditor({ initialContent = "", onChange, error }) {
+export function RichTextEditor({
+  initialContent = "",
+  onChange,
+  error,
+  ariaLabel = "질문 본문 편집기",
+  toolbarLabel = "본문 서식 도구",
+  placeholder = "문의 배경과 확인이 필요한 내용을 구체적으로 작성해 주세요.",
+  compact = false,
+}) {
   const imageInputRef = useRef(null)
   const [showLinkInput, setShowLinkInput] = useState(false)
   const [linkValue, setLinkValue] = useState("")
@@ -59,15 +67,15 @@ export function RichTextEditor({ initialContent = "", onChange, error }) {
       TableKit.configure({
         table: { resizable: true, HTMLAttributes: { class: "qna-editor-table" } },
       }),
-      Placeholder.configure({ placeholder: "문의 배경과 확인이 필요한 내용을 구체적으로 작성해 주세요." }),
+      Placeholder.configure({ placeholder }),
     ],
     content: initialContent,
     immediatelyRender: false,
     editorProps: {
       attributes: {
-        class: "qna-prosemirror",
+        class: cn("qna-prosemirror", compact && "qna-prosemirror-compact"),
         role: "textbox",
-        "aria-label": "질문 본문 편집기",
+        "aria-label": ariaLabel,
         "aria-multiline": "true",
       },
     },
@@ -111,7 +119,7 @@ export function RichTextEditor({ initialContent = "", onChange, error }) {
   return (
     <div className={cn("overflow-hidden rounded-[10px] border bg-white transition", error ? "border-[#c96861]" : "border-[#d5e3ec] focus-within:border-[#6ec0f7] focus-within:ring-[3px] focus-within:ring-[rgba(7,136,223,.1)]")}>
       <TooltipProvider delayDuration={350}>
-        <div className="flex min-h-11 flex-wrap items-center gap-0.5 border-b border-[#e3ebf0] bg-[#fafbfa] px-2 py-1.5" role="toolbar" aria-label="본문 서식 도구">
+        <div className="flex min-h-11 flex-wrap items-center gap-0.5 border-b border-[#e3ebf0] bg-[#fafbfa] px-2 py-1.5" role="toolbar" aria-label={toolbarLabel}>
           <ToolbarButton label="굵게" active={editorState.bold} onClick={() => editor?.chain().focus().toggleBold().run()}><Bold className="size-4" /></ToolbarButton>
           <ToolbarButton label="기울임" active={editorState.italic} onClick={() => editor?.chain().focus().toggleItalic().run()}><Italic className="size-4" /></ToolbarButton>
           <span className="mx-1 h-5 w-px bg-[#d5e3ec]" aria-hidden="true" />

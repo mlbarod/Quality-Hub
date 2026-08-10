@@ -111,6 +111,47 @@ describe("Q&A 프로토타입", () => {
     expect(screen.queryByRole("dialog", { name: "새 질문 작성" })).not.toBeInTheDocument()
   }, 15000)
 
+  test("추가 답변 버튼을 누를 때만 인라인 리치 텍스트 편집기를 연다", async () => {
+    const user = userEvent.setup()
+    render(<QnaApp />)
+
+    await user.click(screen.getByRole("button", { name: /AOI 오경보 증가 원인 분석 자료를 공유해 주세요/ }))
+    expect(screen.queryByLabelText("추가 답변 편집기")).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "답변 작성" }))
+    expect(await screen.findByRole("toolbar", { name: "추가 답변 서식 도구" }, { timeout: 5000 })).toBeInTheDocument()
+    expect(screen.getByLabelText("추가 답변 편집기")).toHaveAttribute("aria-multiline", "true")
+    expect(screen.getByRole("button", { name: "3×3 표 삽입" })).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "취소" }))
+    expect(screen.queryByLabelText("추가 답변 편집기")).not.toBeInTheDocument()
+  }, 15000)
+
+  test("서식이 있는 답변을 표시하고 수정할 때 같은 편집기를 사용한다", async () => {
+    const post = {
+      ...initialPosts[0],
+      messages: [{
+        ...initialPosts[0].messages[0],
+        body: "서식 답변 확인 항목",
+        content: "<p><strong>서식 답변</strong></p><ul><li>확인 항목</li></ul>",
+      }],
+    }
+    qnaRepository.write({ posts: [post, ...initialPosts.slice(1)], notifications: initialNotifications, history: [] })
+
+    const user = userEvent.setup()
+    render(<QnaApp />)
+    await user.click(screen.getByRole("button", { name: new RegExp(post.title) }))
+
+    expect(document.querySelector(".qna-message-content strong")).toHaveTextContent("서식 답변")
+    expect(document.querySelector(".qna-message-content li")).toHaveTextContent("확인 항목")
+
+    await user.click(screen.getByRole("button", { name: "수정" }))
+    expect(await screen.findByRole("toolbar", { name: "답변 수정 서식 도구" }, { timeout: 5000 })).toBeInTheDocument()
+    const editor = screen.getByLabelText("답변 수정 편집기")
+    expect(editor.querySelector("strong")).toHaveTextContent("서식 답변")
+    expect(editor.querySelector("li")).toHaveTextContent("확인 항목")
+  }, 15000)
+
   test("질문 수정에서도 리치 텍스트 편집기와 기존 표·이미지를 보존한다", async () => {
     const content = '<p>기존 본문</p><table><tbody><tr><td><p>표 내용</p></td></tr></tbody></table><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" alt="검사 이미지"></p>'
     const post = { ...initialPosts[0], content, excerpt: "기존 본문 표 내용" }

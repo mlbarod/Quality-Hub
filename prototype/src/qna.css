@@ -74,6 +74,11 @@
   outline: none;
 }
 
+.qna-prosemirror-compact {
+  min-height: 150px;
+  padding: 14px 16px 18px;
+}
+
 .qna-prosemirror > *:first-child,
 .qna-rendered-content > *:first-child {
   margin-top: 0;
@@ -200,6 +205,11 @@
   color: #405665;
   font-size: 13px;
   line-height: 1.8;
+}
+
+.qna-message-content {
+  color: #454a4f;
+  line-height: 1.65;
 }
 
 @keyframes qna-fade-in {

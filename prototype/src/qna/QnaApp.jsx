@@ -29,7 +29,6 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { canDeleteQuestion, canEditQna, createHistoryEntry, getRoleOption, getRolePolicy } from "@/mock/phase2"
 import { qnaRepository } from "@/qna/repository"
@@ -204,6 +203,16 @@ function AttachmentList({ attachments, onOpen }) {
   )
 }
 
+function plainTextToHtml(value) {
+  const escaped = String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+  return `<p>${escaped.replace(/\n/g, "<br>")}</p>`
+}
+
 function EditQuestionDialog({ post, open, onOpenChange, onSave }) {
   const [title, setTitle] = useState(post?.title ?? "")
   const [content, setContent] = useState(post?.content ?? "")
@@ -238,10 +247,13 @@ function EditQuestionDialog({ post, open, onOpenChange, onSave }) {
 }
 
 function PostDetailView({ post, onBack, onUpdatePost, onHidePost, announce, currentRole, currentUser, recordChange, notify }) {
-  const [reply, setReply] = useState("")
+  const [replyEditorOpen, setReplyEditorOpen] = useState(false)
+  const [replyContent, setReplyContent] = useState("")
+  const [replyPlainText, setReplyPlainText] = useState("")
   const [editQuestionOpen, setEditQuestionOpen] = useState(false)
   const [editingMessageId, setEditingMessageId] = useState(null)
   const [editingMessageBody, setEditingMessageBody] = useState("")
+  const [editingMessageContent, setEditingMessageContent] = useState("")
   if (!post) return null
 
   const policy = getRolePolicy(currentRole)
@@ -257,14 +269,43 @@ function PostDetailView({ post, onBack, onUpdatePost, onHidePost, announce, curr
   }
 
   const submitReply = () => {
-    const body = reply.trim()
+    const body = replyPlainText.trim()
     if (!body) return
-    const message = { id: `m-${Date.now()}`, author: currentUser.name, role: currentRole === "master" ? "마스터" : currentRole === "admin" ? "관리자" : "일반유저", time: "방금 전", body }
+    const message = { id: `m-${Date.now()}`, author: currentUser.name, role: currentRole === "master" ? "마스터" : currentRole === "admin" ? "관리자" : "일반유저", time: "방금 전", body, content: replyContent }
     onUpdatePost({ ...post, status: post.status === "waiting" ? "active" : post.status, updatedAt: "방금 전", messages: [...post.messages, message] })
     recordChange("답변 등록", post.title, currentUser.name)
     notify(post, `${currentUser.name}님이 답변을 등록했습니다`, "reply")
-    setReply("")
+    setReplyContent("")
+    setReplyPlainText("")
+    setReplyEditorOpen(false)
     announce("답변을 등록했습니다.")
+  }
+
+  const closeReplyEditor = () => {
+    setReplyContent("")
+    setReplyPlainText("")
+    setReplyEditorOpen(false)
+  }
+
+  const startEditingMessage = (message) => {
+    setEditingMessageId(message.id)
+    setEditingMessageBody(message.body)
+    setEditingMessageContent(message.content ?? plainTextToHtml(message.body))
+  }
+
+  const closeMessageEditor = () => {
+    setEditingMessageId(null)
+    setEditingMessageBody("")
+    setEditingMessageContent("")
+  }
+
+  const saveEditedMessage = (message) => {
+    const body = editingMessageBody.trim()
+    if (!body) return
+    onUpdatePost({ ...post, updatedAt: "방금 전", messages: post.messages.map((item) => item.id === message.id ? { ...item, body, content: editingMessageContent } : item) })
+    recordChange("답변 수정", post.title, message.author)
+    closeMessageEditor()
+    announce("작성 내용을 수정했습니다.")
   }
 
   const markFinal = (messageId) => {
@@ -300,8 +341,8 @@ function PostDetailView({ post, onBack, onUpdatePost, onHidePost, announce, curr
                       <Avatar className="size-9"><AvatarFallback className={cn(isOwner && "bg-[#edf3f7] text-[#42677f]")}>{message.author.slice(0, 1)}</AvatarFallback></Avatar>
                       <div className={cn("min-w-0 flex-1 rounded-[11px] border p-4", message.isFinal ? "border-[#a9d8c1] bg-[#f3fbf7]" : "border-[#e1e9ef] bg-[#fbfcfb]")}>
                         <div className="mb-2 flex items-center gap-2"><strong className="text-[12px]">{message.author}</strong><Badge variant={isOwner ? "blue" : "muted"}>{message.role}</Badge>{message.isFinal ? <Badge><CheckCheck className="size-3" />최종 답변</Badge> : null}<time className="ml-auto text-[9px] text-[#60798b]">{message.time}</time></div>
-                        {editingMessageId === message.id ? <div className="grid gap-2"><Textarea value={editingMessageBody} onChange={(event) => setEditingMessageBody(event.target.value)} /><div className="flex justify-end gap-2"><Button type="button" size="sm" variant="ghost" onClick={() => setEditingMessageId(null)}>취소</Button><Button type="button" size="sm" onClick={() => { const body = editingMessageBody.trim(); if (!body) return; onUpdatePost({ ...post, updatedAt: "방금 전", messages: post.messages.map((item) => item.id === message.id ? { ...item, body } : item) }); recordChange("답변 수정", post.title, message.author); setEditingMessageId(null); announce("작성 내용을 수정했습니다.") }}>저장</Button></div></div> : <p className="m-0 whitespace-pre-wrap text-[13px] leading-6 text-[#454a4f]">{message.body}</p>}
-                        {canEditQna(currentRole, currentUser.name, message.author) ? <div className="mt-3 flex justify-end gap-1"><Button type="button" size="sm" variant="ghost" onClick={() => { setEditingMessageId(message.id); setEditingMessageBody(message.body) }}><Pencil className="size-3.5" />수정</Button><Button type="button" size="sm" variant="ghost" className="text-[#a13f39]" onClick={() => { onUpdatePost({ ...post, updatedAt: "방금 전", messages: post.messages.map((item) => item.id === message.id ? { ...item, hidden: true, hiddenAt: "방금 전", hiddenBy: currentUser.name } : item) }); recordChange("답변 삭제", post.title, message.author); announce("답변을 삭제했습니다.") }}><Trash2 className="size-3.5" />삭제</Button>{policy.canMarkFinalAnswer && !message.isFinal ? <Button type="button" size="sm" variant="ghost" onClick={() => markFinal(message.id)}><CheckCheck className="size-3.5" />최종 답변으로 지정</Button> : null}</div> : policy.canMarkFinalAnswer && !message.isFinal ? <div className="mt-3 flex justify-end"><Button type="button" size="sm" variant="ghost" onClick={() => markFinal(message.id)}><CheckCheck className="size-3.5" />최종 답변으로 지정</Button></div> : null}
+                        {editingMessageId === message.id ? <div className="grid gap-2"><Suspense fallback={<div className="grid min-h-[160px] place-items-center rounded-[10px] border border-[#d5e3ec] bg-white text-[11px] text-[#7b8287]">편집기를 준비하고 있습니다.</div>}><RichTextEditor key={message.id} initialContent={editingMessageContent} ariaLabel="답변 수정 편집기" toolbarLabel="답변 수정 서식 도구" placeholder="수정할 답변이나 댓글을 입력하세요." compact onChange={(html, text) => { setEditingMessageContent(html); setEditingMessageBody(text) }} /></Suspense><div className="flex justify-end gap-2"><Button type="button" size="sm" variant="ghost" onClick={closeMessageEditor}>취소</Button><Button type="button" size="sm" onClick={() => saveEditedMessage(message)} disabled={!editingMessageBody.trim()}>저장</Button></div></div> : message.content ? <div className="qna-rendered-content qna-message-content" dangerouslySetInnerHTML={{ __html: message.content }} /> : <p className="m-0 whitespace-pre-wrap text-[13px] leading-6 text-[#454a4f]">{message.body}</p>}
+                        {canEditQna(currentRole, currentUser.name, message.author) ? <div className="mt-3 flex justify-end gap-1"><Button type="button" size="sm" variant="ghost" onClick={() => startEditingMessage(message)}><Pencil className="size-3.5" />수정</Button><Button type="button" size="sm" variant="ghost" className="text-[#a13f39]" onClick={() => { onUpdatePost({ ...post, updatedAt: "방금 전", messages: post.messages.map((item) => item.id === message.id ? { ...item, hidden: true, hiddenAt: "방금 전", hiddenBy: currentUser.name } : item) }); recordChange("답변 삭제", post.title, message.author); announce("답변을 삭제했습니다.") }}><Trash2 className="size-3.5" />삭제</Button>{policy.canMarkFinalAnswer && !message.isFinal ? <Button type="button" size="sm" variant="ghost" onClick={() => markFinal(message.id)}><CheckCheck className="size-3.5" />최종 답변으로 지정</Button> : null}</div> : policy.canMarkFinalAnswer && !message.isFinal ? <div className="mt-3 flex justify-end"><Button type="button" size="sm" variant="ghost" onClick={() => markFinal(message.id)}><CheckCheck className="size-3.5" />최종 답변으로 지정</Button></div> : null}
                       </div>
                     </article>
                   )
@@ -309,9 +350,8 @@ function PostDetailView({ post, onBack, onUpdatePost, onHidePost, announce, curr
                 {!visibleMessages.length ? <p className="py-10 text-center text-[12px] text-[#60798b]">등록된 답변이나 댓글이 없습니다.</p> : null}
               </div>
               <div className="border-t border-[#e3ebf0] bg-[#fafbfa] p-5">
-                <label htmlFor="qna-reply" className="mb-2 block text-[11px] font-semibold text-[#42474c]">추가 답변</label>
-                <Textarea id="qna-reply" value={reply} onChange={(event) => setReply(event.target.value)} placeholder="확인 내용이나 추가 질문을 입력하세요." />
-                <div className="mt-3 flex items-center justify-between"><span className="text-[9px] text-[#60798b]">현재 미리보기 역할의 작성자로 등록됩니다.</span><Button type="button" onClick={submitReply} disabled={!reply.trim()}><Send className="size-4" />답변 등록</Button></div>
+                <div className="mb-2 flex items-center justify-between"><strong className="text-[11px] font-semibold text-[#42474c]">추가 답변</strong>{!replyEditorOpen ? <Button type="button" size="sm" variant="outline" onClick={() => setReplyEditorOpen(true)}><PenLine className="size-3.5" />답변 작성</Button> : null}</div>
+                {replyEditorOpen ? <><Suspense fallback={<div className="grid min-h-[160px] place-items-center rounded-[10px] border border-[#d5e3ec] bg-white text-[11px] text-[#7b8287]">편집기를 준비하고 있습니다.</div>}><RichTextEditor ariaLabel="추가 답변 편집기" toolbarLabel="추가 답변 서식 도구" placeholder="확인 내용이나 추가 질문을 입력하세요." compact onChange={(html, text) => { setReplyContent(html); setReplyPlainText(text) }} /></Suspense><div className="mt-3 flex items-center justify-between"><span className="text-[9px] text-[#60798b]">현재 미리보기 역할의 작성자로 등록됩니다.</span><div className="flex gap-2"><Button type="button" variant="ghost" onClick={closeReplyEditor}>취소</Button><Button type="button" onClick={submitReply} disabled={!replyPlainText.trim()}><Send className="size-4" />답변 등록</Button></div></div></> : <p className="m-0 text-[12px] text-[#60798b]">답변 작성 버튼을 누르면 서식 편집기가 이 위치에 열립니다.</p>}
               </div>
             </section>
           </div>
