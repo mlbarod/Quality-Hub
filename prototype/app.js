@@ -8,6 +8,7 @@ import {
 } from "./src/mock/phase2.js";
 import { createLocalRepository, isRuleLocalData, LOCAL_DATA_EVENT } from "./src/data/localRepository.js";
 import { qnaRepository } from "./src/qna/repository.js";
+import { buildQnaSearchText, buildTitleSearchText, matchesSearchQuery } from "./src/search/globalSearch.js";
 
 const prototype = document.querySelector(".prototype");
 const dashboardWorkspace = document.querySelector(".workspace");
@@ -1707,7 +1708,7 @@ function syncGlobalSearchResults() {
       type: `REPORT · ${card.dataset.reportCategory ?? "미분류"}`,
       title: card.dataset.reportTitle ?? "제목 없음",
       description: card.dataset.reportDescription ?? "설명 없음",
-      searchText: [card.dataset.reportTitle, card.dataset.reportDescription, card.dataset.reportCategory, "Report"].join(" "),
+      searchText: buildTitleSearchText(card.dataset.reportTitle),
       icon: "#icon-grid",
     }));
   const ruleResults = getRuleCards()
@@ -1717,7 +1718,7 @@ function syncGlobalSearchResults() {
       type: `${card.dataset.ruleType === "sop" ? "SOP" : "RULE"} · ${card.dataset.ruleProcess ?? "미지정"}`,
       title: card.dataset.ruleTitle ?? "제목 없음",
       description: getRuleClassificationText(card),
-      searchText: [card.dataset.ruleTitle, getRuleClassificationText(card), card.dataset.ruleType].join(" "),
+      searchText: buildTitleSearchText(card.dataset.ruleTitle),
       icon: "#icon-book",
     }));
   const qnaData = qnaRepository.read();
@@ -1730,7 +1731,7 @@ function syncGlobalSearchResults() {
       type: `Q&A · ${post.type}`,
       title: post.title,
       description: `${post.id} · ${post.department} · ${qnaStatusLabels[post.status] ?? post.status}`,
-      searchText: [post.title, post.excerpt, post.process, post.department, post.type, ...post.tags].join(" "),
+      searchText: buildQnaSearchText(post),
       icon: "#icon-message",
     }));
 
@@ -1747,14 +1748,14 @@ const getVisibleGlobalSearchResults = () =>
   [...document.querySelectorAll("[data-global-search-result]")].filter((result) => !result.hidden);
 
 const applyGlobalSearch = () => {
-  const searchTerm = globalSearchInput instanceof HTMLInputElement
-    ? globalSearchInput.value.trim().toLocaleLowerCase("ko-KR")
+  const searchQuery = globalSearchInput instanceof HTMLInputElement
+    ? globalSearchInput.value
     : "";
   let visibleCount = 0;
 
   document.querySelectorAll("[data-global-search-result]").forEach((result) => {
-    const searchTarget = (result.dataset.searchText ?? result.textContent).toLocaleLowerCase("ko-KR");
-    const isVisible = !searchTerm || searchTarget.includes(searchTerm);
+    const searchTarget = result.dataset.searchText ?? result.textContent;
+    const isVisible = matchesSearchQuery(searchTarget, searchQuery);
     result.hidden = !isVisible;
     if (isVisible) visibleCount += 1;
   });
