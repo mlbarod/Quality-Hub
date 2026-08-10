@@ -34,9 +34,6 @@ export function buildRagSearchFields(queryText, indexName) {
     query_text: queryText,
     num_result_doc: 5,
     fields_exclude: ["v_merge_title_content"],
-    filter: {
-      example_field_name: ["png"],
-    },
   }
 }
 

@@ -32,9 +32,6 @@ test("공식 가이드의 RAG 검색 필드와 고정값을 유지한다", () =>
     query_text: "반도체에 대해 알려주세요",
     num_result_doc: 5,
     fields_exclude: ["v_merge_title_content"],
-    filter: {
-      example_field_name: ["png"],
-    },
   })
 })
 
@@ -66,7 +63,6 @@ test("공식 URL, POST Header와 JSON Request 구조로 호출하고 응답 원�
     query_text: "질문 원문",
     num_result_doc: 5,
     fields_exclude: ["v_merge_title_content"],
-    filter: { example_field_name: ["png"] },
   })
   assert.equal(result.status, 200)
   assert.equal(result.responseText, JSON.stringify(responseBody))
