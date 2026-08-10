@@ -78,3 +78,14 @@ npm run rag:document:delete -- "0000ABCD"
 ```
 
 `rag:document:add`는 공식 가이드의 예시 문서 `ABCD00001`을 실제 인덱스에 추가하며, `rag:document:delete`는 전달한 `doc_id`의 문서를 실제로 삭제합니다. 실행 전 대상 인덱스와 문서 ID를 확인해야 합니다. 이 Client들은 품질 Agent UI, GPT-OSS, DB 저장과 전체 대화 흐름에는 아직 연결되지 않습니다.
+
+## GPT-OSS Chat Completions Client 확인
+
+루트의 `.env.gpt-oss.example`을 `.env.gpt-oss`으로 복사하고 사내 API 설정을 입력합니다. `GPT_OSS_API_URL`에는 DS API HUB URL 끝에 `/v1`을 추가한 전체 base URL을 사용합니다. 실제 인증에 사용하는 credential은 `GPT_OSS_CREDENTIAL_KEY`에 입력하며 `.env.gpt-oss`은 Git에서 제외됩니다.
+
+```bash
+cp .env.gpt-oss.example .env.gpt-oss
+npm run gpt-oss:chat -- "You are a helpful assistant." "How are you?"
+```
+
+두 메시지를 생략하면 공식 예제의 system/user message를 사용합니다. 이 명령은 `gpt-oss-120b` Chat Completions API만 호출하며 RAG, DB와 품질 Agent UI에는 연결되지 않습니다.
