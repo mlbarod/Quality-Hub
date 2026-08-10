@@ -11,6 +11,7 @@ import {
 
 const requirements = await readFile(new URL("../docs/QUALITY_PORTAL_REQUIREMENTS.md", import.meta.url), "utf8")
 const app = await readFile(new URL("../prototype/app.js", import.meta.url), "utf8")
+const styles = await readFile(new URL("../prototype/styles.css", import.meta.url), "utf8")
 
 test("Report와 Rule&SOP는 제목만 검색하고 여러 단어의 위치와 순서를 허용한다", () => {
   const reportTitle = buildTitleSearchText("AOI 검사 분석")
@@ -56,4 +57,8 @@ test("통합 검색 대상과 역할 공통 결과 계약을 요구사항에 기
 
 test("통합 검색을 열 때 현재 저장 데이터에서 결과를 다시 구성한다", () => {
   assert.match(app, /if \(globalSearchInput instanceof HTMLInputElement\) globalSearchInput\.value = "";\s+syncGlobalSearchResults\(\);\s+globalSearch\.showModal\(\);/)
+})
+
+test("검색에서 제외한 결과 버튼은 grid 표시 규칙보다 우선해 숨긴다", () => {
+  assert.match(styles, /\.global-search-results > button\[hidden\] \{ display: none; \}/)
 })
