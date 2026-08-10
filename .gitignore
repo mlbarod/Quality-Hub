@@ -4,3 +4,4 @@ coverage/
 *.log
 .env.rag
 .env.gpt-oss
+.env.db

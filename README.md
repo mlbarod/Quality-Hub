@@ -89,3 +89,20 @@ npm run gpt-oss:chat -- "You are a helpful assistant." "How are you?"
 ```
 
 두 메시지를 생략하면 공식 예제의 system/user message를 사용합니다. 이 명령은 `gpt-oss-120b` Chat Completions API만 호출하며 RAG, DB와 품질 Agent UI에는 연결되지 않습니다.
+
+## LLM 대화 History DB 확인
+
+루트의 `.env.db.example`을 `.env.db`로 복사하고 이미 생성된 MariaDB/MySQL의 접속정보를 입력합니다. `.env.db`는 Git에서 제외되며, 확인 명령은 테이블을 생성하거나 변경하지 않습니다.
+
+```bash
+cp .env.db.example .env.db
+npm run db:history:check
+```
+
+특정 검증용 `user_id`를 사용하려면 인자로 전달할 수 있습니다.
+
+```bash
+npm run db:history:check -- "quality.hub.db.check"
+```
+
+이 명령은 connection pool을 통해 conversation 생성·사용자별 목록 조회·user/assistant message 저장·message 조회·다른 사용자 접근 차단·conversation 삭제를 순서대로 확인합니다. 검증 중 생성한 conversation과 소속 message는 성공 시 삭제하며, 중간 실패 시에도 정리를 시도합니다. 현재 이 저장소는 RAG, GPT-OSS와 Quality Agent UI에는 연결되지 않습니다.
