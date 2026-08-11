@@ -34,7 +34,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.28.0",
-    "mysql2": "^3.23.3",
+    "mysql2": "^3.23.2",
     "openai": "^7.4.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
