@@ -66,7 +66,7 @@ function createReply(content = "통합 답변") {
   }
 }
 
-test("RAG Context는 title, content, score만 추출하고 metadata와 내용 없는 hit를 제외한다", () => {
+test("RAG Context는 알려진 title, content, score만 추출하고 metadata를 제외한다", () => {
   const withHits = buildRagContext({ hits: { total: { value: 1 }, hits: rawHits } })
   assert.deepEqual(withHits.hits, rawHits)
   assert.deepEqual(withHits.contextHits, [{ title: "관리 기준", content: "기준 내용", score: 1.25 }])
@@ -75,14 +75,21 @@ test("RAG Context는 title, content, score만 추출하고 metadata와 내용 �
   assert.match(withHits.context, /내용:\n기준 내용/)
   assert.doesNotMatch(withHits.context, /quality-index|doc-1|additionalField|metadata|sort|_source/)
 
-  const withoutUsableContent = buildRagContext({
-    hits: { hits: [{ _score: 0.5, _source: { title: "본문 없음", content: " " } }] },
+  const unknownContentFieldHit = {
+    _index: "quality-index",
+    _id: "doc-unknown",
+    _score: 0.5,
+    _source: { title: "다른 본문 구조", page_content: "실제 검색 본문" },
+    sort: [0.5],
+  }
+  const withFallback = buildRagContext({
+    hits: { hits: [unknownContentFieldHit] },
   })
-  assert.deepEqual(withoutUsableContent, {
-    hits: [],
-    contextHits: [],
-    context: "RAG 검색 결과가 없습니다.",
-  })
+  assert.deepEqual(withFallback.hits, [unknownContentFieldHit])
+  assert.deepEqual(withFallback.contextHits, [null])
+  assert.match(withFallback.context, /검색 결과 데이터:/)
+  assert.match(withFallback.context, /"page_content": "실제 검색 본문"/)
+  assert.doesNotMatch(withFallback.context, /quality-index|doc-unknown|"sort"/)
 
   assert.deepEqual(buildRagContext({ hits: { total: { value: 0 }, hits: [] } }), {
     hits: [],

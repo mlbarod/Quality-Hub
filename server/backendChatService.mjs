@@ -108,6 +108,25 @@ function formatRagContextHit(hit, index) {
   ].join("\n")
 }
 
+function buildRagFallbackPayload(hit) {
+  if (hit._source && typeof hit._source === "object" && !Array.isArray(hit._source)) {
+    return hit._source
+  }
+
+  return Object.fromEntries(
+    Object.entries(hit).filter(([key]) => !["_index", "_id", "_score", "sort"].includes(key)),
+  )
+}
+
+function formatRagFallbackHit(hit, index) {
+  return [
+    `[RAG 문서 ${index + 1}]`,
+    `관련도 점수: ${typeof hit._score === "number" && Number.isFinite(hit._score) ? hit._score : "확인되지 않음"}`,
+    "검색 결과 데이터:",
+    JSON.stringify(buildRagFallbackPayload(hit), null, 2),
+  ].join("\n")
+}
+
 export function buildRagContext(responseData) {
   const hits = responseData?.hits?.hits
   if (!Array.isArray(hits)) {
@@ -117,16 +136,16 @@ export function buildRagContext(responseData) {
     throw new RagHitsStructureError("RAG 검색 응답의 hits.hits 항목이 객체가 아닙니다.")
   }
 
-  const usableHits = hits
-    .map((rawHit) => ({ rawHit, contextHit: extractRagContextHit(rawHit) }))
-    .filter(({ contextHit }) => contextHit !== null)
+  const contextHits = hits.map((hit) => extractRagContextHit(hit))
 
   return {
-    hits: usableHits.map(({ rawHit }) => rawHit),
-    contextHits: usableHits.map(({ contextHit }) => contextHit),
-    context: usableHits.length === 0
+    hits,
+    contextHits,
+    context: hits.length === 0
       ? "RAG 검색 결과가 없습니다."
-      : usableHits.map(({ contextHit }, index) => formatRagContextHit(contextHit, index)).join("\n\n"),
+      : hits.map((hit, index) => contextHits[index]
+        ? formatRagContextHit(contextHits[index], index)
+        : formatRagFallbackHit(hit, index)).join("\n\n"),
   }
 }
 
