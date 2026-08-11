@@ -14,13 +14,24 @@ function jsonResponse(payload, status = 200) {
 
 function renderFixture() {
   document.body.innerHTML = `
-    <section data-agent-drawer-thread></section>
-    <section data-agent-full-thread></section>
+    <div class="agent-drawer-content"><section data-agent-drawer-thread></section></div>
+    <main class="agent-main"><section data-agent-full-thread></section></main>
     <div data-agent-history-list></div>
     <button type="button" data-agent-new>새 대화</button>
     <form data-agent-form><input data-agent-input><button type="submit">전송</button><small data-agent-form-status></small></form>
     <form data-agent-form><input data-agent-input><button type="submit">전송</button><small data-agent-form-status></small></form>
   `
+}
+
+function makeScrollable(selector, initialHeight = 400) {
+  const element = document.querySelector(selector)
+  let scrollHeight = initialHeight
+  Object.defineProperty(element, "scrollHeight", { configurable: true, get: () => scrollHeight })
+  Object.defineProperty(element, "clientHeight", { configurable: true, get: () => 160 })
+  return {
+    element,
+    setHeight(value) { scrollHeight = value },
+  }
 }
 
 beforeEach(() => {
@@ -112,6 +123,8 @@ describe("Quality Agent 공유 대화 상태", () => {
   })
 
   it("질문 전송 중 로딩을 표시하고 새 대화·정제된 답변·updated_at 목록을 함께 갱신한다", async () => {
+    const drawerScroll = makeScrollable(".agent-drawer-content")
+    const fullScroll = makeScrollable(".agent-main")
     let conversationCreated = false
     let answerRequested = false
     let resolveAnswer
@@ -159,8 +172,12 @@ describe("Quality Agent 공유 대화 상태", () => {
     await vi.waitFor(() => {
       expect(document.querySelector("[data-agent-drawer-thread]").textContent).toContain("답변을 생성하고 있습니다")
       expect(input.disabled).toBe(true)
+      expect(drawerScroll.element.scrollTop).toBe(400)
+      expect(fullScroll.element.scrollTop).toBe(400)
     })
 
+    drawerScroll.setHeight(900)
+    fullScroll.setHeight(900)
     resolveAnswer()
     await vi.waitFor(() => {
       expect(controller.state.sending).toBe(false)
@@ -169,8 +186,46 @@ describe("Quality Agent 공유 대화 상태", () => {
       expect(document.querySelector("[data-agent-history-list]").textContent).toContain("현재 질문")
       expect(document.querySelector("[data-agent-drawer-thread] strong")?.textContent).toBe("실제 답변")
       expect(document.body.textContent).not.toContain("doc-1")
+      expect(drawerScroll.element.scrollTop).toBe(900)
+      expect(fullScroll.element.scrollTop).toBe(900)
     })
     expect(localStorage.getItem("quality-hub.agent.active-conversation:quality.kim")).toBe("conversation-1")
+  })
+
+  it("답변 대기 중 사용자가 위로 이동하면 자동 스크롤을 중단한다", async () => {
+    const drawerScroll = makeScrollable(".agent-drawer-content")
+    let resolveAnswer
+    const fetchImpl = vi.fn(async (url, options = {}) => {
+      if (url === "/api/agent/conversations") {
+        return jsonResponse({ conversations: [{ conversationId: "conversation-1", title: "대화", updatedAt: "2026-08-11T03:00:00Z" }] })
+      }
+      if (url.endsWith("/messages") && options.method === "POST") {
+        await new Promise((resolve) => { resolveAnswer = resolve })
+        return jsonResponse({
+          userMessage: { messageId: "u1", role: "user", content: "질문", status: "completed" },
+          assistantMessage: { messageId: "a1", role: "assistant", content: "긴 답변", status: "completed" },
+        })
+      }
+      if (url.endsWith("/messages")) return jsonResponse({ messages: [] })
+      throw new Error(`예상하지 못한 요청: ${url}`)
+    })
+    const controller = createAgentChatController({ fetchImpl, getUserId: () => "quality.kim", storage: localStorage })
+    await controller.initialize()
+
+    const form = document.querySelector("[data-agent-form]")
+    form.querySelector("[data-agent-input]").value = "질문"
+    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }))
+    await vi.waitFor(() => expect(drawerScroll.element.scrollTop).toBe(400))
+
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    drawerScroll.element.scrollTop = 0
+    drawerScroll.element.dispatchEvent(new Event("scroll"))
+    drawerScroll.setHeight(900)
+    resolveAnswer()
+
+    await vi.waitFor(() => expect(controller.state.sending).toBe(false))
+    expect(drawerScroll.element.scrollTop).toBe(0)
+    controller.destroy()
   })
 
   it("대화 삭제 후 다음 대화를 같은 공유 상태로 선택한다", async () => {

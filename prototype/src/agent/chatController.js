@@ -169,6 +169,10 @@ export function createAgentChatController({
   const drawerThread = root.querySelector("[data-agent-drawer-thread]")
   const fullThread = root.querySelector("[data-agent-full-thread]")
   const historyList = root.querySelector("[data-agent-history-list]")
+  const threadScrollContainers = [...new Set([
+    drawerThread?.closest(".agent-drawer-content") ?? drawerThread,
+    fullThread?.closest(".agent-main") ?? fullThread,
+  ].filter((element) => element instanceof HTMLElement))]
   const forms = [...root.querySelectorAll("[data-agent-form]")]
   const inputs = [...root.querySelectorAll("[data-agent-input]")]
   const statusCopies = [...root.querySelectorAll("[data-agent-form-status]")]
@@ -184,6 +188,42 @@ export function createAgentChatController({
     error: "",
     requestVersion: 0,
   }
+  let followLatestMessage = true
+  let scrollScheduled = false
+  let applyingScroll = false
+  const requestFrame = typeof globalThis.requestAnimationFrame === "function"
+    ? globalThis.requestAnimationFrame.bind(globalThis)
+    : (callback) => globalThis.setTimeout(callback, 0)
+
+  const scheduleScrollToLatest = ({ force = false } = {}) => {
+    if (force) followLatestMessage = true
+    if (!followLatestMessage || scrollScheduled) return
+    scrollScheduled = true
+    requestFrame(() => {
+      scrollScheduled = false
+      if (!followLatestMessage) return
+      applyingScroll = true
+      threadScrollContainers.forEach((container) => {
+        container.scrollTop = container.scrollHeight
+      })
+      requestFrame(() => { applyingScroll = false })
+    })
+  }
+
+  const handleConversationScroll = (event) => {
+    if (applyingScroll) return
+    const container = event.currentTarget
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight
+    followLatestMessage = distanceFromBottom <= 80
+  }
+
+  threadScrollContainers.forEach((container) => container.addEventListener("scroll", handleConversationScroll, { passive: true }))
+  const resizeObserver = typeof globalThis.ResizeObserver === "function"
+    ? new globalThis.ResizeObserver(() => scheduleScrollToLatest())
+    : null
+  ;[drawerThread, fullThread].forEach((thread) => {
+    if (thread instanceof HTMLElement) resizeObserver?.observe(thread)
+  })
 
   const storageKey = () => `${ACTIVE_CONVERSATION_KEY_PREFIX}:${getUserId()}`
   const saveActiveConversation = () => {
@@ -228,8 +268,8 @@ export function createAgentChatController({
         thread.append(createLoadingMessage())
       }
       if (state.error) thread.append(createThreadState(state.error, { error: true }))
-      thread.scrollTop = thread.scrollHeight
     })
+    scheduleScrollToLatest()
   }
 
   const renderHistory = () => {
@@ -300,6 +340,7 @@ export function createAgentChatController({
 
   const selectConversation = async (conversationId, { persist = true } = {}) => {
     const requestVersion = ++state.requestVersion
+    followLatestMessage = true
     state.activeConversationId = conversationId
     state.messages = []
     state.error = ""
@@ -351,11 +392,13 @@ export function createAgentChatController({
 
   const submitQuestion = async (question) => {
     if (state.sending) return
+    followLatestMessage = true
     state.error = ""
     state.sending = true
     state.pendingQuestion = question
     inputs.forEach((input) => { input.value = "" })
     render()
+    scheduleScrollToLatest({ force: true })
     try {
       if (!state.activeConversationId) await createConversation(question.slice(0, 500))
       const result = await api.ask(state.activeConversationId, question)
@@ -461,6 +504,10 @@ export function createAgentChatController({
       state.activeConversationId = null
       state.error = ""
       await loadConversations({ restore: true })
+    },
+    destroy() {
+      resizeObserver?.disconnect()
+      threadScrollContainers.forEach((container) => container.removeEventListener("scroll", handleConversationScroll))
     },
     render,
   }
