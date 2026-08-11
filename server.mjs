@@ -5,6 +5,7 @@ import { parseEnv } from "node:util"
 import { fileURLToPath, URL } from "node:url"
 
 import { createAgentChatApi } from "./server/agentChatApi.mjs"
+import { createReportApi } from "./server/reportApi.mjs"
 
 const rootDir = fileURLToPath(new URL(".", import.meta.url))
 export const sourceStaticDir = join(rootDir, "prototype")
@@ -172,10 +173,12 @@ function serveStatic(req, res, staticDir) {
 export function createQualityHubServer({
   staticDir = builtStaticDir,
   agentApi = createAgentChatApi(),
+  reportApi = createReportApi(),
 } = {}) {
   const server = createHttpServer(async (req, res) => {
     try {
       if (await agentApi.handle(req, res)) return
+      if (await reportApi.handle(req, res)) return
       serveStatic(req, res, staticDir)
     } catch (error) {
       console.error("Quality Hub request failed:", error)
@@ -183,7 +186,10 @@ export function createQualityHubServer({
       else res.destroy(error)
     }
   })
-  server.once("close", () => { void agentApi.close() })
+  server.once("close", () => {
+    void agentApi.close()
+    void reportApi.close()
+  })
   return server
 }
 
@@ -206,10 +212,12 @@ function reportServerError(error, host, port) {
 async function startSourceServer({ host, port }) {
   const { createServer: createViteServer } = await import("vite")
   const agentApi = createAgentChatApi()
+  const reportApi = createReportApi()
   let viteServer
   const httpServer = createHttpServer(async (req, res) => {
     try {
       if (await agentApi.handle(req, res)) return
+      if (await reportApi.handle(req, res)) return
       viteServer.middlewares(req, res)
     } catch (error) {
       console.error("Quality Hub source request failed:", error)
@@ -217,7 +225,10 @@ async function startSourceServer({ host, port }) {
       else res.destroy(error)
     }
   })
-  httpServer.once("close", () => { void agentApi.close() })
+  httpServer.once("close", () => {
+    void agentApi.close()
+    void reportApi.close()
+  })
 
   viteServer = await createViteServer({
     configFile: join(rootDir, "vite.config.mjs"),

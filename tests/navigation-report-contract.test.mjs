@@ -61,19 +61,13 @@ test("초기 홈에서 그래프를 숨기고 대시보드 버튼으로 별도 �
   assert.match(script, /querySelectorAll\("\[data-dashboard-open\]"\)/)
 })
 
-test("Report 카테고리를 FDC, SPC, VM 각 4개로 제공한다", () => {
-  const filters = [...html.matchAll(/data-report-filter="([^"]+)"/g)].map((match) => match[1])
-  assert.deepEqual([...new Set(filters)], ["all", "fdc", "spc", "vm"])
-
-  const cardCategories = [...html.matchAll(/data-report-card data-report-category="([^"]+)"/g)].map((match) => match[1])
-  assert.equal(cardCategories.length, 12)
-  assert.deepEqual(Object.fromEntries(["fdc", "spc", "vm"].map((category) => [category, cardCategories.filter((value) => value === category).length])), {
-    fdc: 4,
-    spc: 4,
-    vm: 4,
-  })
-  assert.match(html, /<strong>3<\/strong><small>카테고리<\/small>/)
+test("Report 카테고리와 개수는 report_reg 조회 결과로 갱신한다", () => {
+  assert.match(html, /data-report-category-count>0<\/strong>/)
   assert.match(html, /class="report-summary-card" role="group" aria-label="등록된 Report 요약"/)
+  assert.match(script, /const createReportFilter = \(category\)/)
+  assert.match(script, /const createReportCategoryGroup = \(category, index\)/)
+  assert.match(script, /reportCategoryCount\?\.replaceChildren/)
+  assert.match(script, /loadReportCatalog/)
 })
 
 test("질문 작성 버튼의 텍스트와 아이콘 모션은 동작 감소 설정을 따른다", () => {

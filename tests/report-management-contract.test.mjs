@@ -6,6 +6,8 @@ const html = await readFile(new URL("../prototype/index.html", import.meta.url),
 const script = await readFile(new URL("../prototype/app.js", import.meta.url), "utf8")
 const styles = await readFile(new URL("../prototype/styles.css", import.meta.url), "utf8")
 const requirements = await readFile(new URL("../docs/QUALITY_PORTAL_REQUIREMENTS.md", import.meta.url), "utf8")
+const repository = await readFile(new URL("../server/reportRepository.mjs", import.meta.url), "utf8")
+const api = await readFile(new URL("../server/reportApi.mjs", import.meta.url), "utf8")
 
 test("Report는 Rule&SOP와 같은 관리자 전용 등록 흐름을 제공한다", () => {
   assert.match(html, /data-can-manage-reports="true"/)
@@ -16,25 +18,40 @@ test("Report는 Rule&SOP와 같은 관리자 전용 등록 흐름을 제공한�
   assert.match(script, /openReportEditor\("create", null, createButton\)/)
 })
 
-test("Report 출력 화면 우측 상단에서 수정과 삭제를 제공한다", () => {
+test("고유키와 숨김 컬럼이 없는 동안 수정과 삭제는 실제 DB 변경을 실행하지 않는다", () => {
   const viewerActions = html.match(/<div class="report-viewer-actions">([\s\S]*?)<\/div>/)?.[1] ?? ""
-  assert.match(viewerActions, /data-report-delete-open/)
-  assert.match(viewerActions, /data-report-edit-open/)
-  assert.match(script, /openReportEditor\("edit", activeReportCard/)
-  assert.match(script, /softDeleteItem\(\{ type: "Report"/)
+  assert.match(viewerActions, /disabled title="report_reg 숨김 컬럼 확정 후 연결"/)
+  assert.match(viewerActions, /disabled title="report_reg 고유키 확정 후 연결"/)
+  assert.doesNotMatch(script, /openReportEditor\("edit", activeReportCard/)
+  assert.doesNotMatch(script, /softDeleteItem\(\{ type: "Report"/)
   assert.doesNotMatch(html, /data-report-(?:disable|status|visibility|permission)/)
 })
 
-test("Report 편집 항목은 별도 DB 테이블의 이름·설명·카테고리·URL 컬럼에 대응한다", () => {
+test("Report 조회와 신규 등록은 report_reg 컬럼에 직접 대응한다", () => {
   assert.match(html, /data-report-editor-name/)
   assert.match(html, /data-report-editor-description/)
   assert.match(html, /data-report-editor-category/)
   assert.match(html, /type="url"[^>]*data-report-editor-url/)
-  assert.match(script, /card\.dataset\.reportTitle = reportEditorName\.value\.trim\(\)/)
-  assert.match(script, /card\.dataset\.reportDescription = reportEditorDescription\.value\.trim\(\)/)
-  assert.match(script, /card\.dataset\.reportCategory = reportEditorCategory\.value/)
-  assert.match(script, /card\.dataset\.reportUrl = reportEditorUrl\.value\.trim\(\)/)
-  assert.match(requirements, /별도 DB 테이블의 각 컬럼 값을 참조/)
+  assert.match(repository, /FROM report_reg/)
+  assert.match(repository, /report_name AS reportName/)
+  assert.match(repository, /report_url AS reportUrl/)
+  assert.match(repository, /INSERT INTO report_reg/)
+  assert.match(repository, /user_id,[\s\S]*reg_time[\s\S]*CURRENT_TIMESTAMP/)
+  assert.match(api, /const API_PATH = "\/api\/reports"/)
+  assert.match(script, /fetch\("\/api\/reports"/)
+  assert.match(script, /"x-quality-hub-user-id": getRoleOption\(currentRole\)\.userId/)
+  assert.match(requirements, /`report_reg`/)
+})
+
+test("DB 카테고리와 Report 카드가 동적으로 구성되고 Spotfire 원본 URL을 표시한다", () => {
+  assert.match(script, /const renderReportCatalog = \(reports\)/)
+  assert.match(script, /new Set\(reports\.map\(\(report\) => report\.category/)
+  assert.match(script, /card\.dataset\.reportTitle = report\.reportName/)
+  assert.match(script, /card\.dataset\.reportDescription = report\.description/)
+  assert.match(script, /card\.dataset\.reportUrl = report\.reportUrl/)
+  assert.match(html, /data-report-spotfire-frame/)
+  assert.match(script, /reportSpotfireFrame\.src = reportUrl/)
+  assert.match(styles, /\.spotfire-embed-frame/)
 })
 
 test("포털 권한 설정 없이 Spotfire 자체 조회 권한을 적용한다", () => {

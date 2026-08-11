@@ -49,10 +49,13 @@
 
 - 품질 Hub의 Report를 업무 카테고리와 카드 형식으로 구성하고 검색·필터 제공
 - 마스터와 관리자가 Rule&SOP와 같은 카드·팝업 흐름으로 Report를 등록하고, 선택한 Report 출력 화면 우측 상단에서 수정·삭제
-- Report의 이름, 설명, 카테고리와 Spotfire URL은 별도 DB 테이블의 각 컬럼 값을 참조하며 별도의 사용 중지 상태는 두지 않음
+- Report는 품질 Agent와 같은 MariaDB/MySQL 접속 환경변수를 사용하고 `report_reg`의 `category`, `report_name`, `description`, `report_url`을 각각 카테고리, 이름, 설명, Spotfire URL로 사용
+- 신규 등록 시 화면에 표시하지 않는 `user_id`와 `reg_time`을 현재 사용자 ID와 DB 현재 시각으로 기록하며 별도의 사용 중지 상태는 두지 않음
+- 신규 등록 카테고리는 현재 `report_reg.category` 값을 제안하되 20자 이내의 새 카테고리도 입력 가능
 - Report 선택 시 데이터를 별도 가공하지 않고 Spotfire Web Player 원본 화면 표시
 - 포털에서 Report별 공개 범위나 조회 권한을 추가로 설정하지 않고 Spotfire의 화면 구성과 조회 권한을 그대로 유지
-- 실제 DB 테이블 규격과 Spotfire URL·인증 방식은 연동 단계에서 확정
+- `report_reg`에는 고유키·숨김 여부·변경 이력 컬럼이 없어 실제 수정, 복구 가능한 숨김 삭제와 이력 저장은 해당 규격 확정 전까지 실행하지 않음
+- Spotfire URL은 원본 화면에 직접 사용하며 SSO, iframe 허용 정책과 운영 인증 방식은 연동 환경에서 검증
 
 ### 품질 Agent
 
@@ -145,5 +148,5 @@
 - 통합 검색은 현재 화면의 Report·Rule&SOP 제목과 Q&A 제목·본문·답변·댓글 가상 데이터를 동적으로 반영
 - 역할별 화면 제어는 실제 인증·권한 집행이 아닌 역할 미리보기이며, 로컬 데이터는 사용자·브라우저 간에 공유되지 않음
 - 품질 Agent는 사내 RAG·GPT-OSS와 대화 DB를 Backend 흐름과 기존 UI에 연결했으며, Streaming은 적용하지 않음
-- 실제 SSO·Spotfire·Agent 외 업무 DB·Parquet·공유 폴더 연동과 운영 보안·성능 검증은 후속 단계로 유지
+- Report 목록 조회·신규 등록은 `report_reg`에 연결하고 등록 URL을 Spotfire 원본 화면에 사용하며, 실제 SSO·Spotfire 인증·수정/숨김 삭제·나머지 업무 DB·Parquet·공유 폴더 연동과 운영 보안·성능 검증은 후속 작업으로 유지
 - 완료된 단계의 상세 근거는 단계 보고서와 디자인 검토 보고서에 증거 스냅샷으로 보존하며 현재 상태 판단에는 개발 계획을 우선함
