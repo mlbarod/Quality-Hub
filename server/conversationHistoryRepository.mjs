@@ -13,6 +13,14 @@ export class ConversationAccessError extends Error {
   }
 }
 
+export class MessageAccessError extends Error {
+  constructor(messageId) {
+    super("메시지를 찾을 수 없거나 접근 권한이 없습니다.")
+    this.name = "MessageAccessError"
+    this.messageId = messageId
+  }
+}
+
 function requireText(value, fieldName, maxLength) {
   if (typeof value !== "string" || value.trim().length === 0) {
     throw new TypeError(`${fieldName} 값을 입력해 주세요.`)
@@ -36,6 +44,13 @@ function parsePort(value) {
     throw new TypeError("DB_PORT는 1~65535 범위의 정수여야 합니다.")
   }
   return port
+}
+
+function parseMessageLimit(value) {
+  if (!Number.isInteger(value) || value < 1 || value > 100) {
+    throw new TypeError("limit은 1~100 범위의 정수여야 합니다.")
+  }
+  return value
 }
 
 function serializeRagSources(value) {
@@ -193,6 +208,31 @@ export function createConversationHistoryRepository({
       return rows
     },
 
+    async listRecentMessages({ conversationId, userId, limit = 10 }) {
+      const normalizedConversationId = requireText(conversationId, "conversationId", 36)
+      const normalizedUserId = requireText(userId, "userId", 100)
+      const normalizedLimit = parseMessageLimit(limit)
+      await findOwnedConversation(pool, normalizedConversationId, normalizedUserId)
+
+      const [rows] = await pool.execute(`
+        SELECT
+          message_id AS messageId,
+          conversation_id AS conversationId,
+          role,
+          content,
+          model_name AS modelName,
+          rag_used AS ragUsed,
+          rag_sources AS ragSources,
+          status,
+          created_at AS createdAt
+        FROM llm_message
+        WHERE conversation_id = ? AND status = ?
+        ORDER BY created_at DESC, message_id DESC
+        LIMIT ?
+      `, [normalizedConversationId, "completed", normalizedLimit])
+      return rows.reverse()
+    },
+
     async saveMessage({ conversationId, userId, ...message }) {
       const normalizedConversationId = requireText(conversationId, "conversationId", 36)
       const normalizedUserId = requireText(userId, "userId", 100)
@@ -243,6 +283,45 @@ export function createConversationHistoryRepository({
           FROM llm_message
           WHERE message_id = ?
         `, [messageId])
+        return rows[0]
+      })
+    },
+
+    async updateMessageStatus({ messageId, conversationId, userId, status }) {
+      const normalizedMessageId = requireText(messageId, "messageId", 36)
+      const normalizedConversationId = requireText(conversationId, "conversationId", 36)
+      const normalizedUserId = requireText(userId, "userId", 100)
+      const normalizedStatus = requireText(status, "status", 20)
+
+      return withTransaction(pool, async (connection) => {
+        await findOwnedConversation(connection, normalizedConversationId, normalizedUserId, { forUpdate: true })
+        const [result] = await connection.execute(`
+          UPDATE llm_message
+          SET status = ?
+          WHERE message_id = ? AND conversation_id = ?
+        `, [normalizedStatus, normalizedMessageId, normalizedConversationId])
+        if (result.affectedRows === 0) throw new MessageAccessError(normalizedMessageId)
+
+        await connection.execute(`
+          UPDATE llm_conversation
+          SET updated_at = CURRENT_TIMESTAMP(6)
+          WHERE conversation_id = ? AND user_id = ?
+        `, [normalizedConversationId, normalizedUserId])
+
+        const [rows] = await connection.execute(`
+          SELECT
+            message_id AS messageId,
+            conversation_id AS conversationId,
+            role,
+            content,
+            model_name AS modelName,
+            rag_used AS ragUsed,
+            rag_sources AS ragSources,
+            status,
+            created_at AS createdAt
+          FROM llm_message
+          WHERE message_id = ? AND conversation_id = ?
+        `, [normalizedMessageId, normalizedConversationId])
         return rows[0]
       })
     },

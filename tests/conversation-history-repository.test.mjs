@@ -116,6 +116,32 @@ test("소유권 확인 후 conversation별 message를 생성 순서로 조회한
   assert.match(mock.calls[1].sql, /ORDER BY created_at ASC, message_id ASC/)
 })
 
+test("완료된 최근 message만 제한 조회하고 시간 순서로 반환한다", async () => {
+  const newestFirst = [
+    { messageId: "message-3", role: "user", content: "최근 질문" },
+    { messageId: "message-2", role: "assistant", content: "이전 답변" },
+  ]
+  const mock = createDbMock(({ sql }) => {
+    if (sql.includes("FROM llm_conversation")) return [[{ conversationId: "conversation-1" }]]
+    return [newestFirst]
+  })
+  const repository = createConversationHistoryRepository({ pool: mock.pool })
+
+  assert.deepEqual(
+    await repository.listRecentMessages({ conversationId: "conversation-1", userId: "owner", limit: 2 }),
+    [
+      { messageId: "message-2", role: "assistant", content: "이전 답변" },
+      { messageId: "message-3", role: "user", content: "최근 질문" },
+    ],
+  )
+  assert.deepEqual(mock.calls[1].params, ["conversation-1", "completed", 2])
+  assert.match(mock.calls[1].sql, /ORDER BY created_at DESC, message_id DESC LIMIT \?/)
+  await assert.rejects(
+    repository.listRecentMessages({ conversationId: "conversation-1", userId: "owner", limit: 101 }),
+    /1~100/,
+  )
+})
+
 test("user/assistant message 저장과 conversation updated_at 갱신을 한 transaction으로 처리한다", async () => {
   const ids = ["user-message-uuid", "assistant-message-uuid"]
   const mock = createDbMock(({ sql, params }) => {
@@ -188,6 +214,31 @@ test("다른 user_id에는 message 조회·저장 권한을 주지 않는다", a
   )
   assert.equal(mock.calls.some(({ sql }) => sql.startsWith("INSERT INTO llm_message")), false)
   assert.deepEqual(mock.transaction, { begin: 1, commit: 0, rollback: 1, release: 1 })
+})
+
+test("message 처리 상태를 소유권 확인 후 갱신한다", async () => {
+  const updatedMessage = { messageId: "message-1", conversationId: "conversation-1", status: "rag_failed" }
+  const mock = createDbMock(({ sql }) => {
+    if (sql.includes("FROM llm_conversation")) return [[{ conversationId: "conversation-1" }]]
+    if (sql.startsWith("UPDATE")) return [{ affectedRows: 1 }]
+    if (sql.includes("FROM llm_message")) return [[updatedMessage]]
+    throw new Error(`예상하지 못한 SQL: ${sql}`)
+  })
+  const repository = createConversationHistoryRepository({ pool: mock.pool })
+
+  assert.deepEqual(await repository.updateMessageStatus({
+    messageId: "message-1",
+    conversationId: "conversation-1",
+    userId: "owner",
+    status: "rag_failed",
+  }), updatedMessage)
+  assert.deepEqual(mock.calls.map(({ params }) => params), [
+    ["conversation-1", "owner"],
+    ["rag_failed", "message-1", "conversation-1"],
+    ["conversation-1", "owner"],
+    ["message-1", "conversation-1"],
+  ])
+  assert.deepEqual(mock.transaction, { begin: 1, commit: 1, rollback: 0, release: 1 })
 })
 
 test("소유권 확인 뒤 message와 conversation을 transaction으로 삭제한다", async () => {

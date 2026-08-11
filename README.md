@@ -87,7 +87,7 @@ npm run rag:document:add
 npm run rag:document:delete -- "0000ABCD"
 ```
 
-`rag:document:add`는 공식 가이드의 예시 문서 `ABCD00001`을 실제 인덱스에 추가하며, `rag:document:delete`는 전달한 `doc_id`의 문서를 실제로 삭제합니다. 실행 전 대상 인덱스와 문서 ID를 확인해야 합니다. 이 Client들은 품질 Agent UI, GPT-OSS, DB 저장과 전체 대화 흐름에는 아직 연결되지 않습니다.
+`rag:document:add`는 공식 가이드의 예시 문서 `ABCD00001`을 실제 인덱스에 추가하며, `rag:document:delete`는 전달한 `doc_id`의 문서를 실제로 삭제합니다. 실행 전 대상 인덱스와 문서 ID를 확인해야 합니다. RAG 검색 Client는 Backend Chat 흐름에서 재사용하지만 Quality Agent UI에는 아직 연결되지 않습니다.
 
 ## GPT-OSS Chat Completions Client 확인
 
@@ -98,7 +98,7 @@ cp .env.gpt-oss.example .env.gpt-oss
 npm run gpt-oss:chat -- "You are a helpful assistant." "How are you?"
 ```
 
-두 메시지를 생략하면 공식 예제의 system/user message를 사용합니다. 이 명령은 `gpt-oss-120b` Chat Completions API만 호출하며 RAG, DB와 품질 Agent UI에는 연결되지 않습니다.
+두 메시지를 생략하면 공식 예제의 system/user message를 사용합니다. 이 명령은 `gpt-oss-120b` Chat Completions API만 독립 호출합니다. GPT-OSS Client는 Backend Chat 흐름에서 재사용하지만 Quality Agent UI에는 아직 연결되지 않습니다.
 
 ## LLM 대화 History DB 확인
 
@@ -115,4 +115,15 @@ npm run db:history:check
 npm run db:history:check -- "quality.hub.db.check"
 ```
 
-이 명령은 connection pool을 통해 conversation 생성·사용자별 목록 조회·user/assistant message 저장·message 조회·다른 사용자 접근 차단·conversation 삭제를 순서대로 확인합니다. 검증 중 생성한 conversation과 소속 message는 성공 시 삭제하며, 중간 실패 시에도 정리를 시도합니다. 현재 이 저장소는 RAG, GPT-OSS와 Quality Agent UI에는 연결되지 않습니다.
+이 명령은 connection pool을 통해 conversation 생성·사용자별 목록 조회·user/assistant message 저장·message 조회·다른 사용자 접근 차단·conversation 삭제를 순서대로 확인합니다. 검증 중 생성한 conversation과 소속 message는 성공 시 삭제하며, 중간 실패 시에도 정리를 시도합니다. 이 저장소는 Backend Chat 흐름에서 재사용하지만 Quality Agent UI에는 아직 연결되지 않습니다.
+
+## Backend Chat 통합 확인
+
+`.env.rag`, `.env.gpt-oss`, `.env.db`에 앞서 독립 검증한 실제 사내 설정을 입력한 뒤 user ID와 질문을 전달합니다. conversation ID를 생략하면 질문 제목으로 새 conversation을 만들며, 전달하면 해당 사용자가 소유한 기존 conversation의 최근 완료 History를 사용합니다.
+
+```bash
+npm run backend:chat:check -- "quality.kim" "질문 내용"
+npm run backend:chat:check -- "quality.kim" "후속 질문" "기존-conversation-uuid"
+```
+
+이 명령은 user message 저장 → RAG 검색과 `hits.hits[]` Context 구성 → 최근 완료 message 최대 10건 조회 → 기존 규격의 GPT-OSS 호출 → assistant 답변과 RAG 출처 JSON 저장을 순서대로 실행합니다. RAG 결과 0건은 정상 처리하며, RAG·GPT-OSS·DB 실패는 서로 다른 단계로 출력하고 user message의 `status`에 `rag_failed`, `gpt_failed`, `db_failed` 기록을 시도합니다. 외부 API를 기다리는 동안 DB transaction을 유지하지 않으며 Streaming과 Quality Agent UI 연결은 포함하지 않습니다.
