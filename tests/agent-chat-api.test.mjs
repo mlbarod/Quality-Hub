@@ -76,7 +76,7 @@ function createApiFixture({ chatError } = {}) {
   }
   return {
     calls,
-    agentApi: createAgentChatApi({ historyRepository, chatService }),
+    agentApi: createAgentChatApi({ historyRepository, chatService, logger: { error() {} } }),
   }
 }
 
@@ -165,10 +165,16 @@ test("사용자 식별 누락과 GPT-OSS 실패를 이해 가능한 API 오류�
 })
 
 test("DB 설정 또는 Repository 초기화 실패를 DB 오류로 구분한다", async (t) => {
+  const failureLogs = []
   const agentApi = createAgentChatApi({
     repositoryFactory() {
-      throw new Error("DB 환경변수가 필요합니다: DB_HOST")
+      throw Object.assign(new Error("private-db-host 정보가 포함된 원본 오류"), {
+        code: "ER_ACCESS_DENIED_ERROR",
+        errno: 1045,
+        sqlState: "28000",
+      })
     },
+    logger: { error(...args) { failureLogs.push(args) } },
   })
   const { server, baseUrl } = await startApiServer(agentApi)
   t.after(() => closeServer(server))
@@ -182,4 +188,20 @@ test("DB 설정 또는 Repository 초기화 실패를 DB 오류로 구분한다"
       message: "대화 내용을 저장하거나 불러오지 못했습니다.",
     },
   })
+  assert.deepEqual(failureLogs, [[
+    "Quality Agent API failure",
+    {
+      method: "GET",
+      route: "conversations",
+      apiCode: "DB_FAILED",
+      status: 503,
+      stage: "db",
+      operation: "initialize_repository",
+      errorName: "Error",
+      dbCode: "ER_ACCESS_DENIED_ERROR",
+      errno: 1045,
+      sqlState: "28000",
+    },
+  ]])
+  assert.doesNotMatch(JSON.stringify(failureLogs), /private-db-host/)
 })

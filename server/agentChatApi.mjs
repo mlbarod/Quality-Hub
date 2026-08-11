@@ -124,6 +124,23 @@ function toApiError(error) {
   })
 }
 
+function writeFailureLog(logger, req, route, error, apiError) {
+  if (apiError.status < 500 || typeof logger?.error !== "function") return
+  const cause = error instanceof BackendChatDbError && error.cause ? error.cause : error
+  logger.error("Quality Agent API failure", {
+    method: req.method ?? "GET",
+    route: route?.join("/") ?? "unknown",
+    apiCode: apiError.code,
+    status: apiError.status,
+    stage: error?.stage,
+    operation: error?.operation,
+    errorName: cause?.name,
+    dbCode: cause?.code,
+    errno: cause?.errno,
+    sqlState: cause?.sqlState,
+  })
+}
+
 function parseRoute(req) {
   let url
   try {
@@ -144,6 +161,7 @@ export function createAgentChatApi({
   chatService,
   repositoryFactory = createConversationHistoryRepository,
   chatServiceFactory = createBackendChatService,
+  logger = console,
 } = {}) {
   let repository = historyRepository
   let service = chatService
@@ -220,6 +238,7 @@ export function createAgentChatApi({
       } catch (error) {
         if (route === null) return false
         const apiError = toApiError(error)
+        writeFailureLog(logger, req, route, error, apiError)
         sendJson(res, apiError.status, { error: { code: apiError.code, message: apiError.message } })
         return true
       }

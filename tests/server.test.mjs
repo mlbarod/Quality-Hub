@@ -6,6 +6,7 @@ import test from "node:test"
 import {
   builtStaticDir,
   createQualityHubServer,
+  loadServerEnvironment,
   parsePort,
   resolvePort,
   resolveServeMode,
@@ -61,6 +62,32 @@ test("실행용 정적 서버는 Vite 빌드 산출물을 기본으로 제공한
 test("server.mjs는 기본적으로 소스를 실시간 제공하고 정적 모드는 명시적으로 선택한다", () => {
   assert.equal(resolveServeMode([]), "source")
   assert.equal(resolveServeMode(["--built"]), "built")
+})
+
+test("실행 위치와 관계없이 프로젝트 루트 환경파일을 읽는다", () => {
+  const loaded = []
+  const loadedFiles = loadServerEnvironment({
+    environmentFiles: [".env.rag.example", ".env-does-not-exist"],
+    loadFile(filePath) {
+      loaded.push(filePath)
+    },
+  })
+
+  assert.deepEqual(loadedFiles, loaded)
+  assert.equal(loaded.length, 1)
+  assert.match(loaded[0], /\/Quality-Hub\/\.env\.rag\.example$/)
+})
+
+test("프로젝트 루트 환경파일 값이 서버 프로세스의 오래된 값을 대체한다", () => {
+  const previous = process.env.RAG_API_URL
+  process.env.RAG_API_URL = "stale-process-value"
+  try {
+    loadServerEnvironment({ environmentFiles: [".env.rag.example"] })
+    assert.equal(process.env.RAG_API_URL, "")
+  } finally {
+    if (previous === undefined) delete process.env.RAG_API_URL
+    else process.env.RAG_API_URL = previous
+  }
 })
 
 test("외부 개발 도메인을 Vite 서버에서 허용한다", () => {

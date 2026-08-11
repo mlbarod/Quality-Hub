@@ -37,7 +37,7 @@ test("conversation CRUD와 Backend Chat API를 source·built 서버에서 함께
   assert.match(apiSource, /deleteConversation/)
   assert.match(apiSource, /activeService\.ask/)
   assert.match(serverSource, /agentApi\.handle/)
-  assert.match(packageSource, /"start": "node --env-file-if-exists=\.env\.rag[^]*server\.mjs"/)
+  assert.match(packageSource, /"start": "node server\.mjs"/)
 })
 
 test("실제 SSO 전 테스트 user ID 경계와 Streaming 제외를 요구사항에 기록한다", () => {

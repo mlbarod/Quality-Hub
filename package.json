@@ -4,11 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node --env-file-if-exists=.env.rag --env-file-if-exists=.env.gpt-oss --env-file-if-exists=.env.db server.mjs",
+    "start": "node server.mjs",
     "dev": "npm run start",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "start:static": "npm run build && node --env-file-if-exists=.env.rag --env-file-if-exists=.env.gpt-oss --env-file-if-exists=.env.db server.mjs --built",
+    "start:static": "npm run build && node server.mjs --built",
     "rag:search": "node --env-file-if-exists=.env.rag scripts/rag-search.mjs",
     "rag:index": "node --env-file-if-exists=.env.rag scripts/rag-index.mjs",
     "rag:document:add": "node --env-file-if-exists=.env.rag scripts/rag-document-add.mjs",

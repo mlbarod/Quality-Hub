@@ -1,6 +1,7 @@
-import { createReadStream, existsSync, statSync } from "node:fs"
+import { createReadStream, existsSync, readFileSync, statSync } from "node:fs"
 import { createServer as createHttpServer } from "node:http"
 import { extname, isAbsolute, join, normalize, resolve, sep } from "node:path"
+import { parseEnv } from "node:util"
 import { fileURLToPath, URL } from "node:url"
 
 import { createAgentChatApi } from "./server/agentChatApi.mjs"
@@ -8,6 +9,7 @@ import { createAgentChatApi } from "./server/agentChatApi.mjs"
 const rootDir = fileURLToPath(new URL(".", import.meta.url))
 export const sourceStaticDir = join(rootDir, "prototype")
 export const builtStaticDir = join(rootDir, "dist")
+export const serverEnvironmentFiles = [".env.rag", ".env.gpt-oss", ".env.db"]
 const defaultPort = 4173
 const defaultHost = "0.0.0.0"
 
@@ -25,6 +27,20 @@ const mimeTypes = {
   ".webp": "image/webp",
   ".woff": "font/woff",
   ".woff2": "font/woff2",
+}
+
+export function loadServerEnvironment({
+  environmentFiles = serverEnvironmentFiles,
+  loadFile = (filePath) => Object.assign(process.env, parseEnv(readFileSync(filePath, "utf8"))),
+} = {}) {
+  const loadedFiles = []
+  for (const fileName of environmentFiles) {
+    const filePath = join(rootDir, fileName)
+    if (!existsSync(filePath)) continue
+    loadFile(filePath)
+    loadedFiles.push(filePath)
+  }
+  return loadedFiles
 }
 
 function sendText(res, statusCode, message, extraHeaders = {}) {
@@ -261,5 +277,12 @@ async function startServer() {
 
 const entryPath = process.argv[1] ? resolve(process.argv[1]) : ""
 if (entryPath === fileURLToPath(import.meta.url)) {
-  void startServer()
+  try {
+    const loadedFiles = loadServerEnvironment()
+    console.log(`Quality Hub environment files loaded: ${loadedFiles.map((filePath) => filePath.slice(rootDir.length)).join(", ") || "none"}`)
+    void startServer()
+  } catch (error) {
+    console.error(`Quality Hub 환경파일을 읽지 못했습니다: ${error instanceof Error ? error.message : error}`)
+    process.exitCode = 1
+  }
 }
