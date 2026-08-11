@@ -179,7 +179,7 @@ export function createAgentChatApi({
       }
       ownsRepository = true
     }
-    if (!service) service = chatServiceFactory({ historyRepository: repository })
+    if (!service) service = chatServiceFactory({ historyRepository: repository, logger })
     return { repository, service }
   }
 

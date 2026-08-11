@@ -7,9 +7,11 @@ import {
   BackendChatGptOssError,
   BackendChatRagError,
   buildChatMessages,
+  buildSafeChatTrace,
   buildChatUserMessage,
   buildRagContext,
   createBackendChatService,
+  DEFAULT_BACKEND_CHAT_SYSTEM_MESSAGE,
   RagHitsStructureError,
   selectChatHistory,
 } from "../server/backendChatService.mjs"
@@ -107,6 +109,18 @@ test("RAG Context와 현재 질문만 구분한 현재 user 메시지를 만든�
   assert.match(prompt, /\[RAG Context\]\n문서 Context/)
   assert.match(prompt, /\[현재 질문\]\n현재 질문$/)
   assert.doesNotMatch(prompt, /최근 대화 History/)
+  assert.match(DEFAULT_BACKEND_CHAT_SYSTEM_MESSAGE, /사실 근거는 이번 요청의 RAG Context를 우선/)
+  assert.match(DEFAULT_BACKEND_CHAT_SYSTEM_MESSAGE, /History.*사내 사실의 근거로 사용하지 마세요/)
+  assert.match(DEFAULT_BACKEND_CHAT_SYSTEM_MESSAGE, /충돌하면 RAG Context를 따르세요/)
+
+  const noResultPrompt = buildChatUserMessage({
+    ragContext: "RAG 검색 결과가 없습니다.",
+    question: "현재 질문",
+    hasRagContext: false,
+  })
+  assert.match(noResultPrompt, /\[RAG 검색 상태\]\n검색 결과: 0건/)
+  assert.match(noResultPrompt, /사내 규정, 수치, 일정, 담당자와 시스템 상태를 추측하지 마세요/)
+  assert.match(noResultPrompt, /구체적인 확인 질문을 한 가지/)
 })
 
 test("History는 최근 6개를 실제 role로 유지하고 총 문자 예산 안에서 자른다", () => {
@@ -169,9 +183,12 @@ test("DB 저장, RAG, 최근 History, GPT-OSS, 답변·출처 저장을 순서�
     return originalStatus(input)
   }
   let gptInput
+  const safeTraceLogs = []
   const service = createBackendChatService({
     historyRepository: repository,
     historyLimit: 6,
+    safeTraceEnabled: true,
+    logger: { info(...args) { safeTraceLogs.push(args) } },
     ragSearch: async (question) => {
       operations.push("rag")
       assert.equal(question, "현재 질문")
@@ -219,6 +236,29 @@ test("DB 저장, RAG, 최근 History, GPT-OSS, 답변·출처 저장을 순서�
   assert.equal(result.answer.content, "통합 답변")
   assert.deepEqual(result.ragSources, rawHits)
   assert.equal(result.historyCount, 2)
+  assert.equal(safeTraceLogs.length, 1)
+  assert.equal(safeTraceLogs[0][0], "Quality Agent safe trace")
+  assert.deepEqual(safeTraceLogs[0][1], buildSafeChatTrace({
+    question: "현재 질문",
+    ragResult: buildRagContext({ hits: { hits: rawHits } }),
+    loadedHistory: [
+      { role: "user", content: "이전 질문" },
+      { role: "assistant", content: "이전 답변" },
+    ],
+    chatMessages: gptInput.messages,
+  }))
+  assert.doesNotMatch(
+    JSON.stringify(safeTraceLogs),
+    /현재 질문|관리 기준|기준 내용|DOC-1|quality-index|Prompt에 포함하면 안 되는 metadata/,
+  )
+  assert.deepEqual(safeTraceLogs[0][1].llm, {
+    model: "gpt-oss-120b",
+    temperature: 0.5,
+    parameterNames: ["model", "messages", "temperature"],
+    messageCount: 4,
+    roles: ["system", "user", "assistant", "user"],
+    messageChars: gptInput.messages.map(({ content }) => content.length),
+  })
 })
 
 test("RAG 검색 결과가 0건이면 빈 Context로 GPT-OSS를 호출하고 rag_used를 false로 저장한다", async () => {
@@ -236,6 +276,8 @@ test("RAG 검색 결과가 0건이면 빈 Context로 GPT-OSS를 호출하고 rag
   const result = await service.ask({ conversationId: "conversation-1", userId: "owner", question: "질문" })
   const assistantSave = repository.calls.find(({ operation }) => operation === "save:assistant").input
   assert.match(gptMessages.at(-1).content, /RAG 검색 결과가 없습니다/)
+  assert.match(gptMessages.at(-1).content, /검색 결과: 0건/)
+  assert.match(gptMessages.at(-1).content, /사내 규정, 수치, 일정, 담당자와 시스템 상태를 추측하지 마세요/)
   assert.equal(assistantSave.ragUsed, false)
   assert.deepEqual(assistantSave.ragSources, [])
   assert.equal(result.ragUsed, false)

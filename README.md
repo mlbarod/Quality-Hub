@@ -128,6 +128,8 @@ npm run backend:chat:check -- "quality.kim" "후속 질문" "기존-conversation
 
 이 명령은 user message 저장 → RAG 검색과 `hits.hits[]`의 제목·본문·점수 Context 구성 → 최근 완료 message 최대 6건을 실제 대화 role과 6,000자 예산으로 적용 → 기존 규격의 GPT-OSS 호출 → assistant 답변과 RAG 출처 JSON 저장을 순서대로 실행합니다. RAG 결과 0건은 정상 처리하며, RAG·GPT-OSS·DB 실패는 서로 다른 단계로 출력하고 user message의 `status`에 `rag_failed`, `gpt_failed`, `db_failed` 기록을 시도합니다. 외부 API를 기다리는 동안 DB transaction을 유지하지 않습니다.
 
+정확도 확인이 필요하면 `QUALITY_AGENT_SAFE_TRACE=1 npm start`로 서버를 실행합니다. 서버 콘솔에는 질문·문서 원문, Credential, 사용자 ID 대신 질문 길이, RAG hit 수와 필드명, Context 길이, History 개수·길이, 최종 message role·길이, 모델과 temperature만 기록됩니다. 확인이 끝나면 평소처럼 `npm start`로 실행합니다.
+
 ## Quality Agent UI 통합 확인
 
 루트의 `.env.rag`, `.env.gpt-oss`, `.env.db`를 입력하고 `npm start`로 실행하면 우측 패널과 전체 화면이 같은 Backend conversation을 사용합니다. 서버는 실행한 작업 디렉터리와 관계없이 프로젝트 루트의 세 환경파일을 직접 읽습니다. 환경파일을 변경한 경우 실행 중인 서버를 종료하고 다시 시작해야 합니다. 실제 SSO 전까지 상단 역할 미리보기의 `user_id`를 테스트 식별값으로 전달합니다. Agent API가 실패하면 서버 콘솔의 `Quality Agent API failure` 로그에서 실패 단계와 DB 오류 코드를 확인할 수 있으며 접속정보와 SQL 원문은 기록하지 않습니다.
