@@ -35,14 +35,17 @@ import { qnaRepository } from "@/qna/repository"
 import {
   DEPARTMENT_OPTIONS,
   filterPosts,
+  getQnaLineOptions,
   initialPosts,
   normalizeQnaPosts,
   PROCESS_OPTIONS,
+  QNA_CATEGORY_OPTIONS,
   STATUS,
   TYPE_OPTIONS,
 } from "@/qna/data"
 
 const RichTextEditor = lazy(() => import("@/qna/RichTextEditor").then((module) => ({ default: module.RichTextEditor })))
+const QNA_LINE_OPTIONS = getQnaLineOptions()
 
 const initialFilters = {
   search: "",
@@ -164,21 +167,29 @@ function PostListView({ posts, allPosts, filters, setFilters, onSelect, onWrite 
           </div>
 
           {posts.length ? (
-            <div className="divide-y divide-[#e8eef2]">
+            <div>
+              <div className="grid grid-cols-[minmax(0,1fr)_110px_96px_110px_100px_70px] items-center gap-4 border-b border-[#dce7ee] bg-[#f8fafb] px-6 py-3 text-[11px] font-semibold text-[#567286]" aria-hidden="true">
+                <span>제목</span><span>등록일</span><span>구분</span><span>라인</span><span>작성자</span><span className="text-right">조회</span>
+              </div>
+              <div className="divide-y divide-[#e8eef2]">
               {posts.map((post) => (
                 <article key={post.id} className="group relative">
-                  <button type="button" className="grid w-full grid-cols-[minmax(0,1fr)_140px_96px] items-center gap-6 bg-white px-6 py-5 text-left transition hover:bg-[#f1f6f9] focus-visible:relative focus-visible:z-10 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-[rgba(7,136,223,.18)]" onClick={() => onSelect(post.id)}>
+                  <button type="button" className="grid w-full grid-cols-[minmax(0,1fr)_110px_96px_110px_100px_70px] items-center gap-4 bg-white px-6 py-5 text-left transition hover:bg-[#f1f6f9] focus-visible:relative focus-visible:z-10 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-[rgba(7,136,223,.18)]" onClick={() => onSelect(post.id)}>
                     <span className="min-w-0">
                       <span className="mb-2 flex flex-wrap items-center gap-2"><StatusBadge status={post.status} /><Badge variant="outline">{post.process}</Badge><Badge variant="muted">{post.type}</Badge><small className="ml-1 text-[10px] font-semibold text-[#60798b]">{post.id}</small></span>
                       <strong className="block truncate text-[15px] font-[650] tracking-[-.015em] text-[#24272b] transition group-hover:text-[#0673bc]">{post.title}</strong>
                       <span className="mt-1.5 block truncate text-[12px] text-[#567286]">{post.excerpt}</span>
-                      <span className="mt-3 flex flex-wrap gap-1.5">{post.tags.slice(0, 3).map((tag) => <small key={tag} className="rounded-full bg-[#edf3f7] px-2 py-0.5 text-[9px] font-medium text-[#567286]">#{tag}</small>)}</span>
+                      <span className="mt-3 flex flex-wrap items-center gap-1.5">{post.tags.slice(0, 3).map((tag) => <small key={tag} className="rounded-full bg-[#edf3f7] px-2 py-0.5 text-[9px] font-medium text-[#567286]">#{tag}</small>)}<small className="ml-1 text-[10px] text-[#60798b]">최근 변경 {post.updatedAt} · 답변 {post.messages.filter((message) => !message.hidden).length}</small></span>
                     </span>
-                    <span className="grid gap-1.5 text-[11px] text-[#567286]"><span className="flex items-center gap-1.5"><UserRound className="size-3.5" />{post.author}</span><span className="flex items-center gap-1.5"><Clock3 className="size-3.5" />{post.updatedAt}</span><span className="flex items-center gap-1.5"><MessageCircle className="size-3.5" />답변 {post.messages.filter((message) => !message.hidden).length}</span></span>
-                    <span className="flex items-center justify-end gap-2 text-[11px] text-[#60798b]"><Eye className="size-3.5" />{post.views}<ChevronRight className="ml-2 size-4 transition group-hover:translate-x-0.5 group-hover:text-[#0673bc]" /></span>
+                    <span className="text-[11px] text-[#567286]">{post.createdAt}</span>
+                    <Badge variant="outline">{post.category}</Badge>
+                    <span className="truncate text-[11px] font-semibold text-[#405665]" title={post.line}>{post.line}</span>
+                    <span className="flex items-center gap-1.5 text-[11px] text-[#567286]"><UserRound className="size-3.5" />{post.author}</span>
+                    <span className="flex items-center justify-end gap-2 text-[11px] text-[#60798b]"><Eye className="size-3.5" />{post.views}<ChevronRight className="size-4 transition group-hover:translate-x-0.5 group-hover:text-[#0673bc]" /></span>
                   </button>
                 </article>
               ))}
+              </div>
             </div>
           ) : (
             <div className="grid min-h-[360px] place-items-center px-6 py-16 text-center">
@@ -322,7 +333,7 @@ function PostDetailView({ post, onBack, onUpdatePost, onHidePost, announce, curr
         <div className="grid grid-cols-[minmax(0,1fr)_280px] items-start gap-5">
           <div className="space-y-5">
             <article className="rounded-[14px] border border-[#dce7ee] bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,.03)]">
-              <div className="flex flex-wrap items-center gap-2"><StatusBadge status={post.status} /><Badge variant="outline">{post.process}</Badge><Badge variant="muted">{post.department}</Badge><Badge variant="muted">{post.type}</Badge><span className="ml-auto text-[10px] font-semibold text-[#60798b]">{post.id}</span>{canEditQuestion ? <Button type="button" size="sm" variant="ghost" onClick={() => setEditQuestionOpen(true)}><Pencil className="size-3.5" />질문 수정</Button> : null}{canRemoveQuestion ? <Button type="button" size="sm" variant="ghost" className="text-[#a13f39]" onClick={() => onHidePost(post)}><Trash2 className="size-3.5" />질문 삭제</Button> : null}</div>
+              <div className="flex flex-wrap items-center gap-2"><StatusBadge status={post.status} /><Badge variant="outline">{post.category}</Badge><Badge variant="outline">{post.line}</Badge><Badge variant="outline">{post.process}</Badge><Badge variant="muted">{post.department}</Badge><Badge variant="muted">{post.type}</Badge><span className="ml-auto text-[10px] font-semibold text-[#60798b]">{post.id}</span>{canEditQuestion ? <Button type="button" size="sm" variant="ghost" onClick={() => setEditQuestionOpen(true)}><Pencil className="size-3.5" />질문 수정</Button> : null}{canRemoveQuestion ? <Button type="button" size="sm" variant="ghost" className="text-[#a13f39]" onClick={() => onHidePost(post)}><Trash2 className="size-3.5" />질문 삭제</Button> : null}</div>
               <h1 className="mb-3 mt-5 text-[26px] font-[680] leading-[1.35] tracking-[-.035em] text-[#172c3c]">{post.title}</h1>
               <div className="flex items-center gap-4 border-b border-[#e8eef2] pb-5 text-[11px] text-[#567286]"><span className="flex items-center gap-1.5"><UserRound className="size-3.5" />{post.author}</span><span className="flex items-center gap-1.5"><Clock3 className="size-3.5" />{post.createdAt}</span><span className="flex items-center gap-1.5"><Eye className="size-3.5" />조회 {post.views}</span></div>
               <div className="qna-rendered-content py-6" dangerouslySetInnerHTML={{ __html: post.content }} />
@@ -358,7 +369,7 @@ function PostDetailView({ post, onBack, onUpdatePost, onHidePost, announce, curr
 
           <aside className="sticky top-5 space-y-4" aria-label="질문 관리 정보">
             <section className="rounded-[13px] border border-[#dce7ee] bg-white p-5"><h2 className="text-[13px] font-[680]">처리 상태</h2><p className="mb-4 mt-1 text-[11px] text-[#60798b]">{policy.canChangeQnaStatus ? "마스터·관리자는 이전 상태를 포함해 변경할 수 있습니다." : "일반유저는 처리 상태를 변경할 수 없습니다."}</p>{policy.canChangeQnaStatus ? <Select value={post.status} onValueChange={updateStatus}><SelectTrigger aria-label="처리 상태 변경"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(STATUS).map(([value, config]) => <SelectItem key={value} value={value}>{config.label}</SelectItem>)}</SelectContent></Select> : <StatusBadge status={post.status} />}</section>
-            <section className="rounded-[13px] border border-[#dce7ee] bg-white p-5"><h2 className="text-[13px] font-[680]">질문 정보</h2><dl className="mt-4 grid gap-3 text-[11px]"><div className="flex justify-between gap-4"><dt className="text-[#60798b]">담당 공정</dt><dd className="font-semibold">{post.process}</dd></div><div className="flex justify-between gap-4"><dt className="text-[#60798b]">담당 부서</dt><dd className="font-semibold">{post.department}</dd></div><div className="flex justify-between gap-4"><dt className="text-[#60798b]">질문 유형</dt><dd className="font-semibold">{post.type}</dd></div><div className="flex justify-between gap-4"><dt className="text-[#60798b]">최근 변경</dt><dd className="font-semibold">{post.updatedAt}</dd></div></dl></section>
+            <section className="rounded-[13px] border border-[#dce7ee] bg-white p-5"><h2 className="text-[13px] font-[680]">질문 정보</h2><dl className="mt-4 grid gap-3 text-[11px]"><div className="flex justify-between gap-4"><dt className="text-[#60798b]">구분</dt><dd className="font-semibold">{post.category}</dd></div><div className="flex justify-between gap-4"><dt className="text-[#60798b]">라인</dt><dd className="font-semibold">{post.line}</dd></div><div className="flex justify-between gap-4"><dt className="text-[#60798b]">담당 공정</dt><dd className="font-semibold">{post.process}</dd></div><div className="flex justify-between gap-4"><dt className="text-[#60798b]">담당 부서</dt><dd className="font-semibold">{post.department}</dd></div><div className="flex justify-between gap-4"><dt className="text-[#60798b]">질문 유형</dt><dd className="font-semibold">{post.type}</dd></div><div className="flex justify-between gap-4"><dt className="text-[#60798b]">최근 변경</dt><dd className="font-semibold">{post.updatedAt}</dd></div></dl></section>
             {policy.canMarkFinalAnswer ? <aside className="rounded-[13px] border border-[#cfe6da] bg-[#f3faf6] p-5 text-[#30634d]"><Sparkles className="size-5" /><strong className="mt-3 block text-[12px]">최종 답변을 지정해 주세요.</strong><p className="mt-1 text-[11px] leading-5 text-[#486956]">담당자 답변 중 해결 기준이 되는 답변을 선택하면 질문 상태가 자동으로 완료됩니다.</p></aside> : null}
           </aside>
         </div>
@@ -383,8 +394,10 @@ function NotificationsView({ notifications, onReadAll, onOpenPost }) {
   )
 }
 
-function WriteQuestionDialog({ open, onOpenChange, onSubmit, returnFocusRef }) {
+function WriteQuestionDialog({ open, onOpenChange, onSubmit, returnFocusRef, lineOptions }) {
   const [title, setTitle] = useState("")
+  const [category, setCategory] = useState(QNA_CATEGORY_OPTIONS[0])
+  const [line, setLine] = useState(lineOptions[0] ?? "")
   const [process, setProcess] = useState("식각")
   const [department, setDepartment] = useState("품질기획")
   const [type, setType] = useState("기준 문의")
@@ -400,6 +413,8 @@ function WriteQuestionDialog({ open, onOpenChange, onSubmit, returnFocusRef }) {
   useEffect(() => {
     if (!open) return
     setTitle("")
+    setCategory(QNA_CATEGORY_OPTIONS[0])
+    setLine(lineOptions[0] ?? "")
     setProcess("식각")
     setDepartment("품질기획")
     setType("기준 문의")
@@ -410,7 +425,7 @@ function WriteQuestionDialog({ open, onOpenChange, onSubmit, returnFocusRef }) {
     setErrors({})
     submittedRef.current = false
     setEditorKey((current) => current + 1)
-  }, [open])
+  }, [lineOptions, open])
 
   const addAttachments = (event) => {
     const files = [...(event.target.files ?? [])].map((file) => ({ name: file.name, size: file.size < 1024 * 1024 ? `${Math.max(1, Math.round(file.size / 1024))} KB` : `${(file.size / 1024 / 1024).toFixed(1)} MB` }))
@@ -421,19 +436,24 @@ function WriteQuestionDialog({ open, onOpenChange, onSubmit, returnFocusRef }) {
   const submit = (event) => {
     event.preventDefault()
     const nextErrors = {}
+    if (!line) nextErrors.line = "라인 환경변수를 먼저 설정해 주세요."
     if (!title.trim()) nextErrors.title = "제목을 입력해 주세요."
     if (!plainText.trim()) nextErrors.content = "본문을 입력해 주세요."
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length) return
     submittedRef.current = true
-    onSubmit({ title: title.trim(), process, department, type, tags: tags.split(",").map((tag) => tag.trim().replace(/^#/, "")).filter(Boolean).slice(0, 5), content, plainText: plainText.trim(), attachments })
+    onSubmit({ title: title.trim(), category, line, process, department, type, tags: tags.split(",").map((tag) => tag.trim().replace(/^#/, "")).filter(Boolean).slice(0, 5), content, plainText: plainText.trim(), attachments })
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="grid-rows-[auto_minmax(0,1fr)_auto]" aria-describedby="write-question-description" onCloseAutoFocus={(event) => { event.preventDefault(); window.requestAnimationFrame(() => { if (submittedRef.current) document.querySelector("#qna-main")?.focus(); else returnFocusRef.current?.focus() }) }}>
-        <header className="border-b border-[#e3ebf0] px-7 py-5 pr-16"><DialogTitle className="text-[19px] font-[680] tracking-[-.025em]">새 질문 작성</DialogTitle><DialogDescription id="write-question-description" className="mt-1 text-[12px] text-[#567286]">공정·부서와 질문 유형을 선택하고 확인이 필요한 내용을 작성합니다.</DialogDescription></header>
+        <header className="border-b border-[#e3ebf0] px-7 py-5 pr-16"><DialogTitle className="text-[19px] font-[680] tracking-[-.025em]">새 질문 작성</DialogTitle><DialogDescription id="write-question-description" className="mt-1 text-[12px] text-[#567286]">구분·라인과 질문 정보를 선택하고 확인이 필요한 내용을 작성합니다.</DialogDescription></header>
         <form id="qna-write-form" className="overflow-y-auto px-7 py-6" onSubmit={submit} noValidate>
+          <div className="mb-4 grid grid-cols-2 gap-4">
+            <label className="grid gap-1.5 text-[11px] font-semibold text-[#4c5257]">구분<Select value={category} onValueChange={setCategory}><SelectTrigger aria-label="구분"><SelectValue /></SelectTrigger><SelectContent>{QNA_CATEGORY_OPTIONS.map((option) => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectContent></Select></label>
+            <label className="grid gap-1.5 text-[11px] font-semibold text-[#4c5257]">라인<Select value={line} onValueChange={setLine} disabled={!lineOptions.length}><SelectTrigger aria-label="라인" aria-invalid={Boolean(errors.line)}><SelectValue placeholder="환경변수 설정 필요" /></SelectTrigger><SelectContent>{lineOptions.map((option) => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectContent></Select>{errors.line || !lineOptions.length ? <small className="font-normal text-[#b64c45]">{errors.line ?? "prototype/.env.local에 라인 값을 입력해 주세요."}</small> : null}</label>
+          </div>
           <div className="grid grid-cols-3 gap-4">
             <label className="grid gap-1.5 text-[11px] font-semibold text-[#4c5257]">공정<Select value={process} onValueChange={setProcess}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{PROCESS_OPTIONS.slice(1).map((option) => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectContent></Select></label>
             <label className="grid gap-1.5 text-[11px] font-semibold text-[#4c5257]">부서<Select value={department} onValueChange={setDepartment}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{DEPARTMENT_OPTIONS.slice(1).map((option) => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectContent></Select></label>
@@ -450,7 +470,7 @@ function WriteQuestionDialog({ open, onOpenChange, onSubmit, returnFocusRef }) {
   )
 }
 
-export function QnaApp({ initialView = "list" }) {
+export function QnaApp({ initialView = "list", lineOptions = QNA_LINE_OPTIONS }) {
   const [savedQna] = useState(() => {
     const saved = qnaRepository.read()
     return { ...saved, posts: normalizeQnaPosts(saved.posts) }
@@ -551,6 +571,8 @@ export function QnaApp({ initialView = "list" }) {
       id,
       title: draft.title,
       excerpt: draft.plainText.slice(0, 100),
+      category: draft.category,
+      line: draft.line,
       process: draft.process,
       department: draft.department,
       type: draft.type,
@@ -583,7 +605,7 @@ export function QnaApp({ initialView = "list" }) {
       {view === "list" ? <PostListView posts={filteredPosts} allPosts={activePosts} filters={filters} setFilters={setFilters} onSelect={selectPost} onWrite={(event) => { writeReturnFocusRef.current = event.currentTarget; setWriteOpen(true) }} /> : null}
       {view === "detail" ? <PostDetailView post={selectedPost} onBack={() => navigate("list")} onUpdatePost={updatePost} onHidePost={(post) => { updatePost({ ...post, hidden: true, hiddenAt: "방금 전", hiddenBy: currentUser.name }); recordChange("질문 삭제", post.title); navigate("list"); announce("질문을 삭제했습니다.") }} announce={announce} currentRole={currentRole} currentUser={currentUser} recordChange={recordChange} notify={createNotification} /> : null}
       {view === "notifications" ? <NotificationsView notifications={notifications} onReadAll={() => { setNotifications((current) => current.map((item) => ({ ...item, read: true }))); announce("모든 알림을 읽음 처리했습니다.") }} onOpenPost={openNotification} /> : null}
-      <WriteQuestionDialog open={writeOpen} onOpenChange={setWriteOpen} onSubmit={createPost} returnFocusRef={writeReturnFocusRef} />
+      <WriteQuestionDialog open={writeOpen} onOpenChange={setWriteOpen} onSubmit={createPost} returnFocusRef={writeReturnFocusRef} lineOptions={lineOptions} />
       <Dialog open={recoveryOpen} onOpenChange={setRecoveryOpen}><DialogContent className="w-[min(720px,calc(100vw-64px))]"><header className="border-b border-[#e3ebf0] px-7 py-5"><DialogTitle className="text-[18px] font-[680]">Q&A 삭제 목록</DialogTitle><DialogDescription className="mt-1 text-[11px] text-[#60798b]">삭제한 질문과 답변·댓글은 실제로 지워지지 않으며 마스터가 복구할 수 있습니다.</DialogDescription></header><div className="grid max-h-[440px] gap-2 overflow-y-auto px-7 py-6">{hiddenPosts.map((post) => <article key={post.id} className="flex items-center gap-3 rounded-[9px] border border-[#dce7ee] bg-[#fafbfa] p-4"><span className="min-w-0 flex-1"><Badge variant="muted">질문</Badge><strong className="mt-1 block truncate text-[12px]">{post.title}</strong><small className="mt-1 block text-[10px] text-[#60798b]">{post.hiddenAt} · {post.hiddenBy} 삭제</small></span><Button type="button" size="sm" variant="outline" onClick={() => { updatePost({ ...post, hidden: false, hiddenAt: undefined, hiddenBy: undefined }); recordChange("질문 복구", post.title); announce("질문을 복구했습니다.") }}><ArchiveRestore className="size-3.5" />복구</Button></article>)}{hiddenMessages.map(({ post, message }) => <article key={`${post.id}-${message.id}`} className="flex items-center gap-3 rounded-[9px] border border-[#dce7ee] bg-[#fafbfa] p-4"><span className="min-w-0 flex-1"><Badge variant="muted">답변·댓글</Badge><strong className="mt-1 block truncate text-[12px]">{post.title}</strong><small className="mt-1 block truncate text-[10px] text-[#60798b]">{message.author} · {message.body}</small></span><Button type="button" size="sm" variant="outline" onClick={() => { updatePost({ ...post, messages: post.messages.map((item) => item.id === message.id ? { ...item, hidden: false, hiddenAt: undefined, hiddenBy: undefined } : item) }); recordChange("답변 복구", post.title, message.author); announce("답변을 복구했습니다.") }}><ArchiveRestore className="size-3.5" />복구</Button></article>)}{!hiddenPosts.length && !hiddenMessages.length ? <p className="py-12 text-center text-[12px] text-[#60798b]">삭제된 Q&A 항목이 없습니다.</p> : null}</div></DialogContent></Dialog>
       <Dialog open={historyOpen} onOpenChange={setHistoryOpen}><DialogContent className="w-[min(720px,calc(100vw-64px))]"><header className="border-b border-[#e3ebf0] px-7 py-5"><DialogTitle className="text-[18px] font-[680]">Q&A 변경 이력</DialogTitle><DialogDescription className="mt-1 text-[12px] text-[#60798b]">이 브라우저의 가상 데이터에서 변경한 질문·답변·상태를 표시합니다.</DialogDescription></header><div className="grid max-h-[440px] gap-2 overflow-y-auto px-7 py-6">{historyEntries.length ? historyEntries.map((entry) => <article key={entry.id} className="flex items-center gap-3 rounded-[9px] border border-[#dce7ee] bg-[#fafbfa] p-4"><span className="min-w-0 flex-1"><strong className="block truncate text-[12px]">{entry.targetName}</strong><small className="mt-1 block text-[10px] text-[#60798b]">{entry.occurredAt} · {entry.actor}{entry.detail ? ` · ${entry.detail}` : ""}</small></span><Badge variant="muted">{entry.action}</Badge></article>) : <p className="py-12 text-center text-[12px] text-[#60798b]">아직 변경 이력이 없습니다.</p>}</div></DialogContent></Dialog>
       <div className={cn("pointer-events-none fixed bottom-7 left-1/2 z-[130] -translate-x-1/2 rounded-[9px] bg-[#172c3c] px-4 py-2.5 text-[12px] font-medium text-white shadow-xl transition", liveMessage ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0")} role="status" aria-live="polite" aria-atomic="true">{liveMessage}</div>

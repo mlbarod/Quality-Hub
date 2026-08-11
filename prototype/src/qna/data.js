@@ -1,6 +1,19 @@
 export const PROCESS_OPTIONS = ["전체 공정", "식각", "증착", "세정", "검사"]
 export const DEPARTMENT_OPTIONS = ["전체 부서", "품질기획", "공정기술", "설비기술", "분석기술"]
 export const TYPE_OPTIONS = ["전체 유형", "기준 문의", "품질 이슈", "데이터 요청", "개선 제안"]
+export const QNA_CATEGORY_OPTIONS = ["Rule", "SPC", "FDC", "TTTM", "Report", "WF Loss"]
+export const QNA_LINE_UNASSIGNED = "미지정"
+
+export function parseQnaLineOptions(value) {
+  return [...new Set(String(value ?? "")
+    .split(",")
+    .map((option) => option.trim())
+    .filter(Boolean))]
+}
+
+export function getQnaLineOptions(value = import.meta.env.VITE_QNA_LINE_CATEGORIES) {
+  return parseQnaLineOptions(value)
+}
 
 export const STATUS = {
   waiting: { label: "답변 대기", variant: "amber" },
@@ -11,8 +24,12 @@ export const STATUS = {
 export function normalizeQnaPosts(posts) {
   return posts.map((post) => {
     const [firstMessage, ...remainingMessages] = post.messages ?? []
-    if (firstMessage?.role !== "질문자") return post
-    return { ...post, messages: remainingMessages }
+    return {
+      ...post,
+      category: post.category ?? QNA_CATEGORY_OPTIONS[0],
+      line: post.line ?? QNA_LINE_UNASSIGNED,
+      messages: firstMessage?.role === "질문자" ? remainingMessages : (post.messages ?? []),
+    }
   })
 }
 
@@ -24,6 +41,8 @@ export const initialPosts = [
     process: "식각",
     department: "공정기술",
     type: "기준 문의",
+    category: "Rule",
+    line: QNA_LINE_UNASSIGNED,
     tags: ["이상률", "v2.4", "적용시점"],
     status: "active",
     author: "김품질",
@@ -43,6 +62,8 @@ export const initialPosts = [
     process: "검사",
     department: "설비기술",
     type: "데이터 요청",
+    category: "FDC",
+    line: QNA_LINE_UNASSIGNED,
     tags: ["AOI", "오경보", "장비비교"],
     status: "waiting",
     author: "이분석",
@@ -60,6 +81,8 @@ export const initialPosts = [
     process: "세정",
     department: "품질기획",
     type: "기준 문의",
+    category: "Rule",
+    line: QNA_LINE_UNASSIGNED,
     tags: ["잔류물", "재세정", "판정기준"],
     status: "completed",
     author: "최공정",
@@ -80,6 +103,8 @@ export const initialPosts = [
     process: "증착",
     department: "공정기술",
     type: "개선 제안",
+    category: "SPC",
+    line: QNA_LINE_UNASSIGNED,
     tags: ["두께편차", "챔버", "표준화"],
     status: "active",
     author: "한개선",
@@ -99,6 +124,8 @@ export const initialPosts = [
     process: "검사",
     department: "품질기획",
     type: "데이터 요청",
+    category: "Report",
+    line: QNA_LINE_UNASSIGNED,
     tags: ["주간회의", "지표", "재작업"],
     status: "completed",
     author: "서지표",
@@ -118,6 +145,8 @@ export const initialPosts = [
     process: "식각",
     department: "분석기술",
     type: "데이터 요청",
+    category: "FDC",
+    line: QNA_LINE_UNASSIGNED,
     tags: ["온도", "챔버A", "상관분석"],
     status: "waiting",
     author: "문분석",
@@ -135,6 +164,8 @@ export const initialPosts = [
     process: "검사",
     department: "분석기술",
     type: "개선 제안",
+    category: "WF Loss",
+    line: QNA_LINE_UNASSIGNED,
     tags: ["이미지", "보관기간", "반복불량"],
     status: "active",
     author: "조분석",
@@ -154,6 +185,8 @@ export const initialPosts = [
     process: "세정",
     department: "공정기술",
     type: "기준 문의",
+    category: "TTTM",
+    line: QNA_LINE_UNASSIGNED,
     tags: ["세정액", "교체주기", "SOP"],
     status: "completed",
     author: "강공정",
@@ -178,7 +211,7 @@ export const initialNotifications = [
 export function filterPosts(posts, { search = "", status = "all", process = "전체 공정", department = "전체 부서", type = "전체 유형" }) {
   const normalized = search.trim().toLocaleLowerCase("ko-KR")
   return posts.filter((post) => {
-    const searchTarget = [post.title, post.excerpt, post.author, ...post.tags].join(" ").toLocaleLowerCase("ko-KR")
+    const searchTarget = [post.title, post.excerpt, post.author, post.category, post.line, ...post.tags].join(" ").toLocaleLowerCase("ko-KR")
     return (
       !post.hidden &&
       (!normalized || searchTarget.includes(normalized)) &&

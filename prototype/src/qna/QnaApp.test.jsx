@@ -3,12 +3,41 @@ import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, test, vi } from "vitest"
 
 import { QnaApp } from "@/qna/QnaApp"
-import { initialNotifications, initialPosts } from "@/qna/data"
+import { initialNotifications, initialPosts, parseQnaLineOptions, QNA_CATEGORY_OPTIONS } from "@/qna/data"
 import { qnaRepository } from "@/qna/repository"
 
 afterEach(() => qnaRepository.reset())
 
 describe("Q&A 프로토타입", () => {
+  test("라인 환경변수 값을 공백 제거와 중복 제거 후 목록으로 변환한다", () => {
+    expect(parseQnaLineOptions(" 테스트 라인 A,테스트 라인 B, 테스트 라인 A, ")).toEqual(["테스트 라인 A", "테스트 라인 B"])
+    expect(parseQnaLineOptions("")).toEqual([])
+  })
+
+  test("목록 컬럼과 글쓰기 구분·라인 선택 항목을 제공한다", async () => {
+    const user = userEvent.setup()
+    render(<QnaApp lineOptions={["테스트 라인 A", "테스트 라인 B"]} />)
+
+    const board = screen.getByRole("region", { name: "Q&A 게시글 목록" })
+    expect(within(board).getByText("등록일")).toBeInTheDocument()
+    expect(within(board).getByText("구분")).toBeInTheDocument()
+    expect(within(board).getByText("라인")).toBeInTheDocument()
+
+    await user.click(within(board).getByRole("button", { name: "질문 작성" }))
+    const dialog = screen.getByRole("dialog", { name: "새 질문 작성" })
+    const categorySelect = within(dialog).getByRole("combobox", { name: "구분" })
+    const lineSelect = within(dialog).getByRole("combobox", { name: "라인" })
+
+    await user.click(categorySelect)
+    for (const category of QNA_CATEGORY_OPTIONS) expect(screen.getByRole("option", { name: category })).toBeInTheDocument()
+    await user.click(screen.getByRole("option", { name: "FDC" }))
+    expect(categorySelect).toHaveTextContent("FDC")
+
+    await user.click(lineSelect)
+    await user.click(screen.getByRole("option", { name: "테스트 라인 B" }))
+    expect(lineSelect).toHaveTextContent("테스트 라인 B")
+  })
+
   test("통합 목록을 검색하고 상세 대화로 이동한다", async () => {
     const user = userEvent.setup()
     render(<QnaApp />)

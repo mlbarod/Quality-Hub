@@ -60,6 +60,16 @@ npm run dev
 
 목업의 모든 수치와 상태는 실제 데이터가 아닌 UI 검토용 예시입니다.
 
+## Q&A 라인 카테고리 설정
+
+Q&A 작성 화면의 라인 목록은 코드에 저장하지 않고 `prototype/.env.local`에서 읽습니다. 아래 환경변수에 실제 라인 이름을 쉼표로 구분해 입력한 뒤 개발 서버를 다시 시작합니다.
+
+```dotenv
+VITE_QNA_LINE_CATEGORIES=첫번째라인,두번째라인
+```
+
+`prototype/.env.local`은 Git에서 제외됩니다. `VITE_` 환경변수 값은 브라우저 화면에 제공되는 값이므로 라인 표시값 외의 비밀번호나 인증정보는 입력하지 않습니다. 공유용 형식은 `prototype/.env.example`에서 확인할 수 있습니다.
+
 ## RAG API Client 확인
 
 루트의 `.env.rag.example`을 `.env.rag`으로 복사하고 문서 검색·인덱스 조회·문서 추가·문서 삭제 URL과 사내에서 발급받은 공통 설정을 입력합니다. `.env.rag`은 Git에서 제외됩니다.
