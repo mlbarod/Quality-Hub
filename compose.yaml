@@ -1,0 +1,35 @@
+name: quality-hub
+
+services:
+  app:
+    image: quality-hub:${QUALITY_HUB_IMAGE_TAG:-local}
+    build:
+      context: .
+      target: runtime
+      args:
+        VITE_QNA_LINE_CATEGORIES: ${VITE_QNA_LINE_CATEGORIES:-}
+    env_file:
+      - .env.rag
+      - .env.gpt-oss
+      - .env.db
+    environment:
+      HOST: 0.0.0.0
+      NODE_ENV: production
+      PORT: 4173
+    init: true
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "${QUALITY_HUB_BIND_ADDRESS:-127.0.0.1}:${QUALITY_HUB_PORT:-4173}:4173"
+    stop_grace_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"

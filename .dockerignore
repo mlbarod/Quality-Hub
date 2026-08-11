@@ -1,0 +1,15 @@
+.git
+.gitignore
+.codex
+.agents
+node_modules
+dist
+coverage
+*.log
+.env*
+prototype/.env.local
+docs
+notes
+scripts
+tests
+tools

@@ -1,6 +1,6 @@
 import { createReadStream, existsSync, readFileSync, statSync } from "node:fs"
 import { createServer as createHttpServer } from "node:http"
-import { extname, isAbsolute, join, normalize, resolve, sep } from "node:path"
+import { extname, isAbsolute, join, normalize, relative, resolve, sep } from "node:path"
 import { parseEnv } from "node:util"
 import { fileURLToPath, URL } from "node:url"
 
@@ -13,6 +13,35 @@ export const builtStaticDir = join(rootDir, "dist")
 export const serverEnvironmentFiles = [".env.rag", ".env.gpt-oss", ".env.db"]
 const defaultPort = 4173
 const defaultHost = "0.0.0.0"
+const healthPath = "/healthz"
+const readinessPath = "/readyz"
+const shutdownTimeoutMs = 10_000
+const readinessRequirements = {
+  database: ["DB_HOST", "DB_USER", "DB_PASSWORD", "DB_NAME"],
+  rag: ["RAG_API_URL", "PASS_KEY", "RAG_KEY", "INDEX_NAME"],
+  gptOss: ["GPT_OSS_API_URL", "GPT_OSS_CREDENTIAL_KEY", "GPT_OSS_SYSTEM_NAME", "GPT_OSS_USER_ID"],
+}
+
+const productionSecurityHeaders = {
+  "Content-Security-Policy": [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "connect-src 'self'",
+    "font-src 'self' data: https://cdn.jsdelivr.net https://fonts.gstatic.com",
+    "form-action 'self'",
+    "frame-ancestors 'self'",
+    "frame-src 'self' https:",
+    "img-src 'self' data: blob: https:",
+    "object-src 'none'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
+  ].join("; "),
+  "Cross-Origin-Resource-Policy": "same-origin",
+  "Permissions-Policy": "camera=(), geolocation=(), microphone=()",
+  "Referrer-Policy": "no-referrer",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "SAMEORIGIN",
+}
 
 const mimeTypes = {
   ".css": "text/css; charset=utf-8",
@@ -54,6 +83,57 @@ function sendText(res, statusCode, message, extraHeaders = {}) {
     ...extraHeaders,
   })
   res.end(body)
+}
+
+function applyProductionSecurityHeaders(res) {
+  for (const [name, value] of Object.entries(productionSecurityHeaders)) {
+    res.setHeader(name, value)
+  }
+}
+
+function serveHealth(req, res) {
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    sendText(res, 405, "Method Not Allowed", { Allow: "GET, HEAD" })
+    return
+  }
+
+  const body = JSON.stringify({ status: "ok" })
+  res.writeHead(200, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Content-Length": Buffer.byteLength(body),
+    "Cache-Control": "no-store",
+  })
+  res.end(req.method === "HEAD" ? undefined : body)
+}
+
+export function getRuntimeReadiness(environment = process.env) {
+  const components = Object.fromEntries(Object.entries(readinessRequirements).map(([component, names]) => [
+    component,
+    names.every((name) => typeof environment[name] === "string" && environment[name].trim().length > 0)
+      ? "configured"
+      : "not_configured",
+  ]))
+  const ready = Object.values(components).every((status) => status === "configured")
+  return { ready, components }
+}
+
+function serveReadiness(req, res, environment) {
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    sendText(res, 405, "Method Not Allowed", { Allow: "GET, HEAD" })
+    return
+  }
+
+  const readiness = getRuntimeReadiness(environment)
+  const body = JSON.stringify({
+    status: readiness.ready ? "ready" : "degraded",
+    components: readiness.components,
+  })
+  res.writeHead(readiness.ready ? 200 : 503, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Content-Length": Buffer.byteLength(body),
+    "Cache-Control": "no-store",
+  })
+  res.end(req.method === "HEAD" ? undefined : body)
 }
 
 export function parsePort(value = String(defaultPort)) {
@@ -113,6 +193,13 @@ export function resolveStaticPath(pathname, staticDir = builtStaticDir) {
   return { filePath }
 }
 
+function getStaticCacheControl(filePath, staticDir) {
+  const relativePath = relative(staticDir, filePath)
+  if (relativePath === "index.html") return "no-cache"
+  if (relativePath.startsWith(`assets${sep}`)) return "public, max-age=31536000, immutable"
+  return "no-cache"
+}
+
 function serveStatic(req, res, staticDir) {
   if (req.method !== "GET" && req.method !== "HEAD") {
     sendText(res, 405, "Method Not Allowed", { Allow: "GET, HEAD" })
@@ -150,10 +237,7 @@ function serveStatic(req, res, staticDir) {
   res.writeHead(200, {
     "Content-Type": contentType,
     "Content-Length": fileSize,
-    "Cache-Control": "no-cache",
-    "Referrer-Policy": "no-referrer",
-    "X-Content-Type-Options": "nosniff",
-    "X-Frame-Options": "SAMEORIGIN",
+    "Cache-Control": getStaticCacheControl(filePath, staticDir),
   })
 
   if (req.method === "HEAD") {
@@ -174,9 +258,20 @@ export function createQualityHubServer({
   staticDir = builtStaticDir,
   agentApi = createAgentChatApi(),
   reportApi = createReportApi(),
+  environment = process.env,
 } = {}) {
   const server = createHttpServer(async (req, res) => {
     try {
+      applyProductionSecurityHeaders(res)
+      const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`)
+      if (url.pathname === healthPath) {
+        serveHealth(req, res)
+        return
+      }
+      if (url.pathname === readinessPath) {
+        serveReadiness(req, res, environment)
+        return
+      }
       if (await agentApi.handle(req, res)) return
       if (await reportApi.handle(req, res)) return
       serveStatic(req, res, staticDir)
@@ -186,6 +281,10 @@ export function createQualityHubServer({
       else res.destroy(error)
     }
   })
+  server.headersTimeout = 15_000
+  server.requestTimeout = 30_000
+  server.keepAliveTimeout = 5_000
+  server.maxHeadersCount = 100
   server.once("close", () => {
     void agentApi.close()
     void reportApi.close()
@@ -194,7 +293,12 @@ export function createQualityHubServer({
 }
 
 export function resolveServeMode(args = []) {
-  return args.includes("--built") ? "built" : "source"
+  const sourceRequested = args.includes("--source")
+  const builtRequested = args.includes("--built")
+  if (sourceRequested && builtRequested) {
+    throw new Error("--source and --built cannot be used together.")
+  }
+  return sourceRequested ? "source" : "built"
 }
 
 function reportServerError(error, host, port) {
@@ -228,6 +332,7 @@ async function startSourceServer({ host, port }) {
   httpServer.once("close", () => {
     void agentApi.close()
     void reportApi.close()
+    void viteServer?.close()
   })
 
   viteServer = await createViteServer({
@@ -244,13 +349,14 @@ async function startSourceServer({ host, port }) {
     console.log(`Quality Hub source server listening on http://${host}:${port}`)
   })
   console.log("Quality Hub source server: changes are reflected without rebuilding.")
+  return httpServer
 }
 
 function startBuiltServer({ host, port }) {
   if (!existsSync(join(builtStaticDir, "index.html"))) {
-    console.error("Vite build output was not found. Run `npm run build` before `node server.mjs --built`.")
+    console.error("Vite build output was not found. Run `npm run build` before `npm start`.")
     process.exitCode = 1
-    return
+    return null
   }
 
   const server = createQualityHubServer()
@@ -258,31 +364,72 @@ function startBuiltServer({ host, port }) {
   server.listen(port, host, () => {
     console.log(`Quality Hub built server listening on http://${host}:${port}`)
   })
+  return server
+}
+
+export function installGracefulShutdown(server, {
+  logger = console,
+  timeoutMs = shutdownTimeoutMs,
+  processRef = process,
+} = {}) {
+  let shuttingDown = false
+
+  const shutdown = (signal) => {
+    if (shuttingDown) return
+    shuttingDown = true
+    logger.log(`Quality Hub received ${signal}; stopping gracefully.`)
+
+    const forceTimer = setTimeout(() => {
+      logger.error("Quality Hub graceful shutdown timed out; closing active connections.")
+      server.closeAllConnections?.()
+      processRef.exitCode = 1
+    }, timeoutMs)
+    forceTimer.unref?.()
+
+    server.close((error) => {
+      clearTimeout(forceTimer)
+      if (error) {
+        logger.error("Quality Hub server shutdown failed:", error)
+        processRef.exitCode = 1
+      }
+    })
+  }
+
+  const onSigterm = () => shutdown("SIGTERM")
+  const onSigint = () => shutdown("SIGINT")
+  processRef.once("SIGTERM", onSigterm)
+  processRef.once("SIGINT", onSigint)
+
+  return () => {
+    processRef.off("SIGTERM", onSigterm)
+    processRef.off("SIGINT", onSigint)
+  }
 }
 
 async function startServer() {
   const args = process.argv.slice(2)
   let port
+  let mode
   try {
     port = resolvePort(args)
+    mode = resolveServeMode(args)
   } catch (error) {
     console.error(error.message)
     process.exitCode = 1
-    return
+    return null
   }
 
   const host = process.env.HOST?.trim() || defaultHost
-  const mode = resolveServeMode(args)
 
   if (mode === "built") {
-    startBuiltServer({ host, port })
-    return
+    return startBuiltServer({ host, port })
   }
 
   try {
-    await startSourceServer({ host, port })
+    return await startSourceServer({ host, port })
   } catch (error) {
     reportServerError(error, host, port)
+    return null
   }
 }
 
@@ -291,7 +438,9 @@ if (entryPath === fileURLToPath(import.meta.url)) {
   try {
     const loadedFiles = loadServerEnvironment()
     console.log(`Quality Hub environment files loaded: ${loadedFiles.map((filePath) => filePath.slice(rootDir.length)).join(", ") || "none"}`)
-    void startServer()
+    void startServer().then((server) => {
+      if (server) installGracefulShutdown(server)
+    })
   } catch (error) {
     console.error(`Quality Hub 환경파일을 읽지 못했습니다: ${error instanceof Error ? error.message : error}`)
     process.exitCode = 1

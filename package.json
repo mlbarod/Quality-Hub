@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "dev": "npm run start",
+    "dev": "node server.mjs --source",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "start:static": "npm run build && node server.mjs --built",
+    "start:static": "npm run build && node server.mjs",
     "rag:search": "node --env-file-if-exists=.env.rag scripts/rag-search.mjs",
     "rag:index": "node --env-file-if-exists=.env.rag scripts/rag-index.mjs",
     "rag:document:add": "node --env-file-if-exists=.env.rag scripts/rag-document-add.mjs",
@@ -17,7 +17,7 @@
     "db:history:check": "node --env-file-if-exists=.env.db scripts/db-history-check.mjs",
     "db:reports:check": "node --env-file-if-exists=.env.db scripts/db-reports-check.mjs",
     "backend:chat:check": "node --env-file-if-exists=.env.rag --env-file-if-exists=.env.gpt-oss --env-file-if-exists=.env.db scripts/backend-chat-check.mjs",
-    "test": "node --test tests/*.test.mjs && vitest run"
+    "test": "node --test --test-concurrency=1 tests/*.test.mjs && vitest run"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.2.6",

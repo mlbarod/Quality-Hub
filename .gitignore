@@ -5,4 +5,5 @@ coverage/
 .env.rag
 .env.gpt-oss
 .env.db
+.env.compose
 prototype/.env.local

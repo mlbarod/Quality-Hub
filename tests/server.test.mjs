@@ -6,6 +6,7 @@ import test from "node:test"
 import {
   builtStaticDir,
   createQualityHubServer,
+  getRuntimeReadiness,
   loadServerEnvironment,
   parsePort,
   resolvePort,
@@ -59,9 +60,11 @@ test("실행용 정적 서버는 Vite 빌드 산출물을 기본으로 제공한
   assert.equal(resolveStaticPath("/index.html").filePath, `${builtStaticDir}/index.html`)
 })
 
-test("server.mjs는 기본적으로 소스를 실시간 제공하고 정적 모드는 명시적으로 선택한다", () => {
-  assert.equal(resolveServeMode([]), "source")
+test("server.mjs는 기본적으로 빌드 결과를 제공하고 개발 모드는 명시적으로 선택한다", () => {
+  assert.equal(resolveServeMode([]), "built")
   assert.equal(resolveServeMode(["--built"]), "built")
+  assert.equal(resolveServeMode(["--source"]), "source")
+  assert.throws(() => resolveServeMode(["--source", "--built"]), /cannot be used together/)
 })
 
 test("실행 위치와 관계없이 프로젝트 루트 환경파일을 읽는다", () => {
@@ -102,11 +105,68 @@ test("메인 화면과 정적 자산을 제공한다", async (t) => {
   assert.equal(indexResponse.status, 200)
   assert.match(indexResponse.headers.get("content-type"), /^text\/html/)
   assert.equal(indexResponse.headers.get("x-content-type-options"), "nosniff")
+  assert.match(indexResponse.headers.get("content-security-policy"), /default-src 'self'/)
+  assert.match(indexResponse.headers.get("content-security-policy"), /style-src[^;]+https:\/\/cdn\.jsdelivr\.net[^;]+https:\/\/fonts\.googleapis\.com/)
+  assert.match(indexResponse.headers.get("content-security-policy"), /font-src[^;]+https:\/\/fonts\.gstatic\.com/)
+  assert.equal(indexResponse.headers.get("permissions-policy"), "camera=(), geolocation=(), microphone=()")
   assert.match(await indexResponse.text(), /<title>Quality Hub<\/title>/)
 
   const cssResponse = await fetch(`${baseUrl}/styles.css`)
   assert.equal(cssResponse.status, 200)
   assert.match(cssResponse.headers.get("content-type"), /^text\/css/)
+})
+
+test("컨테이너 헬스체크 경로는 Backend 연결 없이 응답한다", async (t) => {
+  const { server, baseUrl } = await startTestServer()
+  t.after(() => closeTestServer(server))
+
+  const response = await fetch(`${baseUrl}/healthz`)
+  assert.equal(response.status, 200)
+  assert.equal(response.headers.get("cache-control"), "no-store")
+  assert.deepEqual(await response.json(), { status: "ok" })
+
+  const headResponse = await fetch(`${baseUrl}/healthz`, { method: "HEAD" })
+  assert.equal(headResponse.status, 200)
+  assert.equal(await headResponse.text(), "")
+
+  const postResponse = await fetch(`${baseUrl}/healthz`, { method: "POST" })
+  assert.equal(postResponse.status, 405)
+  assert.equal(postResponse.headers.get("allow"), "GET, HEAD")
+})
+
+test("운영 준비 상태는 필수 Backend 설정의 입력 여부를 구분한다", async (t) => {
+  assert.deepEqual(getRuntimeReadiness({}), {
+    ready: false,
+    components: { database: "not_configured", rag: "not_configured", gptOss: "not_configured" },
+  })
+
+  const configuredEnvironment = {
+    DB_HOST: "db.internal",
+    DB_USER: "quality-hub",
+    DB_PASSWORD: "secret",
+    DB_NAME: "quality_hub",
+    RAG_API_URL: "https://rag.internal/search",
+    PASS_KEY: "pass-key",
+    RAG_KEY: "rag-key",
+    INDEX_NAME: "quality",
+    GPT_OSS_API_URL: "https://gpt.internal/v1",
+    GPT_OSS_CREDENTIAL_KEY: "credential",
+    GPT_OSS_SYSTEM_NAME: "quality-hub",
+    GPT_OSS_USER_ID: "quality-hub",
+  }
+  assert.equal(getRuntimeReadiness(configuredEnvironment).ready, true)
+
+  const server = createQualityHubServer({ staticDir: sourceStaticDir, environment: configuredEnvironment })
+  server.listen(0, "127.0.0.1")
+  await once(server, "listening")
+  t.after(() => closeTestServer(server))
+  const address = server.address()
+  const response = await fetch(`http://127.0.0.1:${address.port}/readyz`)
+  assert.equal(response.status, 200)
+  assert.deepEqual(await response.json(), {
+    status: "ready",
+    components: { database: "configured", rag: "configured", gptOss: "configured" },
+  })
 })
 
 test("HEAD, 미존재 경로와 허용하지 않는 메서드를 처리한다", async (t) => {
