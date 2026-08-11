@@ -35,13 +35,40 @@ function requireReportUrl(value) {
   return normalized
 }
 
-export function validateReportInput({ category, reportName, description, reportUrl, userId }) {
+export function validateReportFields({ category, reportName, description, reportUrl }) {
   return {
     category: requireText(category, "category", REPORT_LIMITS.category),
     reportName: requireText(reportName, "reportName", REPORT_LIMITS.reportName),
     description: requireText(description, "description", REPORT_LIMITS.description),
     reportUrl: requireReportUrl(reportUrl),
+  }
+}
+
+export function validateReportInput({ category, reportName, description, reportUrl, userId }) {
+  return {
+    ...validateReportFields({ category, reportName, description, reportUrl }),
     userId: requireText(userId, "userId", REPORT_LIMITS.userId),
+  }
+}
+
+function normalizeReportReference(reference) {
+  if (!reference || typeof reference !== "object") {
+    throw new TypeError("수정하거나 삭제할 Report 정보가 없습니다.")
+  }
+  return {
+    category: reference.category ?? null,
+    reportName: reference.reportName ?? null,
+    description: reference.description ?? null,
+    reportUrl: reference.reportUrl ?? null,
+    userId: reference.userId ?? null,
+    regTime: reference.regTime ?? null,
+  }
+}
+
+export class ReportNotFoundError extends Error {
+  constructor() {
+    super("Report가 이미 변경되었거나 삭제되었습니다. 목록을 새로고침해 주세요.")
+    this.name = "ReportNotFoundError"
   }
 }
 
@@ -68,7 +95,9 @@ export function createReportRepository({ pool = createReportPool() } = {}) {
           category,
           report_name AS reportName,
           description,
-          report_url AS reportUrl
+          report_url AS reportUrl,
+          user_id AS userId,
+          reg_time AS regTime
         FROM report_reg
         ORDER BY
           category IS NULL,
@@ -105,6 +134,68 @@ export function createReportRepository({ pool = createReportPool() } = {}) {
         description: report.description,
         reportUrl: report.reportUrl,
       }
+    },
+
+    async updateReport(reference, input) {
+      const original = normalizeReportReference(reference)
+      const report = validateReportFields(input)
+      const isUnchanged = ["category", "reportName", "description", "reportUrl"]
+        .every((field) => original[field] === report[field])
+
+      if (!isUnchanged) {
+        const [result] = await pool.execute(`
+          UPDATE report_reg
+          SET
+            category = ?,
+            report_name = ?,
+            description = ?,
+            report_url = ?
+          WHERE category <=> ?
+            AND report_name <=> ?
+            AND description <=> ?
+            AND report_url <=> ?
+            AND user_id <=> ?
+            AND reg_time <=> ?
+          LIMIT 1
+        `, [
+          report.category,
+          report.reportName,
+          report.description,
+          report.reportUrl,
+          original.category,
+          original.reportName,
+          original.description,
+          original.reportUrl,
+          original.userId,
+          original.regTime,
+        ])
+        if (result.affectedRows !== 1) throw new ReportNotFoundError()
+      }
+
+      return report
+    },
+
+    async deleteReport(reference) {
+      const original = normalizeReportReference(reference)
+      const [result] = await pool.execute(`
+        DELETE FROM report_reg
+        WHERE category <=> ?
+          AND report_name <=> ?
+          AND description <=> ?
+          AND report_url <=> ?
+          AND user_id <=> ?
+          AND reg_time <=> ?
+        LIMIT 1
+      `, [
+        original.category,
+        original.reportName,
+        original.description,
+        original.reportUrl,
+        original.userId,
+        original.regTime,
+      ])
+      if (result.affectedRows !== 1) throw new ReportNotFoundError()
+      return { deleted: true }
     },
 
     async close() {

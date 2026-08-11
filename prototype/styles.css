@@ -4468,6 +4468,7 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
 .rule-delete-panel > strong { font-size: 19px; }
 .rule-delete-panel > p { margin: 7px 0 22px; color: var(--muted-foreground); font-size: 13px; line-height: 1.55; }
 .rule-delete-panel > p b { color: var(--foreground); }
+.rule-delete-panel > .rule-editor-error:not([hidden]) { margin: -10px 0 18px; color: var(--danger); }
 .rule-delete-panel > div { display: grid; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
 .rule-delete-panel > div button { height: 43px; border-radius: 9px; cursor: pointer; font-size: 13px; font-weight: 680; }
 .rule-delete-panel > div button:first-child { border: 1px solid var(--border); background: white; color: var(--muted-foreground); }
@@ -5075,7 +5076,7 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
 
 .report-summary-card {
   display: flex;
-  min-width: 380px;
+  min-width: 270px;
   align-items: center;
   justify-content: space-around;
   padding: 19px 23px;
@@ -5846,9 +5847,9 @@ body:not(.report-manager) .report-admin-only { display: none !important; }
 }
 
 .report-viewer-content {
-  width: min(100%, 1500px);
+  width: min(100%, 1710px);
   margin: 0 auto;
-  padding: 29px 34px 50px;
+  padding: 29px 17px 50px;
 }
 
 .report-viewer-heading {
@@ -5869,21 +5870,6 @@ body:not(.report-manager) .report-admin-only { display: none !important; }
 .report-viewer-heading > div:first-child > p:last-child {
   margin: 6px 0 0;
   color: var(--muted-foreground);
-  font-size: 10px;
-}
-
-.report-viewer-heading > div:last-child {
-  display: grid;
-  gap: 2px;
-  text-align: right;
-}
-
-.report-viewer-heading > div:last-child span {
-  color: hsl(204 35% 32%);
-  font-size: 8px;
-}
-
-.report-viewer-heading > div:last-child strong {
   font-size: 10px;
 }
 
@@ -5965,6 +5951,10 @@ body:not(.report-manager) .report-admin-only { display: none !important; }
     #fff;
   background-size: 32px 32px;
   text-align: center;
+}
+
+.spotfire-embed-placeholder[hidden] {
+  display: none;
 }
 
 .spotfire-placeholder-mark {
@@ -7173,14 +7163,12 @@ body,
 .report-card-copy em,
 .report-card-meta,
 .report-empty-state span,
-.report-viewer-heading > div:last-child span,
 .report-viewer-note small { font-size: 12px; }
 .report-search { height: 40px; }
 .report-search input { font-size: 13px; }
 .report-category-section > header > i,
 .report-card-copy small { font-size: 12px; }
 .report-card-copy strong { font-size: 16px; }
-.report-viewer-heading > div:last-child strong,
 .spotfire-embed-card > header strong,
 .report-viewer-note strong { font-size: 14px; }
 .spotfire-embed-card > header > span,

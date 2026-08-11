@@ -31,7 +31,6 @@ const reportEmptyDescription = document.querySelector("[data-report-empty-descri
 const reportRetry = document.querySelector("[data-report-retry]");
 const reportFilters = document.querySelector("[data-report-filters]");
 const reportCategoryCount = document.querySelector("[data-report-category-count]");
-const reportSourceState = document.querySelector("[data-report-source-state]");
 const reportCardTemplate = document.querySelector("[data-report-card-template]");
 const reportEditorDialog = document.querySelector("[data-report-editor-dialog]");
 const reportEditorForm = document.querySelector("[data-report-editor-form]");
@@ -41,6 +40,10 @@ const reportEditorCategory = document.querySelector("[data-report-editor-categor
 const reportEditorCategoryOptions = document.querySelector("[data-report-category-options]");
 const reportEditorUrl = document.querySelector("[data-report-editor-url]");
 const reportEditorError = document.querySelector("[data-report-editor-error]");
+const reportDeleteDialog = document.querySelector("[data-report-delete-dialog]");
+const reportDeleteName = document.querySelector("[data-report-delete-name]");
+const reportDeleteError = document.querySelector("[data-report-delete-error]");
+const reportDeleteConfirm = document.querySelector("[data-report-delete-confirm]");
 const reportSpotfireFrame = document.querySelector("[data-report-spotfire-frame]");
 const reportSpotfirePlaceholder = document.querySelector("[data-report-spotfire-placeholder]");
 const ruleWorkspace = document.querySelector("[data-rule-workspace]");
@@ -91,9 +94,11 @@ const masterList = document.querySelector("[data-master-list]");
 let toastTimer;
 let reportEntryTimer;
 let reportEditorReturnFocus;
+let reportDeleteReturnFocus;
 let activeReportCard;
 let reportLoadPromise;
 let reportLoadState = "idle";
+let reportEditorMode = "create";
 let ruleArrangeTimer;
 let ruleReturnFocus;
 let ruleDialogReturnFocus;
@@ -353,6 +358,7 @@ const setAgentMode = (mode, { announce = true, focus = true } = {}) => {
 };
 
 const reportModes = new Set(["closed", "catalog", "viewer"]);
+const REPORT_CARD_VISUALS = ["line", "bars", "donut", "document", "scatter", "pareto", "area", "rings", "pulse", "heatmap", "columns", "slides"];
 let canManageReports = prototype?.dataset.canManageReports === "true";
 document.body.classList.toggle("report-manager", canManageReports);
 
@@ -460,8 +466,43 @@ const syncReportCategoryOptions = (categories) => {
   reportEditorCategoryOptions.replaceChildren(...options);
 };
 
+const createReportVisualSequence = (count) => {
+  const visuals = [];
+  while (visuals.length < count) {
+    const shuffled = [...REPORT_CARD_VISUALS];
+    for (let index = shuffled.length - 1; index > 0; index -= 1) {
+      const randomIndex = Math.floor(Math.random() * (index + 1));
+      [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
+    }
+    visuals.push(...shuffled);
+  }
+  return visuals.slice(0, count);
+};
+
+const applyReportCardVisual = (card, visual) => {
+  const preview = card.querySelector(".report-card-preview");
+  if (!(preview instanceof HTMLElement)) return;
+  preview.className = `report-card-preview is-${visual}`;
+  const elementCounts = {
+    bars: ["i", "i", "i", "i", "i"],
+    columns: ["i", "i", "i", "i"],
+    pareto: ["i", "i", "i", "i", "b"],
+    line: ["i", "i", "i", "i", "b"],
+    scatter: ["i", "i", "i", "i", "i", "i"],
+    donut: ["i", "b", "span"],
+    document: ["i", "b", "span", "span", "span"],
+    area: ["i", "b", "span"],
+    rings: ["i", "i", "i", "b"],
+    pulse: ["i", "b", "span"],
+    heatmap: Array(12).fill("i"),
+    slides: ["i", "i", "i"],
+  };
+  preview.replaceChildren(...(elementCounts[visual] ?? elementCounts.bars).map((tagName) => document.createElement(tagName)));
+};
+
 const renderReportCatalog = (reports) => {
   clearReportCatalog();
+  const visuals = createReportVisualSequence(reports.length);
   const categories = [...new Set(reports.map((report) => report.category?.trim() || "미분류"))];
   const categoryGrids = new Map();
   categories.forEach((category, index) => {
@@ -469,7 +510,7 @@ const renderReportCatalog = (reports) => {
     categoryGrids.set(category, createReportCategoryGroup(category, index));
   });
 
-  reports.forEach((report) => {
+  reports.forEach((report, index) => {
     const fragment = reportCardTemplate?.content.cloneNode(true);
     const card = fragment?.querySelector("[data-report-card]");
     if (!(card instanceof HTMLElement)) return;
@@ -477,6 +518,8 @@ const renderReportCatalog = (reports) => {
     card.dataset.reportTitle = report.reportName?.trim() || "이름 없는 Report";
     card.dataset.reportDescription = report.description?.trim() || "Report 설명이 없습니다.";
     card.dataset.reportUrl = report.reportUrl?.trim() || "";
+    card.dataset.reportId = report.reportId ?? "";
+    applyReportCardVisual(card, visuals[index]);
     renderReportCard(card);
     categoryGrids.get(card.dataset.reportCategory)?.append(card);
   });
@@ -487,8 +530,9 @@ const renderReportCatalog = (reports) => {
   syncGlobalSearchResults();
 };
 
-const requestReportApi = async (options = {}) => {
-  const response = await fetch("/api/reports", {
+const requestReportApi = async (options = {}, reportId = "") => {
+  const path = reportId ? `/api/reports/${encodeURIComponent(reportId)}` : "/api/reports";
+  const response = await fetch(path, {
     ...options,
     headers: {
       "x-quality-hub-user-id": getRoleOption(currentRole).userId,
@@ -505,19 +549,16 @@ const loadReportCatalog = ({ force = false } = {}) => {
   if (reportLoadPromise && force) return reportLoadPromise.then(() => loadReportCatalog({ force: true }));
 
   clearReportCatalog();
-  reportSourceState?.replaceChildren("연결 중");
   setReportCatalogState("loading");
   reportLoadPromise = requestReportApi()
     .then((payload) => {
       if (!Array.isArray(payload.reports)) throw new Error("Report 목록 응답 형식이 올바르지 않습니다.");
       renderReportCatalog(payload.reports);
-      reportSourceState?.replaceChildren("report_reg");
       if (payload.reports.length === 0) setReportCatalogState("empty");
       else setReportCatalogState("ready");
       return payload.reports;
     })
     .catch((error) => {
-      reportSourceState?.replaceChildren("연결 오류");
       setReportCatalogState("error");
       console.error("Report catalog load failed", { name: error?.name, message: error?.message });
       return [];
@@ -550,7 +591,6 @@ const updateReportViewer = (card) => {
   const description = getReportDescription(card);
   document.querySelectorAll("[data-report-viewer-title]").forEach((element) => element.replaceChildren(title));
   document.querySelectorAll("[data-report-viewer-category]").forEach((element) => element.replaceChildren(category));
-  document.querySelectorAll("[data-report-viewer-updated]").forEach((element) => element.replaceChildren("report_reg"));
   document.querySelectorAll("[data-report-viewer-description]").forEach((element) => element.replaceChildren(description));
   const reportUrl = card.dataset.reportUrl ?? "";
   let canEmbed = false;
@@ -1195,11 +1235,19 @@ const closeReportEditor = () => {
 
 const openReportEditor = (mode, card = null, returnFocus = null) => {
   if (!canManageReports || !(reportEditorDialog instanceof HTMLDialogElement) || !(reportEditorForm instanceof HTMLFormElement)) return;
+  reportEditorMode = mode === "edit" ? "edit" : "create";
   reportEditorReturnFocus = returnFocus ?? card ?? document.querySelector("[data-report-create-open]");
   reportEditorForm.reset();
   if (reportEditorError instanceof HTMLElement) reportEditorError.hidden = true;
-  document.querySelector("[data-report-editor-title]")?.replaceChildren("Report 신규 등록");
-  document.querySelector("[data-report-editor-submit-label]")?.replaceChildren("신규 등록");
+  document.querySelector("[data-report-editor-title]")?.replaceChildren(reportEditorMode === "edit" ? "Report 수정" : "Report 신규 등록");
+  document.querySelector("[data-report-editor-submit-label]")?.replaceChildren(reportEditorMode === "edit" ? "수정 완료" : "신규 등록");
+
+  if (reportEditorMode === "edit" && card instanceof HTMLElement) {
+    reportEditorName.value = card.dataset.reportTitle ?? "";
+    reportEditorDescription.value = getReportDescription(card);
+    reportEditorCategory.value = card.dataset.reportCategory ?? "";
+    reportEditorUrl.value = card.dataset.reportUrl ?? "";
+  }
 
   reportEditorDialog.showModal();
   window.requestAnimationFrame(() => reportEditorName?.focus());
@@ -1226,8 +1274,11 @@ reportEditorForm?.addEventListener("submit", async (event) => {
   const submitButton = reportEditorForm.querySelector("[type='submit']");
   if (submitButton instanceof HTMLButtonElement) submitButton.disabled = true;
   try {
+    const isEdit = reportEditorMode === "edit";
+    const reportId = activeReportCard?.dataset.reportId ?? "";
+    if (isEdit && !reportId) throw new Error("수정할 Report를 찾지 못했습니다. 목록을 새로고침해 주세요.");
     const payload = await requestReportApi({
-      method: "POST",
+      method: isEdit ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         category: reportEditorCategory.value,
@@ -1235,23 +1286,73 @@ reportEditorForm?.addEventListener("submit", async (event) => {
         description: reportEditorDescription.value.trim(),
         reportUrl: reportEditorUrl.value.trim(),
       }),
-    });
+    }, isEdit ? reportId : "");
     const reports = await loadReportCatalog({ force: true });
     const card = getReportCards().find((item) => (
       item.dataset.reportTitle === payload.report?.reportName
       && item.dataset.reportUrl === payload.report?.reportUrl
     ));
-    recordHistory({ action: "등록", targetType: "Report", targetName: payload.report?.reportName ?? "Report", detail: "report_reg" });
+    recordHistory({ action: isEdit ? "수정" : "등록", targetType: "Report", targetName: payload.report?.reportName ?? "Report", detail: "report_reg" });
     closeReportEditor();
     if (card instanceof HTMLElement && reports.length > 0) setReportMode("viewer", { card, announce: false });
-    showToast(`${payload.report?.reportName ?? "Report"} Report를 등록했습니다.`);
+    showToast(`Report를 ${isEdit ? "수정" : "등록"}했습니다: ${payload.report?.reportName ?? "Report"}`);
   } catch (error) {
     if (reportEditorError instanceof HTMLElement) {
-      reportEditorError.textContent = error instanceof Error ? error.message : "Report 등록에 실패했습니다.";
+      reportEditorError.textContent = error instanceof Error ? error.message : `Report ${reportEditorMode === "edit" ? "수정" : "등록"}에 실패했습니다.`;
       reportEditorError.hidden = false;
     }
   } finally {
     if (submitButton instanceof HTMLButtonElement) submitButton.disabled = false;
+  }
+});
+
+document.querySelector("[data-report-edit-open]")?.addEventListener("click", (event) => {
+  if (activeReportCard instanceof HTMLElement) openReportEditor("edit", activeReportCard, event.currentTarget);
+});
+
+document.querySelector("[data-report-delete-open]")?.addEventListener("click", (event) => {
+  if (!canManageReports || !(activeReportCard instanceof HTMLElement) || !(reportDeleteDialog instanceof HTMLDialogElement)) return;
+  reportDeleteReturnFocus = event.currentTarget;
+  reportDeleteName?.replaceChildren(activeReportCard.dataset.reportTitle ?? "Report");
+  if (reportDeleteError instanceof HTMLElement) reportDeleteError.hidden = true;
+  reportDeleteDialog.showModal();
+});
+
+document.querySelectorAll("[data-report-delete-close]").forEach((button) => {
+  button.addEventListener("click", () => reportDeleteDialog?.close());
+});
+
+reportDeleteDialog?.addEventListener("close", () => {
+  if (reportDeleteReturnFocus instanceof HTMLElement) reportDeleteReturnFocus.focus();
+});
+
+reportDeleteConfirm?.addEventListener("click", async () => {
+  const reportId = activeReportCard?.dataset.reportId ?? "";
+  const reportName = activeReportCard?.dataset.reportTitle ?? "Report";
+  if (!reportId) {
+    if (reportDeleteError instanceof HTMLElement) {
+      reportDeleteError.textContent = "삭제할 Report를 찾지 못했습니다. 목록을 새로고침해 주세요.";
+      reportDeleteError.hidden = false;
+    }
+    return;
+  }
+  if (reportDeleteConfirm instanceof HTMLButtonElement) reportDeleteConfirm.disabled = true;
+  try {
+    await requestReportApi({ method: "DELETE" }, reportId);
+    reportDeleteDialog?.close();
+    activeReportCard = null;
+    const reports = await loadReportCatalog({ force: true });
+    setReportMode("catalog", { announce: false });
+    recordHistory({ action: "삭제", targetType: "Report", targetName: reportName, detail: "report_reg 실제 삭제" });
+    showToast(`Report를 삭제했습니다: ${reportName}`);
+    if (reports.length === 0) setReportCatalogState("empty");
+  } catch (error) {
+    if (reportDeleteError instanceof HTMLElement) {
+      reportDeleteError.textContent = error instanceof Error ? error.message : "Report 삭제에 실패했습니다.";
+      reportDeleteError.hidden = false;
+    }
+  } finally {
+    if (reportDeleteConfirm instanceof HTMLButtonElement) reportDeleteConfirm.disabled = false;
   }
 });
 
@@ -2083,7 +2184,7 @@ document.addEventListener("keydown", (event) => {
 
   if (event.key === "Escape") {
     if (globalSearch instanceof HTMLDialogElement && globalSearch.open) return;
-    if ([reportEditorDialog, ruleDetailDialog, ruleEditorDialog, ruleDeleteDialog].some((dialog) => dialog instanceof HTMLDialogElement && dialog.open)) return;
+    if ([reportEditorDialog, reportDeleteDialog, ruleDetailDialog, ruleEditorDialog, ruleDeleteDialog].some((dialog) => dialog instanceof HTMLDialogElement && dialog.open)) return;
     if (document.querySelector("[data-qna-modal]")) return;
     if (prototype?.dataset.qnaMode === "open") setQnaMode("closed");
     else if (prototype?.dataset.userMode === "open") setUserMode("closed");

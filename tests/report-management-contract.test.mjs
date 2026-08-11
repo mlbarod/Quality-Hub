@@ -18,12 +18,19 @@ test("Report는 Rule&SOP와 같은 관리자 전용 등록 흐름을 제공한�
   assert.match(script, /openReportEditor\("create", null, createButton\)/)
 })
 
-test("고유키와 숨김 컬럼이 없는 동안 수정과 삭제는 실제 DB 변경을 실행하지 않는다", () => {
+test("Report 수정과 실제 삭제는 활성 버튼과 DB API로 연결된다", () => {
   const viewerActions = html.match(/<div class="report-viewer-actions">([\s\S]*?)<\/div>/)?.[1] ?? ""
-  assert.match(viewerActions, /disabled title="report_reg 숨김 컬럼 확정 후 연결"/)
-  assert.match(viewerActions, /disabled title="report_reg 고유키 확정 후 연결"/)
-  assert.doesNotMatch(script, /openReportEditor\("edit", activeReportCard/)
-  assert.doesNotMatch(script, /softDeleteItem\(\{ type: "Report"/)
+  assert.match(viewerActions, /data-report-delete-open[^>]*>[\s\S]*삭제<\/button>/)
+  assert.match(viewerActions, /data-report-edit-open[^>]*>[\s\S]*수정<\/button>/)
+  assert.doesNotMatch(viewerActions, /disabled/)
+  assert.match(html, /data-report-delete-dialog/)
+  assert.match(html, /report_reg 데이터가 즉시 삭제되며 복구할 수 없습니다/)
+  assert.match(script, /openReportEditor\("edit", activeReportCard/)
+  assert.match(script, /method: isEdit \? "PATCH" : "POST"/)
+  assert.match(script, /requestReportApi\(\{ method: "DELETE" \}, reportId\)/)
+  assert.match(repository, /UPDATE report_reg/)
+  assert.match(repository, /DELETE FROM report_reg/)
+  assert.match(repository, /LIMIT 1/)
   assert.doesNotMatch(html, /data-report-(?:disable|status|visibility|permission)/)
 })
 
@@ -38,9 +45,17 @@ test("Report 조회와 신규 등록은 report_reg 컬럼에 직접 대응한다
   assert.match(repository, /INSERT INTO report_reg/)
   assert.match(repository, /user_id,[\s\S]*reg_time[\s\S]*CURRENT_TIMESTAMP/)
   assert.match(api, /const API_PATH = "\/api\/reports"/)
-  assert.match(script, /fetch\("\/api\/reports"/)
+  assert.match(script, /const path = reportId \? `\/api\/reports\/\$\{encodeURIComponent\(reportId\)\}` : "\/api\/reports"/)
   assert.match(script, /"x-quality-hub-user-id": getRoleOption\(currentRole\)\.userId/)
   assert.match(requirements, /`report_reg`/)
+})
+
+test("DB Report 카드에는 여러 시각화가 무작위 순서로 중복 없이 우선 배정된다", () => {
+  assert.match(script, /const REPORT_CARD_VISUALS = \["line", "bars", "donut"/)
+  assert.match(script, /const randomIndex = Math\.floor\(Math\.random\(\) \* \(index \+ 1\)\)/)
+  assert.match(script, /const visuals = createReportVisualSequence\(reports\.length\)/)
+  assert.match(script, /applyReportCardVisual\(card, visuals\[index\]\)/)
+  assert.match(script, /preview\.className = `report-card-preview is-\$\{visual\}`/)
 })
 
 test("DB 카테고리와 Report 카드가 동적으로 구성되고 Spotfire 원본 URL을 표시한다", () => {
@@ -52,6 +67,15 @@ test("DB 카테고리와 Report 카드가 동적으로 구성되고 Spotfire 원
   assert.match(html, /data-report-spotfire-frame/)
   assert.match(script, /reportSpotfireFrame\.src = reportUrl/)
   assert.match(styles, /\.spotfire-embed-frame/)
+  assert.match(styles, /\.spotfire-embed-placeholder\[hidden\]\s*\{\s*display: none;/)
+})
+
+test("Report UI는 데이터 원천 표시를 숨기고 1920px에서 뷰어 좌우 여백을 절반 수준으로 줄인다", () => {
+  assert.doesNotMatch(html, /data-report-viewer-updated/)
+  assert.doesNotMatch(script, /data-report-viewer-updated/)
+  assert.doesNotMatch(html, /data-report-source-state|<small>데이터 원천<\/small>/)
+  assert.doesNotMatch(script, /reportSourceState/)
+  assert.match(styles, /\.report-viewer-content \{[\s\S]*width: min\(100%, 1710px\);[\s\S]*padding: 29px 17px 50px;/)
 })
 
 test("포털 권한 설정 없이 Spotfire 자체 조회 권한을 적용한다", () => {

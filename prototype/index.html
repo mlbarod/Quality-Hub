@@ -843,8 +843,6 @@
                 <span><strong data-report-total-count>0</strong><small>등록 Report</small></span>
                 <i></i>
                 <span><strong data-report-category-count>0</strong><small>카테고리</small></span>
-                <i></i>
-                <span><strong data-report-source-state>연결 중</strong><small>데이터 원천</small></span>
               </div>
             </section>
 
@@ -988,8 +986,8 @@
             </div>
             <div class="report-viewer-actions">
               <span><i></i>Spotfire 원본 URL</span>
-              <button class="report-viewer-delete report-admin-only" type="button" disabled title="report_reg 숨김 컬럼 확정 후 연결"><svg class="icon"><use href="#icon-trash"></use></svg>숨김</button>
-              <button class="report-viewer-edit report-admin-only" type="button" disabled title="report_reg 고유키 확정 후 연결"><svg class="icon"><use href="#icon-edit"></use></svg>수정</button>
+              <button class="report-viewer-delete report-admin-only" type="button" data-report-delete-open><svg class="icon"><use href="#icon-trash"></use></svg>삭제</button>
+              <button class="report-viewer-edit report-admin-only" type="button" data-report-edit-open><svg class="icon"><use href="#icon-edit"></use></svg>수정</button>
               <button type="button" data-report-action="Spotfire 새 창 열기"><svg class="icon"><use href="#icon-expand"></use></svg>Spotfire에서 열기</button>
             </div>
           </header>
@@ -997,7 +995,6 @@
           <div class="report-viewer-content">
             <section class="report-viewer-heading">
               <div><p class="section-kicker" data-report-viewer-category>품질 현황</p><h1 data-report-viewer-title>종합 품질 현황</h1><p data-report-viewer-description>라인별 핵심 KPI와 이상 추이를 종합적으로 확인합니다.</p></div>
-              <div><span>데이터 원천</span><strong data-report-viewer-updated>report_reg</strong></div>
             </section>
 
             <section class="spotfire-embed-card" aria-labelledby="spotfire-embed-title">
@@ -1051,6 +1048,16 @@
         </div>
         <footer><button type="button" class="rule-editor-cancel" data-report-editor-close>취소</button><button type="submit" class="rule-editor-submit"><svg class="icon"><use href="#icon-plus"></use></svg><span data-report-editor-submit-label>신규 등록</span></button></footer>
       </form>
+    </dialog>
+
+    <dialog class="rule-delete-dialog" aria-labelledby="report-delete-title" aria-describedby="report-delete-description" data-report-delete-dialog>
+      <div class="rule-delete-panel">
+        <span class="rule-delete-mark"><svg class="icon"><use href="#icon-trash"></use></svg></span>
+        <strong id="report-delete-title">Report를 삭제할까요?</strong>
+        <p id="report-delete-description"><b data-report-delete-name></b> 카드와 report_reg 데이터가 즉시 삭제되며 복구할 수 없습니다.</p>
+        <p class="rule-editor-error" role="alert" hidden data-report-delete-error></p>
+        <div><button type="button" data-report-delete-close>취소</button><button type="button" data-report-delete-confirm>삭제</button></div>
+      </div>
     </dialog>
 
     <dialog class="rule-detail-dialog" aria-labelledby="rule-detail-title" aria-describedby="rule-detail-description" data-rule-detail-dialog>

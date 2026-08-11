@@ -1,4 +1,6 @@
-import { createReportRepository } from "./reportRepository.mjs"
+import { randomUUID } from "node:crypto"
+
+import { createReportRepository, ReportNotFoundError } from "./reportRepository.mjs"
 
 const API_PATH = "/api/reports"
 const MAX_JSON_BODY_BYTES = 16 * 1024
@@ -66,6 +68,9 @@ export class ReportApiRequestError extends Error {
 
 function toApiError(error) {
   if (error instanceof ReportApiRequestError) return error
+  if (error instanceof ReportNotFoundError) {
+    return new ReportApiRequestError(error.message, { status: 404, code: "REPORT_NOT_FOUND" })
+  }
   if (error instanceof TypeError) {
     return new ReportApiRequestError(error.message, { status: 400, code: "INVALID_INPUT" })
   }
@@ -81,23 +86,59 @@ function toApiError(error) {
   })
 }
 
-function isReportPath(req) {
+function getReportRoute(req) {
   let url
   try {
     url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`)
   } catch {
-    return false
+    return null
   }
-  return url.pathname === API_PATH
+  if (url.pathname === API_PATH) return { reportId: null }
+  if (!url.pathname.startsWith(`${API_PATH}/`)) return null
+  const encodedReportId = url.pathname.slice(API_PATH.length + 1)
+  if (!encodedReportId || encodedReportId.includes("/")) return null
+  try {
+    return { reportId: decodeURIComponent(encodedReportId) }
+  } catch {
+    return null
+  }
+}
+
+function publicReport(report, reportId) {
+  return {
+    reportId,
+    category: report.category,
+    reportName: report.reportName,
+    description: report.description,
+    reportUrl: report.reportUrl,
+  }
 }
 
 export function createReportApi({
   repository,
   repositoryFactory = createReportRepository,
   logger = console,
+  uuidFactory = randomUUID,
 } = {}) {
   let activeRepository = repository
   let ownsRepository = false
+  const reportReferences = new Map()
+  const maxReportReferences = 5000
+
+  const rememberReport = (report, userId) => {
+    const reportId = uuidFactory()
+    reportReferences.set(reportId, { report, userId })
+    if (reportReferences.size > maxReportReferences) {
+      reportReferences.delete(reportReferences.keys().next().value)
+    }
+    return publicReport(report, reportId)
+  }
+
+  const requireReportReference = (reportId, userId) => {
+    const entry = reportId ? reportReferences.get(reportId) : undefined
+    if (!entry || entry.userId !== userId) throw new ReportNotFoundError()
+    return entry.report
+  }
 
   const getRepository = () => {
     if (!activeRepository) {
@@ -116,35 +157,53 @@ export function createReportApi({
 
   return {
     async handle(req, res) {
-      if (!isReportPath(req)) return false
+      const route = getReportRoute(req)
+      if (!route) return false
 
       try {
         const userId = requireUserId(req)
         const method = req.method ?? "GET"
 
-        if (method === "GET") {
+        if (method === "GET" && route.reportId === null) {
           const reports = await getRepository().listReports()
-          sendJson(res, 200, { reports })
+          sendJson(res, 200, { reports: reports.map((report) => rememberReport(report, userId)) })
           return true
         }
 
-        if (method === "POST") {
+        if (method === "POST" && route.reportId === null) {
           const body = await readJsonBody(req)
           const report = await getRepository().createReport({ ...body, userId })
           sendJson(res, 201, { report })
           return true
         }
 
+        if (method === "PATCH" && route.reportId !== null) {
+          const reference = requireReportReference(route.reportId, userId)
+          const body = await readJsonBody(req)
+          const report = await getRepository().updateReport(reference, body)
+          reportReferences.delete(route.reportId)
+          sendJson(res, 200, { report })
+          return true
+        }
+
+        if (method === "DELETE" && route.reportId !== null) {
+          const reference = requireReportReference(route.reportId, userId)
+          const result = await getRepository().deleteReport(reference)
+          reportReferences.delete(route.reportId)
+          sendJson(res, 200, result)
+          return true
+        }
+
         sendJson(res, 405, {
           error: { code: "METHOD_NOT_ALLOWED", message: "지원하지 않는 Report API 요청입니다." },
-        }, { Allow: "GET, POST" })
+        }, { Allow: route.reportId === null ? "GET, POST" : "PATCH, DELETE" })
         return true
       } catch (error) {
         const apiError = toApiError(error)
         if (apiError.status >= 500 && typeof logger?.error === "function") {
           logger.error("Report API failure", {
             method: req.method ?? "GET",
-            path: API_PATH,
+            path: route.reportId === null ? API_PATH : `${API_PATH}/:reportId`,
             apiCode: apiError.code,
             status: apiError.status,
             errorName: error?.name,

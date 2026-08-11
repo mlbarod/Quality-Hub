@@ -71,7 +71,7 @@ test("확정한 역할별 콘텐츠와 Q&A 권한을 요구사항에 기록한�
   assert.match(requirements, /답변이 등록된 질문은 작성자가 수정할 수 있지만 삭제할 수 없으며, 마스터만 삭제 가능/)
   assert.match(requirements, /이전 상태를 포함해 자유롭게 변경 가능/)
   assert.match(requirements, /마스터가 1명뿐이면 해당 계정의 권한 회수를 비활성화/)
-  assert.match(requirements, /복구 가능한 숨김 처리로 수행하며, 복구는 마스터만 가능/)
+  assert.match(requirements, /Report는.*`report_reg`에서 실제 삭제하고, 그 밖의 콘텐츠와 Q&A는.*복구 가능한 숨김 처리로 수행하며 복구는 마스터만 가능/)
   assert.match(requirements, /콘텐츠·권한·Q&A 상태의 변경 이력은 마스터만 조회 가능/)
 })
 
@@ -86,8 +86,8 @@ test("확정한 공통 화면 상태와 역할별 문의 대상을 문서에 기
 test("현재 로컬 가상 데이터와 운영 검증 경계를 요구사항에 기록한다", () => {
   assert.match(requirements, /현재 브라우저의 로컬 저장소에만 보관/)
   assert.match(requirements, /품질 Agent는 사내 RAG·GPT-OSS와 대화 DB를 Backend 흐름과 기존 UI에 연결/)
-  assert.match(requirements, /Report 목록 조회·신규 등록은 `report_reg`에 연결/)
-  assert.match(requirements, /실제 SSO·Spotfire 인증·수정\/숨김 삭제·나머지 업무 DB·Parquet·공유 폴더 연동과 운영 보안·성능 검증은 후속 작업/)
+  assert.match(requirements, /Report 목록 조회·신규 등록·수정·실제 삭제는 `report_reg`에 연결/)
+  assert.match(requirements, /실제 SSO·Spotfire 인증·나머지 업무 DB·Parquet·공유 폴더 연동과 운영 보안·성능 검증은 후속 작업/)
   assert.match(developmentPlan, /별도 설명 없이 찾고 전체 사용 흐름을 체험할 수 있으며/)
 })
 
