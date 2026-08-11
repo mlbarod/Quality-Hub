@@ -6,10 +6,12 @@ import {
   BackendChatDbError,
   BackendChatGptOssError,
   BackendChatRagError,
+  buildChatMessages,
   buildChatUserMessage,
   buildRagContext,
   createBackendChatService,
   RagHitsStructureError,
+  selectChatHistory,
 } from "../server/backendChatService.mjs"
 
 const rawHits = [
@@ -17,7 +19,13 @@ const rawHits = [
     _index: "quality-index",
     _id: "doc-1",
     _score: 1.25,
-    _source: { doc_id: "DOC-1", title: "관리 기준", content: "기준 내용" },
+    _source: {
+      doc_id: "DOC-1",
+      title: "관리 기준",
+      content: "기준 내용",
+      additionalField: "Prompt에 포함하면 안 되는 metadata",
+    },
+    sort: [1.25],
   },
 ]
 
@@ -58,31 +66,76 @@ function createReply(content = "통합 답변") {
   }
 }
 
-test("hits.hits 원문만으로 RAG Context와 출처를 구성하고 0건도 정상 처리한다", () => {
+test("RAG Context는 title, content, score만 추출하고 metadata와 내용 없는 hit를 제외한다", () => {
   const withHits = buildRagContext({ hits: { total: { value: 1 }, hits: rawHits } })
-  assert.equal(withHits.hits, rawHits)
-  assert.match(withHits.context, /"_index": "quality-index"/)
-  assert.match(withHits.context, /"content": "기준 내용"/)
+  assert.deepEqual(withHits.hits, rawHits)
+  assert.deepEqual(withHits.contextHits, [{ title: "관리 기준", content: "기준 내용", score: 1.25 }])
+  assert.match(withHits.context, /제목: 관리 기준/)
+  assert.match(withHits.context, /관련도 점수: 1\.25/)
+  assert.match(withHits.context, /내용:\n기준 내용/)
+  assert.doesNotMatch(withHits.context, /quality-index|doc-1|additionalField|metadata|sort|_source/)
+
+  const withoutUsableContent = buildRagContext({
+    hits: { hits: [{ _score: 0.5, _source: { title: "본문 없음", content: " " } }] },
+  })
+  assert.deepEqual(withoutUsableContent, {
+    hits: [],
+    contextHits: [],
+    context: "RAG 검색 결과가 없습니다.",
+  })
 
   assert.deepEqual(buildRagContext({ hits: { total: { value: 0 }, hits: [] } }), {
     hits: [],
+    contextHits: [],
     context: "RAG 검색 결과가 없습니다.",
   })
   assert.throws(() => buildRagContext({ result: [] }), RagHitsStructureError)
 })
 
-test("최근 History, RAG Context와 현재 질문을 구분해 GPT 입력을 만든다", () => {
+test("RAG Context와 현재 질문만 구분한 현재 user 메시지를 만든다", () => {
   const prompt = buildChatUserMessage({
+    ragContext: "문서 Context",
+    question: "현재 질문",
+  })
+  assert.match(prompt, /\[RAG Context\]\n문서 Context/)
+  assert.match(prompt, /\[현재 질문\]\n현재 질문$/)
+  assert.doesNotMatch(prompt, /최근 대화 History/)
+})
+
+test("History는 최근 6개를 실제 role로 유지하고 총 문자 예산 안에서 자른다", () => {
+  const history = Array.from({ length: 8 }, (_, index) => ({
+    role: index % 2 === 0 ? "user" : "assistant",
+    content: `${index + 1}-${"가".repeat(100)}`,
+  }))
+  const selected = selectChatHistory(history, { messageLimit: 6, charLimit: 300 })
+
+  assert.equal(selected.length, 6)
+  assert.deepEqual(selected.map(({ role }) => role), ["user", "assistant", "user", "assistant", "user", "assistant"])
+  assert.match(selected[0].content, /^3-/)
+  assert.ok(selected.reduce((total, message) => total + message.content.length, 0) <= 300)
+  assert.ok(selected.every((message) => message.content.includes("[History 일부 생략]")))
+
+  assert.throws(
+    () => selectChatHistory(history, { messageLimit: 6, charLimit: 1 }),
+    /historyCharLimit은 6 이상의 정수/,
+  )
+
+  const messages = buildChatMessages({
     history: [
       { role: "user", content: "이전 질문" },
       { role: "assistant", content: "이전 답변" },
     ],
     ragContext: "문서 Context",
     question: "현재 질문",
+    systemMessage: "시스템 지시",
   })
-  assert.match(prompt, /\[최근 대화 History\]\nuser: 이전 질문\nassistant: 이전 답변/)
-  assert.match(prompt, /\[RAG Context\]\n문서 Context/)
-  assert.match(prompt, /\[현재 질문\]\n현재 질문$/)
+  assert.deepEqual(messages.slice(0, 3), [
+    { role: "system", content: "시스템 지시" },
+    { role: "user", content: "이전 질문" },
+    { role: "assistant", content: "이전 답변" },
+  ])
+  assert.equal(messages.at(-1).role, "user")
+  assert.match(messages.at(-1).content, /\[현재 질문\]\n현재 질문$/)
 })
 
 test("DB 저장, RAG, 최근 History, GPT-OSS, 답변·출처 저장을 순서대로 통합한다", async () => {
@@ -138,10 +191,15 @@ test("DB 저장, RAG, 최근 History, GPT-OSS, 답변·출처 저장을 순서�
     "db:assistant",
     "db:status:completed",
   ])
-  assert.deepEqual(Object.keys(gptInput).sort(), ["systemMessage", "userMessage"])
-  assert.match(gptInput.userMessage, /user: 이전 질문/)
-  assert.match(gptInput.userMessage, /"_id": "doc-1"/)
-  assert.match(gptInput.userMessage, /\[현재 질문\]\n현재 질문$/)
+  assert.deepEqual(Object.keys(gptInput), ["messages"])
+  assert.deepEqual(gptInput.messages.slice(1, 3), [
+    { role: "user", content: "이전 질문" },
+    { role: "assistant", content: "이전 답변" },
+  ])
+  assert.match(gptInput.messages.at(-1).content, /제목: 관리 기준/)
+  assert.match(gptInput.messages.at(-1).content, /내용:\n기준 내용/)
+  assert.doesNotMatch(gptInput.messages.at(-1).content, /"_id"|additionalField|metadata|sort/)
+  assert.match(gptInput.messages.at(-1).content, /\[현재 질문\]\n현재 질문$/)
   assert.deepEqual(repository.calls.find(({ operation }) => operation === "history").input, {
     conversationId: "conversation-1",
     userId: "quality.kim",
@@ -149,27 +207,28 @@ test("DB 저장, RAG, 최근 History, GPT-OSS, 답변·출처 저장을 순서�
   })
   const assistantSave = repository.calls.find(({ operation }) => operation === "save:assistant").input
   assert.equal(assistantSave.ragUsed, true)
-  assert.equal(assistantSave.ragSources, rawHits)
+  assert.deepEqual(assistantSave.ragSources, rawHits)
   assert.equal(assistantSave.status, BACKEND_CHAT_STATUS.COMPLETED)
   assert.equal(result.answer.content, "통합 답변")
-  assert.equal(result.ragSources, rawHits)
+  assert.deepEqual(result.ragSources, rawHits)
+  assert.equal(result.historyCount, 2)
 })
 
 test("RAG 검색 결과가 0건이면 빈 Context로 GPT-OSS를 호출하고 rag_used를 false로 저장한다", async () => {
   const repository = createRepositoryMock()
-  let gptUserMessage
+  let gptMessages
   const service = createBackendChatService({
     historyRepository: repository,
     ragSearch: async () => ({ data: { hits: { total: { value: 0 }, hits: [] } } }),
-    gptReply: async ({ userMessage }) => {
-      gptUserMessage = userMessage
+    gptReply: async ({ messages }) => {
+      gptMessages = messages
       return createReply("검색 결과 없는 답변")
     },
   })
 
   const result = await service.ask({ conversationId: "conversation-1", userId: "owner", question: "질문" })
   const assistantSave = repository.calls.find(({ operation }) => operation === "save:assistant").input
-  assert.match(gptUserMessage, /RAG 검색 결과가 없습니다/)
+  assert.match(gptMessages.at(-1).content, /RAG 검색 결과가 없습니다/)
   assert.equal(assistantSave.ragUsed, false)
   assert.deepEqual(assistantSave.ragSources, [])
   assert.equal(result.ragUsed, false)

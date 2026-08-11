@@ -50,6 +50,28 @@ function requireText(value, fieldName) {
   return value
 }
 
+function normalizeChatMessages({ messages, systemMessage, userMessage }) {
+  if (messages === undefined) {
+    return [
+      { role: "system", content: requireText(systemMessage, "system message") },
+      { role: "user", content: requireText(userMessage, "user message") },
+    ]
+  }
+  if (!Array.isArray(messages) || messages.length === 0) {
+    throw new TypeError("messages는 1개 이상의 메시지를 포함해야 합니다.")
+  }
+
+  return messages.map((message, index) => {
+    if (!message || !["system", "user", "assistant"].includes(message.role)) {
+      throw new TypeError(`messages[${index}].role은 system, user 또는 assistant여야 합니다.`)
+    }
+    return {
+      role: message.role,
+      content: requireText(message.content, `messages[${index}].content`),
+    }
+  })
+}
+
 function parseTimeout(value) {
   if (value === undefined || value === "") return DEFAULT_GPT_OSS_TIMEOUT_MS
   if (!/^\d+$/.test(value)) throw new TypeError("GPT_OSS_TIMEOUT_MS는 1 이상의 정수여야 합니다.")
@@ -93,13 +115,12 @@ export function createGptOssRequestHeaders(config, uuidFactory = randomUUID) {
   }
 }
 
-export async function createGptOssChatCompletion({ systemMessage, userMessage }, {
+export async function createGptOssChatCompletion(input, {
   config = loadGptOssConfig(),
   uuidFactory = randomUUID,
   OpenAIImpl = OpenAI,
 } = {}) {
-  requireText(systemMessage, "system message")
-  requireText(userMessage, "user message")
+  const messages = normalizeChatMessages(input ?? {})
 
   const requestHeaders = createGptOssRequestHeaders(config, uuidFactory)
   const client = new OpenAIImpl({
@@ -112,10 +133,7 @@ export async function createGptOssChatCompletion({ systemMessage, userMessage },
   try {
     const completion = await client.chat.completions.create({
       model: GPT_OSS_MODEL,
-      messages: [
-        { role: "system", content: systemMessage },
-        { role: "user", content: userMessage },
-      ],
+      messages,
       temperature: GPT_OSS_TEMPERATURE,
     })
 

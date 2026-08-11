@@ -126,7 +126,7 @@ npm run backend:chat:check -- "quality.kim" "질문 내용"
 npm run backend:chat:check -- "quality.kim" "후속 질문" "기존-conversation-uuid"
 ```
 
-이 명령은 user message 저장 → RAG 검색과 `hits.hits[]` Context 구성 → 최근 완료 message 최대 10건 조회 → 기존 규격의 GPT-OSS 호출 → assistant 답변과 RAG 출처 JSON 저장을 순서대로 실행합니다. RAG 결과 0건은 정상 처리하며, RAG·GPT-OSS·DB 실패는 서로 다른 단계로 출력하고 user message의 `status`에 `rag_failed`, `gpt_failed`, `db_failed` 기록을 시도합니다. 외부 API를 기다리는 동안 DB transaction을 유지하지 않습니다.
+이 명령은 user message 저장 → RAG 검색과 `hits.hits[]`의 제목·본문·점수 Context 구성 → 최근 완료 message 최대 6건을 실제 대화 role과 6,000자 예산으로 적용 → 기존 규격의 GPT-OSS 호출 → assistant 답변과 RAG 출처 JSON 저장을 순서대로 실행합니다. RAG 결과 0건은 정상 처리하며, RAG·GPT-OSS·DB 실패는 서로 다른 단계로 출력하고 user message의 `status`에 `rag_failed`, `gpt_failed`, `db_failed` 기록을 시도합니다. 외부 API를 기다리는 동안 DB transaction을 유지하지 않습니다.
 
 ## Quality Agent UI 통합 확인
 

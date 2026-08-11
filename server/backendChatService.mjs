@@ -2,7 +2,9 @@ import { createConversationHistoryRepository } from "./conversationHistoryReposi
 import { generateGptOssReply } from "./gptOssService.mjs"
 import { searchRagDocuments } from "./ragClient.mjs"
 
-export const DEFAULT_CHAT_HISTORY_LIMIT = 10
+export const DEFAULT_CHAT_HISTORY_LIMIT = 6
+export const DEFAULT_CHAT_HISTORY_CHAR_LIMIT = 6_000
+const HISTORY_TRUNCATION_MARKER = "\n[History 일부 생략]"
 export const BACKEND_CHAT_STATUS = Object.freeze({
   PROCESSING: "processing",
   COMPLETED: "completed",
@@ -66,10 +68,44 @@ function requireText(value, fieldName) {
 }
 
 function validateHistoryLimit(value) {
-  if (!Number.isInteger(value) || value < 1 || value > 100) {
-    throw new TypeError("historyLimit은 1~100 범위의 정수여야 합니다.")
+  if (!Number.isInteger(value) || value < 1 || value > DEFAULT_CHAT_HISTORY_LIMIT) {
+    throw new TypeError(`historyLimit은 1~${DEFAULT_CHAT_HISTORY_LIMIT} 범위의 정수여야 합니다.`)
   }
   return value
+}
+
+function validateHistoryCharLimit(value) {
+  if (!Number.isSafeInteger(value) || value < DEFAULT_CHAT_HISTORY_LIMIT) {
+    throw new TypeError(`historyCharLimit은 ${DEFAULT_CHAT_HISTORY_LIMIT} 이상의 정수여야 합니다.`)
+  }
+  return value
+}
+
+function extractRagContextHit(hit) {
+  const source = hit?._source
+  const content = source?.content
+  if (!source || typeof source !== "object" || Array.isArray(source)) return null
+  if (typeof content !== "string" || content.trim().length === 0) return null
+
+  return {
+    title: typeof source.title === "string" && source.title.trim().length > 0
+      ? source.title
+      : "제목 없음",
+    content,
+    score: typeof hit._score === "number" && Number.isFinite(hit._score)
+      ? hit._score
+      : null,
+  }
+}
+
+function formatRagContextHit(hit, index) {
+  return [
+    `[RAG 문서 ${index + 1}]`,
+    `제목: ${hit.title}`,
+    `관련도 점수: ${hit.score ?? "확인되지 않음"}`,
+    "내용:",
+    hit.content,
+  ].join("\n")
 }
 
 export function buildRagContext(responseData) {
@@ -81,35 +117,105 @@ export function buildRagContext(responseData) {
     throw new RagHitsStructureError("RAG 검색 응답의 hits.hits 항목이 객체가 아닙니다.")
   }
 
+  const usableHits = hits
+    .map((rawHit) => ({ rawHit, contextHit: extractRagContextHit(rawHit) }))
+    .filter(({ contextHit }) => contextHit !== null)
+
   return {
-    hits,
-    context: hits.length === 0
+    hits: usableHits.map(({ rawHit }) => rawHit),
+    contextHits: usableHits.map(({ contextHit }) => contextHit),
+    context: usableHits.length === 0
       ? "RAG 검색 결과가 없습니다."
-      : hits.map((hit, index) => `[RAG hit ${index + 1}]\n${JSON.stringify(hit, null, 2)}`).join("\n\n"),
+      : usableHits.map(({ contextHit }, index) => formatRagContextHit(contextHit, index)).join("\n\n"),
   }
 }
 
-export function buildChatUserMessage({ history, ragContext, question }) {
-  if (!Array.isArray(history)) throw new TypeError("history는 배열이어야 합니다.")
-  const historyText = history.length === 0
-    ? "최근 대화가 없습니다."
-    : history.map((message) => {
-      if (message?.role !== "user" && message?.role !== "assistant") {
-        throw new TypeError("history role은 user 또는 assistant여야 합니다.")
-      }
-      return `${message.role}: ${requireText(message.content, "history content")}`
-    }).join("\n")
+function truncateHistoryContent(content, limit) {
+  if (content.length <= limit) return content
+  if (limit <= HISTORY_TRUNCATION_MARKER.length) return content.slice(0, limit)
+  return `${content.slice(0, limit - HISTORY_TRUNCATION_MARKER.length)}${HISTORY_TRUNCATION_MARKER}`
+}
 
+function allocateHistoryCharacterBudgets(messages, charLimit) {
+  const budgets = new Array(messages.length).fill(0)
+  const unresolved = new Set(messages.map((_, index) => index))
+  let remaining = charLimit
+
+  while (unresolved.size > 0) {
+    const share = Math.floor(remaining / unresolved.size)
+    let resolvedAny = false
+
+    for (const index of [...unresolved]) {
+      if (messages[index].content.length <= share) {
+        budgets[index] = messages[index].content.length
+        remaining -= budgets[index]
+        unresolved.delete(index)
+        resolvedAny = true
+      }
+    }
+
+    if (resolvedAny) continue
+
+    for (const index of unresolved) budgets[index] = share
+    let remainder = remaining - (share * unresolved.size)
+    for (let index = messages.length - 1; index >= 0 && remainder > 0; index -= 1) {
+      if (!unresolved.has(index)) continue
+      budgets[index] += 1
+      remainder -= 1
+    }
+    break
+  }
+
+  return budgets
+}
+
+export function selectChatHistory(history, {
+  messageLimit = DEFAULT_CHAT_HISTORY_LIMIT,
+  charLimit = DEFAULT_CHAT_HISTORY_CHAR_LIMIT,
+} = {}) {
+  if (!Array.isArray(history)) throw new TypeError("history는 배열이어야 합니다.")
+  const normalizedMessageLimit = validateHistoryLimit(messageLimit)
+  const normalizedCharLimit = validateHistoryCharLimit(charLimit)
+  const messages = history.slice(-normalizedMessageLimit).map((message) => {
+    if (message?.role !== "user" && message?.role !== "assistant") {
+      throw new TypeError("history role은 user 또는 assistant여야 합니다.")
+    }
+    return {
+      role: message.role,
+      content: requireText(message.content, "history content"),
+    }
+  })
+  const budgets = allocateHistoryCharacterBudgets(messages, normalizedCharLimit)
+
+  return messages.map((message, index) => ({
+    ...message,
+    content: truncateHistoryContent(message.content, budgets[index]),
+  }))
+}
+
+export function buildChatUserMessage({ ragContext, question }) {
   return [
-    "[최근 대화 History]",
-    historyText,
-    "",
     "[RAG Context]",
     requireText(ragContext, "RAG Context"),
     "",
     "[현재 질문]",
     requireText(question, "question"),
   ].join("\n")
+}
+
+export function buildChatMessages({
+  history,
+  ragContext,
+  question,
+  systemMessage = DEFAULT_BACKEND_CHAT_SYSTEM_MESSAGE,
+  historyLimit = DEFAULT_CHAT_HISTORY_LIMIT,
+  historyCharLimit = DEFAULT_CHAT_HISTORY_CHAR_LIMIT,
+}) {
+  return [
+    { role: "system", content: requireText(systemMessage, "systemMessage") },
+    ...selectChatHistory(history, { messageLimit: historyLimit, charLimit: historyCharLimit }),
+    { role: "user", content: buildChatUserMessage({ ragContext, question }) },
+  ]
 }
 
 async function recordFailureStatus(repository, { userMessageId, conversationId, userId, status }) {
@@ -135,11 +241,13 @@ export function createBackendChatService({
   ragSearch = searchRagDocuments,
   gptReply = generateGptOssReply,
   historyLimit = DEFAULT_CHAT_HISTORY_LIMIT,
+  historyCharLimit = DEFAULT_CHAT_HISTORY_CHAR_LIMIT,
   systemMessage = DEFAULT_BACKEND_CHAT_SYSTEM_MESSAGE,
 } = {}) {
   const repository = historyRepository ?? createConversationHistoryRepository()
   const ownsRepository = historyRepository === undefined
   const normalizedHistoryLimit = validateHistoryLimit(historyLimit)
+  const normalizedHistoryCharLimit = validateHistoryCharLimit(historyCharLimit)
   const normalizedSystemMessage = requireText(systemMessage, "systemMessage")
 
   return {
@@ -186,17 +294,20 @@ export function createBackendChatService({
       }
 
       let history
-      let chatUserMessage
+      let chatMessages
       try {
         history = await repository.listRecentMessages({
           conversationId,
           userId,
           limit: normalizedHistoryLimit,
         })
-        chatUserMessage = buildChatUserMessage({
+        chatMessages = buildChatMessages({
           history,
           ragContext: ragResult.context,
           question: normalizedQuestion,
+          systemMessage: normalizedSystemMessage,
+          historyLimit: normalizedHistoryLimit,
+          historyCharLimit: normalizedHistoryCharLimit,
         })
       } catch (cause) {
         const statusUpdateError = await recordFailureStatus(repository, {
@@ -216,10 +327,7 @@ export function createBackendChatService({
 
       let reply
       try {
-        reply = await gptReply({
-          systemMessage: normalizedSystemMessage,
-          userMessage: chatUserMessage,
-        })
+        reply = await gptReply({ messages: chatMessages })
       } catch (cause) {
         const statusUpdateError = await recordFailureStatus(repository, {
           userMessageId: userMessage.messageId,
@@ -276,7 +384,7 @@ export function createBackendChatService({
         userMessage: completedUserMessage,
         assistantMessage,
         answer: reply,
-        historyCount: history.length,
+        historyCount: chatMessages.length - 2,
         ragUsed: ragResult.hits.length > 0,
         ragSources: ragResult.hits,
       }

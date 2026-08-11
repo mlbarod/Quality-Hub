@@ -123,6 +123,28 @@ test("OpenAI SDK Client와 Chat Completions 요청이 공식 계약을 유지한
   assert.equal(result.completionMessageId, "completion-uuid")
 })
 
+test("Backend 통합 호출은 History의 user/assistant role을 그대로 전달한다", async () => {
+  const mock = createOpenAIMock({ completion: createCompletion() })
+  const messages = [
+    { role: "system", content: "system" },
+    { role: "user", content: "이전 질문" },
+    { role: "assistant", content: "이전 답변" },
+    { role: "user", content: "RAG Context와 현재 질문" },
+  ]
+
+  await createGptOssChatCompletion({ messages }, { config, OpenAIImpl: mock.OpenAIImpl })
+
+  assert.deepEqual(mock.calls.requests[0], {
+    model: "gpt-oss-120b",
+    messages,
+    temperature: GPT_OSS_TEMPERATURE,
+  })
+  await assert.rejects(
+    createGptOssChatCompletion({ messages: [{ role: "tool", content: "잘못된 role" }] }, { config, OpenAIImpl: mock.OpenAIImpl }),
+    /role은 system, user 또는 assistant/,
+  )
+})
+
 test("각 Chat Completion 호출마다 새로운 UUID Header를 만든다", async () => {
   const mock = createOpenAIMock({ completion: createCompletion() })
   const ids = ["prompt-1", "completion-1", "prompt-2", "completion-2"]

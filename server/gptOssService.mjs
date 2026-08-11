@@ -3,8 +3,8 @@ import {
   GptOssResponseError,
 } from "./gptOssClient.mjs"
 
-export async function generateGptOssReply({ systemMessage, userMessage }, options = {}) {
-  const result = await createGptOssChatCompletion({ systemMessage, userMessage }, options)
+export async function generateGptOssReply(input, options = {}) {
+  const result = await createGptOssChatCompletion(input, options)
   const choice = result.completion?.choices?.[0]
   const content = choice?.message?.content
 
