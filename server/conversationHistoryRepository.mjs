@@ -228,8 +228,8 @@ export function createConversationHistoryRepository({
         FROM llm_message
         WHERE conversation_id = ? AND status = ?
         ORDER BY created_at DESC, message_id DESC
-        LIMIT ?
-      `, [normalizedConversationId, "completed", normalizedLimit])
+        LIMIT ${normalizedLimit}
+      `, [normalizedConversationId, "completed"])
       return rows.reverse()
     },
 

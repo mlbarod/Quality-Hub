@@ -48,7 +48,11 @@ if (!userId || !question) {
       console.error(`실패 작업: ${error.operation}`)
       console.error(error.message)
       if (error.userMessageId) console.error(`user message: ${error.userMessageId}`)
-      if (error.cause instanceof Error) console.error(`원인: ${error.cause.message}`)
+      if (error.cause instanceof Error) {
+        console.error(`원인: ${error.cause.message}`)
+        if ("code" in error.cause && error.cause.code) console.error(`원인 코드: ${error.cause.code}`)
+        if ("sqlState" in error.cause && error.cause.sqlState) console.error(`SQL state: ${error.cause.sqlState}`)
+      }
       if (error.statusUpdateError instanceof Error) {
         console.error(`실패 상태 DB 기록도 실패했습니다: ${error.statusUpdateError.message}`)
       }

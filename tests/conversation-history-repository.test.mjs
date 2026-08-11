@@ -134,8 +134,9 @@ test("완료된 최근 message만 제한 조회하고 시간 순서로 반환한
       { messageId: "message-3", role: "user", content: "최근 질문" },
     ],
   )
-  assert.deepEqual(mock.calls[1].params, ["conversation-1", "completed", 2])
-  assert.match(mock.calls[1].sql, /ORDER BY created_at DESC, message_id DESC LIMIT \?/)
+  assert.deepEqual(mock.calls[1].params, ["conversation-1", "completed"])
+  assert.match(mock.calls[1].sql, /ORDER BY created_at DESC, message_id DESC LIMIT 2/)
+  assert.equal(mock.calls[1].sql.includes("owner"), false)
   await assert.rejects(
     repository.listRecentMessages({ conversationId: "conversation-1", userId: "owner", limit: 101 }),
     /1~100/,
