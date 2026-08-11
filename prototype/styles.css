@@ -2621,6 +2621,106 @@ kbd {
   box-shadow: var(--shadow-sm);
 }
 
+.agent-answer-content {
+  display: grid;
+  min-width: 0;
+  gap: 11px;
+}
+
+.agent-answer-content p {
+  white-space: normal;
+}
+
+.agent-answer-content h3,
+.agent-answer-content h4,
+.agent-answer-content h5,
+.agent-answer-content h6 {
+  margin: 2px 0 0;
+  color: var(--foreground);
+  font-size: 1em;
+  font-weight: 720;
+  line-height: 1.45;
+}
+
+.agent-answer-content strong {
+  font-weight: 720;
+}
+
+.agent-answer-content code {
+  padding: 2px 5px;
+  border-radius: 5px;
+  background: var(--surface-muted);
+  color: var(--primary-dark);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .9em;
+}
+
+.agent-answer-content blockquote {
+  margin: 0;
+  padding: 9px 11px;
+  border-left: 3px solid var(--primary);
+  border-radius: 0 7px 7px 0;
+  background: var(--surface-soft);
+  color: var(--muted-foreground);
+}
+
+.agent-answer-content hr {
+  width: 100%;
+  margin: 2px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.agent-answer-content ul,
+.agent-answer-content ol {
+  margin: 0;
+}
+
+.agent-answer-content li strong,
+.agent-answer-content li span {
+  display: inline;
+  font-size: inherit;
+}
+
+.agent-answer-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+
+.agent-answer-table-wrap table {
+  width: 100%;
+  min-width: 360px;
+  border-collapse: collapse;
+  background: var(--surface);
+  font-size: .9em;
+}
+
+.agent-answer-table-wrap th,
+.agent-answer-table-wrap td {
+  padding: 9px 10px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.agent-answer-table-wrap th {
+  background: var(--surface-soft);
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+.agent-answer-table-wrap tr:last-child td {
+  border-bottom: 0;
+}
+
+.agent-answer-table-wrap th:last-child,
+.agent-answer-table-wrap td:last-child {
+  border-right: 0;
+}
+
 .agent-message-mark {
   display: grid;
   width: 24px;
@@ -2851,7 +2951,7 @@ kbd {
   inset: 0 0 0 var(--sidebar-width);
   z-index: 56;
   display: grid;
-  grid-template-columns: 220px minmax(520px, 1fr) 300px;
+  grid-template-columns: 220px minmax(520px, 1fr);
   visibility: hidden;
   overflow: hidden;
   border-top: 1px solid var(--border);

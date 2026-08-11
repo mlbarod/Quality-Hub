@@ -132,4 +132,4 @@ npm run backend:chat:check -- "quality.kim" "후속 질문" "기존-conversation
 
 루트의 `.env.rag`, `.env.gpt-oss`, `.env.db`를 입력하고 `npm start`로 실행하면 우측 패널과 전체 화면이 같은 Backend conversation을 사용합니다. 서버는 실행한 작업 디렉터리와 관계없이 프로젝트 루트의 세 환경파일을 직접 읽습니다. 환경파일을 변경한 경우 실행 중인 서버를 종료하고 다시 시작해야 합니다. 실제 SSO 전까지 상단 역할 미리보기의 `user_id`를 테스트 식별값으로 전달합니다. Agent API가 실패하면 서버 콘솔의 `Quality Agent API failure` 로그에서 실패 단계와 DB 오류 코드를 확인할 수 있으며 접속정보와 SQL 원문은 기록하지 않습니다.
 
-브라우저에서 품질 Agent를 열어 새 대화 생성, 질문 전송, 답변과 RAG 참고 정보 표시, 전체 화면 확장, 대화 선택·삭제를 확인합니다. 선택한 conversation ID는 브라우저에만 보관하고 실제 message와 conversation은 DB에서 다시 불러오므로 새로고침 후에도 History가 복원됩니다. Streaming은 적용하지 않았습니다.
+브라우저에서 품질 Agent를 열어 새 대화 생성, 질문 전송, 읽기 쉽게 정제된 답변 표시, 전체 화면 확장, 대화 선택·삭제를 확인합니다. `<br>` 줄바꿈, Markdown 강조·목록·표는 안전한 DOM 요소로 변환하며 RAG 출처 정보는 사용자 화면에 표시하지 않습니다. 선택한 conversation ID는 브라우저에만 보관하고 실제 message와 conversation은 DB에서 다시 불러오므로 새로고침 후에도 History가 복원됩니다. Streaming은 적용하지 않았습니다.

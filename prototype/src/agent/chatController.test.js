@@ -17,9 +17,7 @@ function renderFixture() {
     <section data-agent-drawer-thread></section>
     <section data-agent-full-thread></section>
     <div data-agent-history-list></div>
-    <section data-agent-context-sources></section>
     <button type="button" data-agent-new>새 대화</button>
-    <button type="button" data-agent-sources-refresh>새로고침</button>
     <form data-agent-form><input data-agent-input><button type="submit">전송</button><small data-agent-form-status></small></form>
     <form data-agent-form><input data-agent-input><button type="submit">전송</button><small data-agent-form-status></small></form>
   `
@@ -64,8 +62,16 @@ describe("Quality Agent 공유 대화 상태", () => {
     expect(document.querySelector("[data-agent-history-list]").textContent).toContain("대화 DB에 연결하지 못했습니다.")
   })
 
-  it("새로고침 시 선택 대화와 History를 복원하고 두 화면에 안전한 텍스트로 렌더링한다", async () => {
-    const maliciousContent = '<img src=x onerror="window.hacked=true"> 답변'
+  it("새로고침 시 History를 복원하고 답변 양식을 두 화면에 안전하게 정제한다", async () => {
+    const formattedContent = [
+      "## 분석 결과",
+      "**핵심 답변**<br>정상 범위입니다.",
+      "",
+      "| 항목 | 결과 |",
+      "| --- | --- |",
+      "| 상태 | 정상 |",
+      '<img src=x onerror="window.hacked=true">',
+    ].join("\n")
     localStorage.setItem("quality-hub.agent.active-conversation:quality.kim", "conversation-2")
     const fetchImpl = vi.fn(async (url) => {
       if (url === "/api/agent/conversations") {
@@ -77,7 +83,7 @@ describe("Quality Agent 공유 대화 상태", () => {
       return jsonResponse({
         messages: [
           { messageId: "m1", role: "user", content: "질문", status: "completed", createdAt: "2026-08-11T02:00:00Z", ragSources: [] },
-          { messageId: "m2", role: "assistant", content: maliciousContent, status: "completed", createdAt: "2026-08-11T02:00:01Z", ragSources: [{ _id: "doc-1", _source: { title: "기준 문서" } }] },
+          { messageId: "m2", role: "assistant", content: formattedContent, status: "completed", createdAt: "2026-08-11T02:00:01Z", ragSources: [{ _id: "doc-1", _source: { title: "기준 문서" } }] },
         ],
       })
     })
@@ -92,16 +98,20 @@ describe("Quality Agent 공유 대화 상태", () => {
     expect(controller.state.activeConversationId).toBe("conversation-2")
     expect(document.querySelector('[data-agent-conversation="conversation-2"]').classList.contains("is-current")).toBe(true)
     for (const thread of document.querySelectorAll("[data-agent-drawer-thread], [data-agent-full-thread]")) {
-      expect(thread.textContent).toContain(maliciousContent)
+      expect(thread.textContent).toContain("핵심 답변")
+      expect(thread.textContent).not.toContain("**")
+      expect(thread.textContent).not.toContain("<br>")
+      expect(thread.textContent).not.toContain("기준 문서")
       expect(thread.querySelector("img")).toBeNull()
+      expect(thread.querySelector("strong")?.textContent).toBe("핵심 답변")
+      expect(thread.querySelectorAll("table th")).toHaveLength(2)
+      expect(thread.querySelectorAll("table td")).toHaveLength(2)
       expect(thread.querySelectorAll(".agent-message")).toHaveLength(2)
-      expect(thread.textContent).toContain("기준 문서")
     }
-    expect(document.querySelector("[data-agent-context-sources]").textContent).toContain("기준 문서")
     expect(window.hacked).not.toBe(true)
   })
 
-  it("질문 전송 중 로딩을 표시하고 새 대화·답변·출처·updated_at 목록을 함께 갱신한다", async () => {
+  it("질문 전송 중 로딩을 표시하고 새 대화·정제된 답변·updated_at 목록을 함께 갱신한다", async () => {
     let conversationCreated = false
     let answerRequested = false
     let resolveAnswer
@@ -121,14 +131,14 @@ describe("Quality Agent 공유 대화 상태", () => {
         await answerResponse
         return jsonResponse({
           userMessage: { messageId: "user-1", role: "user", content: "현재 질문", status: "completed", ragSources: [] },
-          assistantMessage: { messageId: "assistant-1", role: "assistant", content: "실제 답변", status: "completed", ragSources: [{ _id: "doc-1" }] },
+          assistantMessage: { messageId: "assistant-1", role: "assistant", content: "**실제 답변**<br>정리 완료", status: "completed", ragSources: [{ _id: "doc-1" }] },
         })
       }
       if (url.endsWith("/messages")) {
         return jsonResponse({ messages: answerRequested
           ? [
             { messageId: "user-1", role: "user", content: "현재 질문", status: "completed", ragSources: [] },
-            { messageId: "assistant-1", role: "assistant", content: "실제 답변", status: "completed", ragSources: [{ _id: "doc-1" }] },
+            { messageId: "assistant-1", role: "assistant", content: "**실제 답변**<br>정리 완료", status: "completed", ragSources: [{ _id: "doc-1" }] },
           ]
           : [] })
       }
@@ -157,7 +167,8 @@ describe("Quality Agent 공유 대화 상태", () => {
       expect(document.querySelector("[data-agent-drawer-thread]").textContent).toContain("실제 답변")
       expect(document.querySelector("[data-agent-full-thread]").textContent).toContain("실제 답변")
       expect(document.querySelector("[data-agent-history-list]").textContent).toContain("현재 질문")
-      expect(document.querySelector("[data-agent-context-sources]").textContent).toContain("doc-1")
+      expect(document.querySelector("[data-agent-drawer-thread] strong")?.textContent).toBe("실제 답변")
+      expect(document.body.textContent).not.toContain("doc-1")
     })
     expect(localStorage.getItem("quality-hub.agent.active-conversation:quality.kim")).toBe("conversation-1")
   })

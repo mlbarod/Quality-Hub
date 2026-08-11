@@ -1,3 +1,5 @@
+import { createFormattedAnswer } from "./answerFormatter.js"
+
 const ACTIVE_CONVERSATION_KEY_PREFIX = "quality-hub.agent.active-conversation"
 
 export class AgentChatApiError extends Error {
@@ -7,24 +9,6 @@ export class AgentChatApiError extends Error {
     this.status = status
     this.code = code
   }
-}
-
-function requireText(value, fallback) {
-  return typeof value === "string" && value.trim().length > 0 ? value : fallback
-}
-
-function sourceTitle(source, index) {
-  return requireText(
-    source?._source?.title,
-    requireText(source?._source?.doc_id, requireText(source?._id, `RAG 출처 ${index + 1}`)),
-  )
-}
-
-function sourceDetail(source) {
-  const parts = []
-  if (typeof source?._index === "string" && source._index) parts.push(source._index)
-  if (typeof source?._score === "number") parts.push(`관련도 ${source._score.toFixed(2)}`)
-  return parts.join(" · ") || "RAG 검색 문서"
 }
 
 function formatConversationTime(value) {
@@ -61,40 +45,6 @@ function getFailureMessage(status) {
   return messages[status] ?? ""
 }
 
-function createSourceButton(source, index, { compact = false } = {}) {
-  const button = document.createElement("button")
-  button.type = "button"
-  button.dataset.agentSource = sourceTitle(source, index)
-
-  if (compact) {
-    button.append(createIcon("#icon-book"))
-    const copy = document.createElement("span")
-    const strong = document.createElement("strong")
-    const small = document.createElement("small")
-    strong.textContent = sourceTitle(source, index)
-    small.textContent = sourceDetail(source)
-    copy.append(strong, small)
-    button.append(copy, createIcon("#icon-arrow"))
-    return button
-  }
-
-  const icon = document.createElement("span")
-  icon.className = "context-card-icon"
-  icon.append(createIcon("#icon-book"))
-  const copy = document.createElement("span")
-  const strong = document.createElement("strong")
-  const small = document.createElement("small")
-  const meta = document.createElement("em")
-  const badge = document.createElement("i")
-  strong.textContent = sourceTitle(source, index)
-  small.textContent = sourceDetail(source)
-  meta.textContent = "현재 답변에서 참고"
-  badge.textContent = "RAG"
-  copy.append(strong, small, meta)
-  button.append(icon, copy, badge)
-  return button
-}
-
 function createMessageElement(message) {
   const article = document.createElement("article")
   const isAssistant = message.role === "assistant"
@@ -123,19 +73,7 @@ function createMessageElement(message) {
   mark.setAttribute("aria-hidden", "true")
   mark.textContent = "✦"
   const body = document.createElement("div")
-  const text = document.createElement("p")
-  text.textContent = message.content
-  body.append(text)
-
-  if (Array.isArray(message.ragSources) && message.ragSources.length > 0) {
-    const citations = document.createElement("div")
-    citations.className = "agent-citations"
-    const label = document.createElement("p")
-    label.textContent = "참고한 정보"
-    citations.append(label)
-    message.ragSources.forEach((source, index) => citations.append(createSourceButton(source, index, { compact: true })))
-    body.append(citations)
-  }
+  body.append(createFormattedAnswer(message.content))
   article.append(mark, body)
   return article
 }
@@ -231,12 +169,10 @@ export function createAgentChatController({
   const drawerThread = root.querySelector("[data-agent-drawer-thread]")
   const fullThread = root.querySelector("[data-agent-full-thread]")
   const historyList = root.querySelector("[data-agent-history-list]")
-  const sourceList = root.querySelector("[data-agent-context-sources]")
   const forms = [...root.querySelectorAll("[data-agent-form]")]
   const inputs = [...root.querySelectorAll("[data-agent-input]")]
   const statusCopies = [...root.querySelectorAll("[data-agent-form-status]")]
   const newConversationButton = root.querySelector("[data-agent-new]")
-  const sourceRefreshButton = root.querySelector("[data-agent-sources-refresh]")
   const state = {
     conversations: [],
     messages: [],
@@ -265,11 +201,6 @@ export function createAgentChatController({
       return null
     }
   }
-
-  const latestSources = () => [...state.messages]
-    .reverse()
-    .find((message) => message.role === "assistant" && Array.isArray(message.ragSources) && message.ragSources.length > 0)
-    ?.ragSources ?? []
 
   const renderThreads = () => {
     ;[drawerThread, fullThread].forEach((thread) => {
@@ -346,23 +277,6 @@ export function createAgentChatController({
     historyList.append(group)
   }
 
-  const renderSources = () => {
-    if (!(sourceList instanceof HTMLElement)) return
-    sourceList.replaceChildren()
-    const title = document.createElement("h2")
-    title.textContent = "현재 대화 참고 정보"
-    sourceList.append(title)
-    const sources = latestSources()
-    if (sources.length === 0) {
-      const empty = document.createElement("p")
-      empty.className = "agent-context-empty"
-      empty.textContent = "답변에 사용된 RAG 출처가 없습니다."
-      sourceList.append(empty)
-      return
-    }
-    sources.forEach((source, index) => sourceList.append(createSourceButton(source, index)))
-  }
-
   const renderControls = () => {
     inputs.forEach((input) => { input.disabled = state.sending })
     forms.forEach((form) => {
@@ -381,7 +295,6 @@ export function createAgentChatController({
   const render = () => {
     renderThreads()
     renderHistory()
-    renderSources()
     renderControls()
   }
 
@@ -534,17 +447,6 @@ export function createAgentChatController({
     if (selectButton instanceof HTMLButtonElement) {
       await selectConversation(selectButton.dataset.agentConversation)
     }
-  })
-
-  root.addEventListener("click", (event) => {
-    const target = event.target
-    if (!(target instanceof Element)) return
-    const source = target.closest("[data-agent-source]")
-    if (source instanceof HTMLButtonElement) showToast(`${source.dataset.agentSource} 출처를 참고했습니다.`)
-  })
-
-  sourceRefreshButton?.addEventListener("click", () => {
-    if (state.activeConversationId && !state.sending) void selectConversation(state.activeConversationId)
   })
 
   return {

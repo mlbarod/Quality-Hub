@@ -2,10 +2,11 @@ import assert from "node:assert/strict"
 import { readFile } from "node:fs/promises"
 import test from "node:test"
 
-const [html, appSource, chatControllerSource, serverSource, apiSource, packageSource, requirements] = await Promise.all([
+const [html, appSource, chatControllerSource, answerFormatterSource, serverSource, apiSource, packageSource, requirements] = await Promise.all([
   readFile(new URL("../prototype/index.html", import.meta.url), "utf8"),
   readFile(new URL("../prototype/app.js", import.meta.url), "utf8"),
   readFile(new URL("../prototype/src/agent/chatController.js", import.meta.url), "utf8"),
+  readFile(new URL("../prototype/src/agent/answerFormatter.js", import.meta.url), "utf8"),
   readFile(new URL("../server.mjs", import.meta.url), "utf8"),
   readFile(new URL("../server/agentChatApi.mjs", import.meta.url), "utf8"),
   readFile(new URL("../package.json", import.meta.url), "utf8"),
@@ -16,7 +17,7 @@ test("기존 Agent 패널·전체 화면 전환 구조에 공유 대화 렌더�
   assert.match(html, /data-agent-drawer[^]*data-agent-drawer-thread/)
   assert.match(html, /data-agent-workspace[^]*data-agent-full-thread/)
   assert.match(html, /data-agent-history-list/)
-  assert.match(html, /data-agent-context-sources/)
+  assert.doesNotMatch(html, /data-agent-context-sources|data-agent-sources-refresh/)
   assert.match(html, /data-agent-new/)
   assert.match(appSource, /const setAgentMode =/)
   assert.match(appSource, /createAgentChatController/)
@@ -24,9 +25,11 @@ test("기존 Agent 패널·전체 화면 전환 구조에 공유 대화 렌더�
 })
 
 test("대화 텍스트는 HTML 직접 삽입 없이 안전한 DOM API로 렌더링한다", () => {
-  assert.match(chatControllerSource, /text\.textContent = message\.content/)
-  assert.match(chatControllerSource, /strong\.textContent = sourceTitle/)
-  assert.doesNotMatch(chatControllerSource, /\.innerHTML\s*=/)
+  assert.match(chatControllerSource, /createFormattedAnswer\(message\.content\)/)
+  assert.doesNotMatch(chatControllerSource, /data-agent-source|sourceTitle|renderSources/)
+  assert.match(answerFormatterSource, /document\.createTextNode/)
+  assert.match(answerFormatterSource, /document\.createElement\("table"\)/)
+  assert.doesNotMatch(`${chatControllerSource}\n${answerFormatterSource}`, /\.innerHTML\s*=/)
 })
 
 test("conversation CRUD와 Backend Chat API를 source·built 서버에서 함께 제공한다", () => {
