@@ -1,0 +1,46 @@
+import assert from "node:assert/strict"
+import { readFile } from "node:fs/promises"
+import test from "node:test"
+
+const [html, appSource, chatControllerSource, serverSource, apiSource, packageSource, requirements] = await Promise.all([
+  readFile(new URL("../prototype/index.html", import.meta.url), "utf8"),
+  readFile(new URL("../prototype/app.js", import.meta.url), "utf8"),
+  readFile(new URL("../prototype/src/agent/chatController.js", import.meta.url), "utf8"),
+  readFile(new URL("../server.mjs", import.meta.url), "utf8"),
+  readFile(new URL("../server/agentChatApi.mjs", import.meta.url), "utf8"),
+  readFile(new URL("../package.json", import.meta.url), "utf8"),
+  readFile(new URL("../docs/QUALITY_PORTAL_REQUIREMENTS.md", import.meta.url), "utf8"),
+])
+
+test("기존 Agent 패널·전체 화면 전환 구조에 공유 대화 렌더링 지점을 유지한다", () => {
+  assert.match(html, /data-agent-drawer[^]*data-agent-drawer-thread/)
+  assert.match(html, /data-agent-workspace[^]*data-agent-full-thread/)
+  assert.match(html, /data-agent-history-list/)
+  assert.match(html, /data-agent-context-sources/)
+  assert.match(html, /data-agent-new/)
+  assert.match(appSource, /const setAgentMode =/)
+  assert.match(appSource, /createAgentChatController/)
+  assert.doesNotMatch(appSource, /실제 답변 생성은 사내 품질 Agent API 연동 후/)
+})
+
+test("대화 텍스트는 HTML 직접 삽입 없이 안전한 DOM API로 렌더링한다", () => {
+  assert.match(chatControllerSource, /text\.textContent = message\.content/)
+  assert.match(chatControllerSource, /strong\.textContent = sourceTitle/)
+  assert.doesNotMatch(chatControllerSource, /\.innerHTML\s*=/)
+})
+
+test("conversation CRUD와 Backend Chat API를 source·built 서버에서 함께 제공한다", () => {
+  assert.match(apiSource, /\/api\/agent/)
+  assert.match(apiSource, /listConversations/)
+  assert.match(apiSource, /createConversation/)
+  assert.match(apiSource, /listMessages/)
+  assert.match(apiSource, /deleteConversation/)
+  assert.match(apiSource, /activeService\.ask/)
+  assert.match(serverSource, /agentApi\.handle/)
+  assert.match(packageSource, /"start": "node --env-file-if-exists=\.env\.rag[^]*server\.mjs"/)
+})
+
+test("실제 SSO 전 테스트 user ID 경계와 Streaming 제외를 요구사항에 기록한다", () => {
+  assert.match(requirements, /역할 미리보기의 user ID를 테스트 식별값으로 사용/)
+  assert.match(requirements, /Streaming은 적용하지 않음/)
+})

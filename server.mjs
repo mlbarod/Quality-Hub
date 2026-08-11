@@ -3,6 +3,8 @@ import { createServer as createHttpServer } from "node:http"
 import { extname, isAbsolute, join, normalize, resolve, sep } from "node:path"
 import { fileURLToPath, URL } from "node:url"
 
+import { createAgentChatApi } from "./server/agentChatApi.mjs"
+
 const rootDir = fileURLToPath(new URL(".", import.meta.url))
 export const sourceStaticDir = join(rootDir, "prototype")
 export const builtStaticDir = join(rootDir, "dist")
@@ -151,8 +153,22 @@ function serveStatic(req, res, staticDir) {
   stream.pipe(res)
 }
 
-export function createQualityHubServer({ staticDir = builtStaticDir } = {}) {
-  return createHttpServer((req, res) => serveStatic(req, res, staticDir))
+export function createQualityHubServer({
+  staticDir = builtStaticDir,
+  agentApi = createAgentChatApi(),
+} = {}) {
+  const server = createHttpServer(async (req, res) => {
+    try {
+      if (await agentApi.handle(req, res)) return
+      serveStatic(req, res, staticDir)
+    } catch (error) {
+      console.error("Quality Hub request failed:", error)
+      if (!res.headersSent) sendText(res, 500, "Internal Server Error")
+      else res.destroy(error)
+    }
+  })
+  server.once("close", () => { void agentApi.close() })
+  return server
 }
 
 export function resolveServeMode(args = []) {
@@ -173,18 +189,34 @@ function reportServerError(error, host, port) {
 
 async function startSourceServer({ host, port }) {
   const { createServer: createViteServer } = await import("vite")
-  const server = await createViteServer({
+  const agentApi = createAgentChatApi()
+  let viteServer
+  const httpServer = createHttpServer(async (req, res) => {
+    try {
+      if (await agentApi.handle(req, res)) return
+      viteServer.middlewares(req, res)
+    } catch (error) {
+      console.error("Quality Hub source request failed:", error)
+      if (!res.headersSent) sendText(res, 500, "Internal Server Error")
+      else res.destroy(error)
+    }
+  })
+  httpServer.once("close", () => { void agentApi.close() })
+
+  viteServer = await createViteServer({
     configFile: join(rootDir, "vite.config.mjs"),
+    appType: "spa",
     server: {
-      host,
-      port,
-      strictPort: true,
+      middlewareMode: true,
+      ws: { server: httpServer },
     },
   })
 
-  await server.listen()
+  httpServer.on("error", (error) => reportServerError(error, host, port))
+  httpServer.listen(port, host, () => {
+    console.log(`Quality Hub source server listening on http://${host}:${port}`)
+  })
   console.log("Quality Hub source server: changes are reflected without rebuilding.")
-  server.printUrls()
 }
 
 function startBuiltServer({ host, port }) {

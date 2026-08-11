@@ -2567,6 +2567,8 @@ kbd {
 
 .agent-message p {
   margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 .agent-message.is-user {
@@ -2590,6 +2592,17 @@ kbd {
   margin-top: 5px;
   color: var(--faint-foreground);
   font-size: 8px;
+}
+
+.agent-message-status {
+  display: block;
+  margin-top: 6px;
+  font-size: 9px;
+  text-align: left;
+}
+
+.agent-message-status.is-error {
+  color: var(--danger);
 }
 
 .agent-message.is-assistant {
@@ -2764,6 +2777,63 @@ kbd {
   transform: translateY(-1px);
 }
 
+.agent-composer input:disabled,
+.agent-composer > button:disabled,
+.agent-history > header button:disabled {
+  cursor: wait;
+  opacity: .58;
+  transform: none;
+}
+
+.agent-thread-state {
+  padding: 16px 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 10px;
+  background: var(--surface-soft);
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.agent-thread-state.is-error {
+  border-style: solid;
+  border-color: hsl(0 72% 51% / 20%);
+  background: hsl(0 86% 97%);
+  color: var(--danger);
+}
+
+.agent-message.is-loading > div {
+  background: var(--surface-soft);
+}
+
+.agent-loading-dots {
+  display: flex;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.agent-loading-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--primary);
+  animation: agent-loading-dot 900ms ease-in-out infinite alternate;
+}
+
+.agent-loading-dots i:nth-child(2) {
+  animation-delay: 140ms;
+}
+
+.agent-loading-dots i:nth-child(3) {
+  animation-delay: 280ms;
+}
+
+@keyframes agent-loading-dot {
+  from { opacity: .35; transform: translateY(0); }
+  to { opacity: 1; transform: translateY(-3px); }
+}
+
 .agent-composer > button .icon {
   width: 16px;
   height: 16px;
@@ -2906,6 +2976,43 @@ kbd {
 .agent-history-group button small {
   color: var(--faint-foreground);
   font-size: 7px;
+}
+
+.agent-history-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 30px;
+  align-items: center;
+  gap: 2px;
+}
+
+.agent-history-item > [data-agent-conversation] {
+  min-width: 0;
+}
+
+.agent-history-item > .agent-history-delete {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  grid-template-columns: 1fr;
+  place-items: center;
+  padding: 0;
+  color: var(--faint-foreground);
+  opacity: 0;
+}
+
+.agent-history-item:hover > .agent-history-delete,
+.agent-history-item:focus-within > .agent-history-delete {
+  opacity: 1;
+}
+
+.agent-history-item > .agent-history-delete:hover {
+  background: hsl(0 86% 97%);
+  color: var(--danger);
+}
+
+.agent-history-delete .icon {
+  width: 12px;
+  height: 12px;
 }
 
 .agent-main {
@@ -3154,6 +3261,23 @@ kbd {
   font-size: 6px;
   font-style: normal;
   font-weight: 700;
+}
+
+.agent-context-empty {
+  margin: 0;
+  padding: 14px 12px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 10px;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agent-loading-dots i {
+    animation: none;
+    opacity: .7;
+  }
 }
 
 /* Rule&SOP: Category 아코디언, 단계별 필터와 예시 문서 카드 */

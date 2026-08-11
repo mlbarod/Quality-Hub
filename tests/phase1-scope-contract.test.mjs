@@ -85,7 +85,8 @@ test("확정한 공통 화면 상태와 역할별 문의 대상을 문서에 기
 
 test("현재 로컬 가상 데이터와 운영 검증 경계를 요구사항에 기록한다", () => {
   assert.match(requirements, /현재 브라우저의 로컬 저장소에만 보관/)
-  assert.match(requirements, /실제 SSO·Spotfire·사내 LLM·DB·Parquet·공유 폴더 연동과 실제 DB 스키마 호환성, 운영 보안·성능 검증은 후속 단계/)
+  assert.match(requirements, /품질 Agent는 사내 RAG·GPT-OSS와 대화 DB를 Backend 흐름과 기존 UI에 연결/)
+  assert.match(requirements, /실제 SSO·Spotfire·Agent 외 업무 DB·Parquet·공유 폴더 연동과 운영 보안·성능 검증은 후속 단계/)
   assert.match(developmentPlan, /별도 설명 없이 찾고 전체 사용 흐름을 체험할 수 있으며/)
 })
 
@@ -106,7 +107,8 @@ test("사용자 및 권한 화면의 표와 조작 요소를 읽기 쉬운 크�
 
 test("품질 Agent UI와 실제 연동 경계를 요구사항에 명시한다", () => {
   assert.match(requirements, /기본 우측 대화 패널에서 사용하고 필요할 때 전체 작업 화면으로 확장/)
-  assert.match(requirements, /실제 API 규격, 인증과 Report 참조 범위는 연동 단계에서 확정/)
+  assert.match(requirements, /RAG 검색, GPT-OSS 답변 생성과 MariaDB\/MySQL 대화 History를 Backend API로 연결/)
+  assert.match(requirements, /실제 SSO 인증과 Report 참조 범위는 후속 연동에서 확정/)
 })
 
 test("현재 단계는 개발 계획을 단일 기준으로 삼고 완료 보고서는 당시 증거를 보존한다", () => {
@@ -126,6 +128,6 @@ test("현재 단계는 개발 계획을 단일 기준으로 삼고 완료 보고
   assert.match(phase2CompletionReport, /\*\*판정:\*\* `완료`/)
   assert.match(phase2CompletionReport, /실제 SSO, 데이터 원천, 문서 검색, Spotfire와 LLM 연동은 미구현/)
   assert.match(html, /예시 원천 상태/)
-  assert.match(html, /사내 LLM · 연동 예정/)
-  assert.doesNotMatch(html, /사내 LLM · 연결됨/)
+  assert.match(html, /사내 LLM · Backend 연결/)
+  assert.doesNotMatch(html, /사내 LLM · 연동 예정/)
 })

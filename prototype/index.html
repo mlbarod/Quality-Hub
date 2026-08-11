@@ -508,7 +508,7 @@
         <header class="agent-panel-header">
           <div class="agent-identity">
             <span class="agent-logo" aria-hidden="true">✦</span>
-            <span><strong>품질 Agent</strong><small><i></i> 사내 LLM · 연동 예정</small></span>
+            <span><strong>품질 Agent</strong><small><i></i> 사내 LLM · Backend 연결</small></span>
           </div>
           <div class="agent-window-actions">
             <button type="button" data-agent-expand aria-label="품질 Agent 전체 화면으로 확장">
@@ -531,60 +531,28 @@
             </div>
           </section>
 
-          <section class="agent-thread" aria-label="품질 Agent 예시 대화">
-            <article class="agent-message is-user">
-              <p>식각 공정 이상 건수가 증가한 이유를 분석해줘.</p>
-              <time>오전 10:24</time>
-            </article>
-            <article class="agent-message is-assistant">
-              <span class="agent-message-mark" aria-hidden="true">✦</span>
-              <div>
-                <p>분석 결과, 식각 공정의 이상 건수 증가는 다음과 같이 요약됩니다.</p>
-                <ul>
-                  <li><strong>식각 Rate 편차 증가</strong><span>최근 7일 평균 편차가 전주 대비 15.6% 증가했습니다.</span></li>
-                  <li><strong>관리 기준 강화 영향</strong><span>v2.4 적용 이후 동일 조건의 이상 판정 건수가 늘었습니다.</span></li>
-                  <li><strong>장비 A 챔버 온도 변동</strong><span>변동 폭 확대가 공정 안정성 저하와 함께 관찰됩니다.</span></li>
-                </ul>
-                <div class="agent-citations">
-                  <p>참고한 정보</p>
-                  <button type="button" data-agent-action="종합 품질 현황"><svg class="icon"><use href="#icon-activity"></use></svg><span><strong>종합 품질 현황</strong><small>Spotfire · 오늘 10:15</small></span><svg class="icon"><use href="#icon-arrow"></use></svg></button>
-                  <button type="button" data-agent-action="이상률 관리 기준 v2.4"><svg class="icon"><use href="#icon-book"></use></svg><span><strong>이상률 관리 기준 v2.4</strong><small>Rule · 등록 7일 전</small></span><svg class="icon"><use href="#icon-arrow"></use></svg></button>
-                </div>
-              </div>
-            </article>
-          </section>
+          <section class="agent-thread" aria-label="품질 Agent 대화" aria-live="polite" data-agent-drawer-thread></section>
         </div>
 
         <form class="agent-composer agent-drawer-composer" data-agent-form>
           <label for="agent-drawer-input">품질 Agent에게 질문</label>
           <input id="agent-drawer-input" type="text" placeholder="품질 Agent에게 질문하세요" autocomplete="off" data-agent-input />
           <button type="submit" aria-label="질문 보내기"><svg class="icon"><use href="#icon-send"></use></svg></button>
-          <small>목업 예시이며 실제 사내 LLM과 연결되지 않았습니다.</small>
+          <small role="status" data-agent-form-status>대화 내용을 불러오고 있습니다.</small>
         </form>
       </aside>
 
       <div class="agent-workspace" aria-hidden="true" data-agent-workspace>
         <aside class="agent-history" aria-label="품질 Agent 대화 기록">
-          <header><strong>대화 기록</strong><button type="button" data-agent-action="새 대화"><svg class="icon"><use href="#icon-plus"></use></svg>새 대화</button></header>
-          <div class="agent-history-group">
-            <p>오늘</p>
-            <button class="is-current" type="button"><span>식각 이상 원인 분석</span><small>오전 10:24</small></button>
-            <button type="button"><span>주간 품질 Report 초안</span><small>오전 9:15</small></button>
-            <button type="button"><span>검사 기준 비교</span><small>오전 8:47</small></button>
-          </div>
-          <div class="agent-history-group">
-            <p>지난 7일</p>
-            <button type="button"><span>불량 TOP 품목 원인 정리</span><small>8월 2일</small></button>
-            <button type="button"><span>고객 클레임 현황 요약</span><small>8월 1일</small></button>
-            <button type="button"><span>라인별 품질 지표 비교</span><small>7월 31일</small></button>
-          </div>
+          <header><strong>대화 기록</strong><button type="button" data-agent-new><svg class="icon"><use href="#icon-plus"></use></svg>새 대화</button></header>
+          <div data-agent-history-list aria-live="polite"></div>
         </aside>
 
         <main class="agent-main" id="agent-main" tabindex="-1">
           <header class="agent-main-header">
             <div class="agent-identity">
               <span class="agent-logo" aria-hidden="true">✦</span>
-              <span><strong>품질 Agent</strong><small><i></i> 사내 LLM · 연동 예정</small></span>
+              <span><strong>품질 Agent</strong><small><i></i> 사내 LLM · Backend 연결</small></span>
             </div>
             <button class="agent-back-button" type="button" data-agent-collapse><svg class="icon"><use href="#icon-expand"></use></svg>패널로 돌아가기</button>
           </header>
@@ -600,42 +568,19 @@
             </div>
           </section>
 
-          <section class="agent-full-thread" aria-label="품질 Agent 상세 예시 대화">
-            <article class="agent-message is-user"><p>이번 주 주요 품질 이슈를 정리해줘.</p><time>오전 10:24</time></article>
-            <article class="agent-message is-assistant">
-              <span class="agent-message-mark" aria-hidden="true">✦</span>
-              <div>
-                <p>이번 주 주요 품질 이슈를 아래와 같이 정리했습니다.</p>
-                <ol>
-                  <li><strong>식각 공정 이상률 증가</strong><span>8월 1일 이후 이상률이 전주 대비 1.28%p 상승했습니다.</span></li>
-                  <li><strong>검사 장비 오경보 증가</strong><span>AOI 장비 오경보율이 0.45%로 높아졌습니다.</span></li>
-                  <li><strong>세정 공정 잔류물 이슈</strong><span>특정 라인에서 잔류물 검출이 증가했습니다.</span></li>
-                </ol>
-                <p class="agent-answer-note">필요하면 각 이슈별 상세 분석과 개선 Action Plan도 제공해 드릴 수 있습니다.</p>
-              </div>
-            </article>
-          </section>
+          <section class="agent-full-thread" aria-label="품질 Agent 상세 대화" aria-live="polite" data-agent-full-thread></section>
 
           <form class="agent-composer agent-full-composer" data-agent-form>
             <label for="agent-full-input">품질 Agent에게 질문</label>
             <input id="agent-full-input" type="text" placeholder="품질 Agent에게 질문하세요" autocomplete="off" data-agent-input />
             <button type="submit" aria-label="질문 보내기"><svg class="icon"><use href="#icon-send"></use></svg></button>
-            <small>목업 예시이며 실제 사내 LLM과 연결되지 않았습니다.</small>
+            <small role="status" data-agent-form-status>대화 내용을 불러오고 있습니다.</small>
           </form>
         </main>
 
         <aside class="agent-context" aria-label="품질 Agent 참조 정보">
-          <header><strong>참조 정보</strong><button type="button" data-agent-action="참조 정보 새로고침" aria-label="참조 정보 새로고침"><svg class="icon"><use href="#icon-refresh"></use></svg></button></header>
-          <section>
-            <h2>사용 중인 데이터</h2>
-            <button type="button" data-agent-action="종합 품질 현황"><span class="context-card-icon"><svg class="icon"><use href="#icon-activity"></use></svg></span><span><strong>종합 품질 현황</strong><small>품질 현황 · Spotfire</small><em>최종 업데이트 · 8분 전</em></span><i>LIVE</i></button>
-            <button type="button" data-agent-action="주간 품질 Report"><span class="context-card-icon is-slate"><svg class="icon"><use href="#icon-book"></use></svg></span><span><strong>주간 품질 Report</strong><small>정기 보고 · Spotfire</small><em>최종 업데이트 · 2시간 전</em></span><i>WEEKLY</i></button>
-            <button type="button" data-agent-action="이상률 관리 기준 v2.4"><span class="context-card-icon is-amber"><svg class="icon"><use href="#icon-grid"></use></svg></span><span><strong>이상률 관리 기준 v2.4</strong><small>품질 기준 · Rule</small><em>최종 업데이트 · 1주 전</em></span><i>RULE</i></button>
-          </section>
-          <section class="agent-context-recommended">
-            <h2>추천 Report</h2>
-            <button type="button" data-agent-action="공정 이상 분석 Report"><span class="context-card-icon"><svg class="icon"><use href="#icon-activity"></use></svg></span><span><strong>공정 이상 분석</strong><small>공정 분석 · Spotfire</small><em>현재 대화와 관련도 높음</em></span><i>OPEN</i></button>
-          </section>
+          <header><strong>참조 정보</strong><button type="button" data-agent-sources-refresh aria-label="참조 정보 새로고침"><svg class="icon"><use href="#icon-refresh"></use></svg></button></header>
+          <section data-agent-context-sources aria-live="polite"></section>
         </aside>
       </div>
 

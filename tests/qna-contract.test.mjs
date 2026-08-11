@@ -33,7 +33,7 @@ test("기존 Quality Hub 안에 Q&A React 작업 화면 진입점을 제공한�
 
 test("정적 실행 경로도 React Q&A를 빌드한 뒤 제공한다", () => {
   assert.match(packageJson.scripts["start:static"], /npm run build/)
-  assert.match(packageJson.scripts["start:static"], /node server\.mjs/)
+  assert.match(packageJson.scripts["start:static"], /node .*server\.mjs/)
 })
 
 test("Q&A 작업 화면은 공통 상단 메뉴와 드롭다운보다 아래 계층에 표시된다", () => {

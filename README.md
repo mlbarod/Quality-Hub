@@ -14,7 +14,7 @@
 
 ## 현재 상태
 
-현재 B 상단 메뉴형과 가상 데이터 기반 로컬 기능을 제공하고 있습니다. Rule&SOP 문서·개정 이력과 Q&A·내부 알림은 현재 브라우저의 로컬 저장소에 유지되며, 통합 검색은 Report, Rule&SOP와 Q&A 데이터를 함께 검색합니다. 브라우저 간 공유 저장, 실제 권한 집행, Spotfire·사내 LLM·사내 데이터와 SSO는 아직 연결하지 않았습니다. 최신 단계·판정과 남은 검증은 [개발 계획](docs/DEVELOPMENT_PLAN.md)을 단일 기준으로 확인합니다. 모바일·태블릿 화면은 개발 범위에서 제외합니다.
+현재 B 상단 메뉴형과 가상 데이터 기반 로컬 기능을 제공하고 있습니다. Rule&SOP 문서·개정 이력과 Q&A·내부 알림은 현재 브라우저의 로컬 저장소에 유지되며, 통합 검색은 Report, Rule&SOP와 Q&A 데이터를 함께 검색합니다. 품질 Agent는 사내 RAG·GPT-OSS와 MariaDB/MySQL 대화 History를 Backend API로 연결했으며, 실제 권한 집행, Spotfire·Agent 외 사내 데이터와 SSO는 아직 연결하지 않았습니다. 최신 단계·판정과 남은 검증은 [개발 계획](docs/DEVELOPMENT_PLAN.md)을 단일 기준으로 확인합니다. 모바일·태블릿 화면은 개발 범위에서 제외합니다.
 
 ## 프로젝트 문서
 
@@ -45,16 +45,16 @@ npm start
 5500 포트로 실행해야 하는 환경에서는 아래처럼 포트를 지정합니다. `--port=5500` 형식도 사용할 수 있습니다.
 
 ```bash
-node server.mjs --port 5500
+npm start -- --port 5500
 ```
 
 로컬 PC에서만 확인하려면 아래 명령을 사용합니다.
 
 ```bash
-npm run dev
+HOST=127.0.0.1 npm start
 ```
 
-배포 형태의 고정 산출물을 확인하려면 `npm run build` 후 `npm run preview`를 실행합니다. 자체 정적 서버로 확인하려면 `npm run start:static`을 사용합니다. 이 명령은 React 기반 Q&A를 포함한 Vite 빌드를 먼저 생성한 뒤 `node server.mjs --built`로 정적 파일을 제공합니다. 정적 모드에서는 소스 변경 후 다시 빌드해야 합니다.
+배포 형태의 화면 산출물만 확인하려면 `npm run build` 후 `npm run preview`를 실행합니다. Backend API까지 함께 확인하려면 `npm run start:static`을 사용합니다. 이 명령은 React 기반 Q&A를 포함한 Vite 빌드를 먼저 생성한 뒤 Backend API와 정적 파일을 함께 제공합니다. 정적 모드에서는 소스 변경 후 다시 빌드해야 합니다.
 
 다른 PC에서 접속하려면 사내 서버와 네트워크 방화벽에서 선택한 TCP 포트의 인바운드 연결이 허용되어야 합니다. 현재 서버는 목업 공유용이며 인증과 HTTPS를 제공하지 않으므로 인터넷에 직접 공개하지 않습니다.
 
@@ -115,7 +115,7 @@ npm run db:history:check
 npm run db:history:check -- "quality.hub.db.check"
 ```
 
-이 명령은 connection pool을 통해 conversation 생성·사용자별 목록 조회·user/assistant message 저장·message 조회·다른 사용자 접근 차단·conversation 삭제를 순서대로 확인합니다. 검증 중 생성한 conversation과 소속 message는 성공 시 삭제하며, 중간 실패 시에도 정리를 시도합니다. 이 저장소는 Backend Chat 흐름에서 재사용하지만 Quality Agent UI에는 아직 연결되지 않습니다.
+이 명령은 connection pool을 통해 conversation 생성·사용자별 목록 조회·user/assistant message 저장·message 조회·다른 사용자 접근 차단·conversation 삭제를 순서대로 확인합니다. 검증 중 생성한 conversation과 소속 message는 성공 시 삭제하며, 중간 실패 시에도 정리를 시도합니다. 이 저장소는 Backend Chat과 Quality Agent UI에서 재사용합니다.
 
 ## Backend Chat 통합 확인
 
@@ -126,4 +126,10 @@ npm run backend:chat:check -- "quality.kim" "질문 내용"
 npm run backend:chat:check -- "quality.kim" "후속 질문" "기존-conversation-uuid"
 ```
 
-이 명령은 user message 저장 → RAG 검색과 `hits.hits[]` Context 구성 → 최근 완료 message 최대 10건 조회 → 기존 규격의 GPT-OSS 호출 → assistant 답변과 RAG 출처 JSON 저장을 순서대로 실행합니다. RAG 결과 0건은 정상 처리하며, RAG·GPT-OSS·DB 실패는 서로 다른 단계로 출력하고 user message의 `status`에 `rag_failed`, `gpt_failed`, `db_failed` 기록을 시도합니다. 외부 API를 기다리는 동안 DB transaction을 유지하지 않으며 Streaming과 Quality Agent UI 연결은 포함하지 않습니다.
+이 명령은 user message 저장 → RAG 검색과 `hits.hits[]` Context 구성 → 최근 완료 message 최대 10건 조회 → 기존 규격의 GPT-OSS 호출 → assistant 답변과 RAG 출처 JSON 저장을 순서대로 실행합니다. RAG 결과 0건은 정상 처리하며, RAG·GPT-OSS·DB 실패는 서로 다른 단계로 출력하고 user message의 `status`에 `rag_failed`, `gpt_failed`, `db_failed` 기록을 시도합니다. 외부 API를 기다리는 동안 DB transaction을 유지하지 않습니다.
+
+## Quality Agent UI 통합 확인
+
+루트의 `.env.rag`, `.env.gpt-oss`, `.env.db`를 입력하고 `npm start`로 실행하면 우측 패널과 전체 화면이 같은 Backend conversation을 사용합니다. 실제 SSO 전까지 상단 역할 미리보기의 `user_id`를 테스트 식별값으로 전달합니다.
+
+브라우저에서 품질 Agent를 열어 새 대화 생성, 질문 전송, 답변과 RAG 참고 정보 표시, 전체 화면 확장, 대화 선택·삭제를 확인합니다. 선택한 conversation ID는 브라우저에만 보관하고 실제 message와 conversation은 DB에서 다시 불러오므로 새로고침 후에도 History가 복원됩니다. Streaming은 적용하지 않았습니다.

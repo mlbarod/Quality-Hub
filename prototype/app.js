@@ -7,6 +7,7 @@ import {
   getRolePolicy,
 } from "./src/mock/phase2.js";
 import { createLocalRepository, isRuleLocalData, LOCAL_DATA_EVENT } from "./src/data/localRepository.js";
+import { createAgentChatController } from "./src/agent/chatController.js";
 import { qnaRepository } from "./src/qna/repository.js";
 import { buildQnaSearchText, buildTitleSearchText, matchesSearchQuery } from "./src/search/globalSearch.js";
 
@@ -881,6 +882,11 @@ accessAddForm?.addEventListener("submit", (event) => {
 
 updateAccessCounts();
 
+const agentChatController = createAgentChatController({
+  getUserId: () => getRoleOption(currentRole).userId,
+  showToast,
+});
+
 document.querySelectorAll("[data-agent-expand]").forEach((button) => {
   button.addEventListener("click", () => setAgentMode("full"));
 });
@@ -903,28 +909,9 @@ document.querySelectorAll("[data-agent-prompt]").forEach((button) => {
   });
 });
 
-document.querySelectorAll("[data-agent-form]").forEach((form) => {
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const input = form.querySelector("[data-agent-input]");
-    if (!(input instanceof HTMLInputElement) || !input.value.trim()) {
-      input?.focus();
-      return;
-    }
-    showToast("실제 답변 생성은 사내 품질 Agent API 연동 후 동작합니다.");
-  });
-});
-
 document.querySelectorAll("[data-agent-action]").forEach((button) => {
   button.addEventListener("click", () => {
     showToast(`${button.dataset.agentAction} 기능은 품질 Agent API 연동 후 연결할 예정입니다.`);
-  });
-});
-
-document.querySelectorAll(".agent-history-group button").forEach((button) => {
-  button.addEventListener("click", () => {
-    document.querySelectorAll(".agent-history-group button").forEach((item) => item.classList.toggle("is-current", item === button));
-    showToast(`${button.querySelector("span")?.textContent ?? "대화"} 기록을 선택했습니다.`);
   });
 });
 
@@ -2105,3 +2092,5 @@ renderRecoveryList();
 renderHistoryList();
 applyRole(currentRole, { announce: false });
 applyCommonState(currentCommonState, { announce: false });
+void agentChatController.initialize();
+window.addEventListener("qualityhub:role-change", () => { void agentChatController.changeUser(); });
