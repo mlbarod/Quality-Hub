@@ -134,5 +134,5 @@ test("제목 크기는 유지하고 주요 설명 문구를 Q&A 기준인 12px �
   assert.match(styles, /\.top-nav-menu small,[\s\S]*font-size: var\(--description-md\);/)
   assert.match(styles, /\.agent-citations button small,[\s\S]*font-size: var\(--description-sm\);/)
   assert.match(qnaApp, /Q&amp;A 게시판<\/h2>[\s\S]*text-\[12px\][^>]*>질문을 등록하고 담당자와 답변을 이어가세요/)
-  assert.match(qnaApp, /DialogDescription[^>]*text-\[12px\][^>]*>공정·부서와 질문 유형을 선택/)
+  assert.match(qnaApp, /DialogDescription[^>]*text-\[12px\][^>]*>구분·라인과 질문 정보를 선택/)
 })

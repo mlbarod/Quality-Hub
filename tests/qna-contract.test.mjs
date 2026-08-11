@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { readFile } from "node:fs/promises"
 import test from "node:test"
 
-import { filterPosts, initialNotifications, initialPosts, normalizeQnaPosts, STATUS } from "../prototype/src/qna/data.js"
+import { filterPosts, initialNotifications, initialPosts, normalizeQnaPosts, QNA_CATEGORY_OPTIONS, QNA_LINE_UNASSIGNED, STATUS } from "../prototype/src/qna/data.js"
 
 const html = await readFile(new URL("../prototype/index.html", import.meta.url), "utf8")
 const script = await readFile(new URL("../prototype/app.js", import.meta.url), "utf8")
@@ -47,12 +47,12 @@ test("Q&A 작업 화면은 공통 상단 메뉴와 드롭다운보다 아래 계
 
 test("Q&A 목업 데이터가 합의한 상태와 알림 구조를 제공한다", () => {
   assert.deepEqual(Object.keys(STATUS), ["waiting", "active", "completed"])
+  assert.deepEqual(QNA_CATEGORY_OPTIONS, ["Rule", "SPC", "FDC", "TTTM", "Report", "WF Loss"])
   assert.ok(initialPosts.length >= 8)
   assert.ok(initialNotifications.some((notification) => !notification.read))
   initialPosts.forEach((post) => {
-    assert.ok(post.process)
-    assert.ok(post.department)
-    assert.ok(post.type)
+    assert.ok(post.category)
+    assert.ok(post.line)
     assert.ok(Array.isArray(post.tags))
     assert.ok(Array.isArray(post.messages))
     assert.notEqual(post.messages[0]?.role, "질문자")
@@ -72,13 +72,12 @@ test("질문 등록 시 생성했던 중복 메시지만 기존 로컬 데이터
   assert.deepEqual(normalized.messages.map((message) => message.id), ["answer", "follow-up"])
 })
 
-test("통합 목록 검색과 공정·부서·유형·상태 필터를 함께 적용한다", () => {
+test("통합 목록 검색과 구분·라인·상태 필터를 함께 적용한다", () => {
   const result = filterPosts(initialPosts, {
     search: "적용시점",
     status: "active",
-    process: "식각",
-    department: "공정기술",
-    type: "기준 문의",
+    category: "Rule",
+    line: QNA_LINE_UNASSIGNED,
   })
 
   assert.equal(result.length, 1)

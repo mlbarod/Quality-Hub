@@ -14,7 +14,7 @@ describe("Q&A 프로토타입", () => {
     expect(parseQnaLineOptions("")).toEqual([])
   })
 
-  test("목록 컬럼과 글쓰기 구분·라인 선택 항목을 제공한다", async () => {
+  test("목록에서 구분·라인 필터를 겹치지 않게 열고 글쓰기에도 두 분류만 제공한다", async () => {
     const user = userEvent.setup()
     render(<QnaApp lineOptions={["테스트 라인 A", "테스트 라인 B"]} />)
 
@@ -22,16 +22,40 @@ describe("Q&A 프로토타입", () => {
     expect(within(board).getByText("등록일")).toBeInTheDocument()
     expect(within(board).getByText("구분")).toBeInTheDocument()
     expect(within(board).getByText("라인")).toBeInTheDocument()
+    const categoryFilter = within(board).getByRole("combobox", { name: "구분 필터" })
+    const lineFilter = within(board).getByRole("combobox", { name: "라인 필터" })
+    expect(within(board).queryByRole("combobox", { name: "공정 필터" })).not.toBeInTheDocument()
+    expect(within(board).queryByRole("combobox", { name: "부서 필터" })).not.toBeInTheDocument()
+    expect(within(board).queryByRole("combobox", { name: "질문 유형 필터" })).not.toBeInTheDocument()
+
+    await user.click(categoryFilter)
+    expect(categoryFilter).toHaveAttribute("aria-expanded", "true")
+    expect(lineFilter).toHaveAttribute("aria-expanded", "false")
+    expect(screen.getByRole("option", { name: "전체 구분" })).toBeInTheDocument()
+    for (const category of QNA_CATEGORY_OPTIONS) expect(screen.getByRole("option", { name: category })).toBeInTheDocument()
+    expect(screen.queryByRole("option", { name: "테스트 라인 A" })).not.toBeInTheDocument()
+    await user.click(screen.getByRole("option", { name: "FDC" }))
+    expect(categoryFilter).toHaveTextContent("FDC")
+    expect(screen.getByText("AOI 오경보 증가 원인 분석 자료를 공유해 주세요")).toBeInTheDocument()
+    expect(screen.queryByText("식각 Rate 관리 기준 변경 시 적용 시점을 확인하고 싶습니다")).not.toBeInTheDocument()
+
+    await user.click(lineFilter)
+    expect(categoryFilter).toHaveAttribute("aria-expanded", "false")
+    expect(lineFilter).toHaveAttribute("aria-expanded", "true")
+    expect(screen.getByRole("option", { name: "전체 라인" })).toBeInTheDocument()
+    expect(screen.getByRole("option", { name: "테스트 라인 A" })).toBeInTheDocument()
+    expect(screen.getByRole("option", { name: "테스트 라인 B" })).toBeInTheDocument()
+    expect(screen.queryByRole("option", { name: "Rule" })).not.toBeInTheDocument()
+    await user.keyboard("{Escape}")
 
     await user.click(within(board).getByRole("button", { name: "질문 작성" }))
     const dialog = screen.getByRole("dialog", { name: "새 질문 작성" })
     const categorySelect = within(dialog).getByRole("combobox", { name: "구분" })
     const lineSelect = within(dialog).getByRole("combobox", { name: "라인" })
 
-    await user.click(categorySelect)
-    for (const category of QNA_CATEGORY_OPTIONS) expect(screen.getByRole("option", { name: category })).toBeInTheDocument()
-    await user.click(screen.getByRole("option", { name: "FDC" }))
-    expect(categorySelect).toHaveTextContent("FDC")
+    expect(within(dialog).queryByText("공정")).not.toBeInTheDocument()
+    expect(within(dialog).queryByText("부서")).not.toBeInTheDocument()
+    expect(within(dialog).queryByText("질문 유형")).not.toBeInTheDocument()
 
     await user.click(lineSelect)
     await user.click(screen.getByRole("option", { name: "테스트 라인 B" }))

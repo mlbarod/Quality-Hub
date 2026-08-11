@@ -1,7 +1,6 @@
-export const PROCESS_OPTIONS = ["전체 공정", "식각", "증착", "세정", "검사"]
-export const DEPARTMENT_OPTIONS = ["전체 부서", "품질기획", "공정기술", "설비기술", "분석기술"]
-export const TYPE_OPTIONS = ["전체 유형", "기준 문의", "품질 이슈", "데이터 요청", "개선 제안"]
 export const QNA_CATEGORY_OPTIONS = ["Rule", "SPC", "FDC", "TTTM", "Report", "WF Loss"]
+export const QNA_CATEGORY_FILTER_ALL = "전체 구분"
+export const QNA_LINE_FILTER_ALL = "전체 라인"
 export const QNA_LINE_UNASSIGNED = "미지정"
 
 export function parseQnaLineOptions(value) {
@@ -208,7 +207,7 @@ export const initialNotifications = [
   { id: "n4", postId: "Q-2026-077", title: "질문 상태가 답변 완료로 변경되었습니다", detail: "주간 품질회의 지표 산정 범위", time: "8월 2일", read: true, icon: "complete" },
 ]
 
-export function filterPosts(posts, { search = "", status = "all", process = "전체 공정", department = "전체 부서", type = "전체 유형" }) {
+export function filterPosts(posts, { search = "", status = "all", category = QNA_CATEGORY_FILTER_ALL, line = QNA_LINE_FILTER_ALL }) {
   const normalized = search.trim().toLocaleLowerCase("ko-KR")
   return posts.filter((post) => {
     const searchTarget = [post.title, post.excerpt, post.author, post.category, post.line, ...post.tags].join(" ").toLocaleLowerCase("ko-KR")
@@ -216,9 +215,8 @@ export function filterPosts(posts, { search = "", status = "all", process = "전
       !post.hidden &&
       (!normalized || searchTarget.includes(normalized)) &&
       (status === "all" || post.status === status) &&
-      (process === "전체 공정" || post.process === process) &&
-      (department === "전체 부서" || post.department === department) &&
-      (type === "전체 유형" || post.type === type)
+      (category === QNA_CATEGORY_FILTER_ALL || post.category === category) &&
+      (line === QNA_LINE_FILTER_ALL || post.line === line)
     )
   })
 }
