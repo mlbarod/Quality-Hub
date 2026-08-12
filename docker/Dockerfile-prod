@@ -1,13 +1,14 @@
 FROM artifactory.samsungds.net/devops-template-ahub-docker/baseimage/node:22-py3.10 AS dependencies
 
-WORKDIR /app
+USER root
+WORKDIR /opt/work
 COPY package.json package-lock.json ./
 RUN npm ci
 
 FROM dependencies AS build
 
-ARG VITE_QNA_LINE_CATEGORIES=""
-ENV VITE_QNA_LINE_CATEGORIES=${VITE_QNA_LINE_CATEGORIES}
+ARG VITE\_QNA\_LINE\_CATEGORIES=""
+ENV VITE\_QNA\_LINE\_CATEGORIES=${VITE\_QNA\_LINE\_CATEGORIES}
 
 COPY prototype ./prototype
 COPY vite.config.mjs jsconfig.json components.json ./
@@ -15,22 +16,27 @@ RUN npm run build
 
 FROM artifactory.samsungds.net/devops-template-ahub-docker/baseimage/node:22-py3.10 AS runtime
 
-ENV NODE_ENV=production \
-    HOST=0.0.0.0 \
-    PORT=4173
+ENV NODE\_ENV=production 
+HOST=0.0.0.0 
+PORT=8080
 
-WORKDIR /app
+USER root
+WORKDIR /opt/work
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
-COPY --chown=node:node server.mjs ./
-COPY --chown=node:node server ./server
-COPY --chown=node:node --from=build /app/dist ./dist
+COPY --chown=node\:node server.mjs ./
+COPY --chown=node\:node server ./server
+COPY --chown=node\:node --from=build /opt/work/dist ./dist
+
+COPY --chown=node\:node .env.db ./
+COPY --chown=node\:node .env.rag ./
+COPY --chown=node\:node .env.gpt-oss ./
 
 USER node
-EXPOSE 4173
+EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD ["node", "-e", "const port=process.env.PORT||'4173';fetch(`http://127.0.0.1:${port}/healthz`).then((response)=>{if(!response.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 
+CMD ["node", "-e", "const port=process.env.PORT||'8080';fetch(`http://127.0.0.1:${port}/healthz`).then((response)=>{if(!response.ok)process.exit(1)}).catch(()=>process.exit(1))"]
 
 CMD ["node", "server.mjs"]
