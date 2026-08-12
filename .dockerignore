@@ -10,7 +10,7 @@ coverage
 !.env 
 !.env.db 
 !.env.rag 
-!.env.gpt-os
+!.env.gpt-oss
 prototype/.env.local
 docs
 notes
