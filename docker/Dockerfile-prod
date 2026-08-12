@@ -16,9 +16,9 @@ RUN npm run build
 
 FROM artifactory.samsungds.net/devops-template-ahub-docker/baseimage/node:22-py3.10 AS runtime
 
-ENV NODE\_ENV=production 
-HOST=0.0.0.0 
-PORT=8080
+ENV NODE_ENV=production \
+    HOST=0.0.0.0 \
+    PORT=8080
 
 USER root
 WORKDIR /opt/work
