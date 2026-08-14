@@ -1372,12 +1372,6 @@ const ruleFilterState = {
   minor: "all",
 };
 
-const ruleFilterLabels = {
-  major: "대분류",
-  middle: "중분류",
-  minor: "소분류",
-};
-
 const getRuleClassificationText = (card) => [
   card.dataset.ruleMajor,
   card.dataset.ruleMiddle,
@@ -1418,12 +1412,9 @@ const getRuleCards = ({ includeDeleted = false } = {}) => [...document.querySele
 const matchesRuleScope = (card, scope, value = ruleFilterState[scope]) =>
   value === "all" || card.dataset[`rule${scope[0].toUpperCase()}${scope.slice(1)}`] === value;
 
-const selectRuleFilterButton = (scope, value) => {
-  document.querySelectorAll(`[data-rule-filter="${scope}"]`).forEach((button) => {
-    const isSelected = button.dataset.ruleFilterValue === value;
-    button.classList.toggle("is-selected", isSelected);
-    button.setAttribute("aria-pressed", String(isSelected));
-  });
+const syncRuleFilterSelect = (scope, value) => {
+  const select = document.querySelector(`select[data-rule-filter="${scope}"]`);
+  if (select instanceof HTMLSelectElement) select.value = value;
 };
 
 const updateRuleFilterOptions = () => {
@@ -1435,9 +1426,10 @@ const updateRuleFilterOptions = () => {
     ruleFilterState.middle = "all";
   }
 
-  document.querySelectorAll('[data-rule-filter="middle"]').forEach((button) => {
-    const value = button.dataset.ruleFilterValue;
-    button.hidden = value !== "all" && !availableMiddleValues.has(value);
+  document.querySelectorAll('select[data-rule-filter="middle"] option').forEach((option) => {
+    const unavailable = option.value !== "all" && !availableMiddleValues.has(option.value);
+    option.hidden = unavailable;
+    option.disabled = unavailable;
   });
 
   const minorCards = middleCards.filter((card) => matchesRuleScope(card, "middle"));
@@ -1447,12 +1439,13 @@ const updateRuleFilterOptions = () => {
     ruleFilterState.minor = "all";
   }
 
-  document.querySelectorAll('[data-rule-filter="minor"]').forEach((button) => {
-    const value = button.dataset.ruleFilterValue;
-    button.hidden = value !== "all" && !availableMinorValues.has(value);
+  document.querySelectorAll('select[data-rule-filter="minor"] option').forEach((option) => {
+    const unavailable = option.value !== "all" && !availableMinorValues.has(option.value);
+    option.hidden = unavailable;
+    option.disabled = unavailable;
   });
 
-  Object.entries(ruleFilterState).forEach(([scope, value]) => selectRuleFilterButton(scope, value));
+  Object.entries(ruleFilterState).forEach(([scope, value]) => syncRuleFilterSelect(scope, value));
 };
 
 const playRuleCardArrangement = () => {
@@ -1481,10 +1474,7 @@ const applyRuleFilters = ({ animate = true } = {}) => {
 
   const activeFilterLabels = Object.entries(ruleFilterState)
     .filter(([, value]) => value !== "all")
-    .map(([scope, value]) => {
-      const button = document.querySelector(`[data-rule-filter="${scope}"][data-rule-filter-value="${value}"]`);
-      return button?.lastElementChild?.textContent?.trim() ?? ruleFilterLabels[scope];
-    });
+    .map(([, value]) => value);
 
   document.querySelector("[data-rule-result-count]")?.replaceChildren(String(visibleCardCount));
   document.querySelector("[data-rule-filter-summary]")?.replaceChildren(activeFilterLabels.join(" · ") || "전체 분류");
@@ -1519,36 +1509,12 @@ const resetRuleFilters = () => {
   });
 };
 
-const createRuleFilterButton = (scope, value) => {
-  const button = document.createElement("button");
-  const icon = document.createElement("span");
-  const label = document.createElement("span");
-  button.type = "button";
-  button.dataset.ruleFilter = scope;
-  button.dataset.ruleFilterValue = value;
-  button.setAttribute("aria-pressed", "false");
-  icon.className = `rule-filter-icon is-${scope}`;
-  icon.append(document.createElement("i"), document.createElement("i"), document.createElement("i"));
-  label.textContent = value;
-  button.append(icon, label);
-  button.addEventListener("click", () => {
-    ruleFilterState[scope] = value;
-    if (scope === "major") {
-      ruleFilterState.middle = "all";
-      ruleFilterState.minor = "all";
-    } else if (scope === "middle") {
-      ruleFilterState.minor = "all";
-    }
-    applyRuleFilters();
-  });
-  return button;
-};
-
 const replaceRuleFilterOptions = (scope, values) => {
-  const container = document.querySelector(`[data-rule-filter-group="${scope}"] > div`);
-  const allButton = container?.querySelector('[data-rule-filter-value="all"]');
-  if (!(container instanceof HTMLElement) || !(allButton instanceof HTMLButtonElement)) return;
-  container.replaceChildren(allButton, ...values.map((value) => createRuleFilterButton(scope, value)));
+  const select = document.querySelector(`select[data-rule-filter="${scope}"]`);
+  const allOption = select?.querySelector('option[value="all"]');
+  if (!(select instanceof HTMLSelectElement) || !(allOption instanceof HTMLOptionElement)) return;
+  const options = values.map((value) => new Option(value, value));
+  select.replaceChildren(allOption, ...options);
 };
 
 const clearRuleCatalog = () => {
@@ -1819,10 +1785,10 @@ document.querySelector("[data-rule-view]")?.addEventListener("click", () => {
 
 ruleRetry?.addEventListener("click", () => { void loadRuleCatalog({ force: true }); });
 
-document.querySelectorAll("[data-rule-filter]").forEach((button) => {
-  button.addEventListener("click", () => {
-    const scope = button.dataset.ruleFilter;
-    const value = button.dataset.ruleFilterValue;
+document.querySelectorAll("select[data-rule-filter]").forEach((select) => {
+  select.addEventListener("change", () => {
+    const scope = select.dataset.ruleFilter;
+    const value = select.value;
     if (!(scope in ruleFilterState) || !value) return;
 
     ruleFilterState[scope] = value;

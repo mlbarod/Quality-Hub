@@ -630,22 +630,25 @@
               <div class="rule-filter-board" aria-label="Rule&SOP 분류 필터">
                 <fieldset class="rule-filter-group" data-rule-filter-group="major">
                   <legend><span>01</span><strong>대분류</strong><small>가장 넓은 업무 범위</small></legend>
-                  <div>
-                    <button class="is-selected" type="button" data-rule-filter="major" data-rule-filter-value="all" aria-pressed="true"><span class="rule-filter-icon is-major"><i></i><i></i><i></i></span><span>전체</span></button>
+                  <div class="rule-filter-select">
+                    <select data-rule-filter="major" aria-label="대분류 필터"><option value="all">전체 대분류</option></select>
+                    <svg class="icon" aria-hidden="true"><use href="#icon-chevron-down"></use></svg>
                   </div>
                 </fieldset>
 
                 <fieldset class="rule-filter-group" data-rule-filter-group="middle">
                   <legend><span>02</span><strong>중분류</strong><small>업무 목적과 절차 범위</small></legend>
-                  <div>
-                    <button class="is-selected" type="button" data-rule-filter="middle" data-rule-filter-value="all" aria-pressed="true"><span class="rule-filter-icon is-middle"><i></i><i></i><i></i></span><span>전체</span></button>
+                  <div class="rule-filter-select">
+                    <select data-rule-filter="middle" aria-label="중분류 필터"><option value="all">전체 중분류</option></select>
+                    <svg class="icon" aria-hidden="true"><use href="#icon-chevron-down"></use></svg>
                   </div>
                 </fieldset>
 
                 <fieldset class="rule-filter-group" data-rule-filter-group="minor">
                   <legend><span>03</span><strong>소분류</strong><small>세부 문서 단위</small></legend>
-                  <div>
-                    <button class="is-selected" type="button" data-rule-filter="minor" data-rule-filter-value="all" aria-pressed="true"><span class="rule-filter-icon is-minor"><i></i><i></i><i></i></span><span>전체</span></button>
+                  <div class="rule-filter-select">
+                    <select data-rule-filter="minor" aria-label="소분류 필터"><option value="all">전체 소분류</option></select>
+                    <svg class="icon" aria-hidden="true"><use href="#icon-chevron-down"></use></svg>
                   </div>
                 </fieldset>
               </div>

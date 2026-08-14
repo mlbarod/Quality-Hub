@@ -65,5 +65,5 @@ test("Rule&SOP DB 조회와 Q&A 로컬 저장이 동적 통합 검색에 연결�
   assert.match(qna, /text-\[12px\][^\n]*이 브라우저의 가상 데이터에서 변경한/)
   assert.match(qna, /form="qna-write-form" className="h-\[41px\]"/)
   assert.match(styles, /\.app-status \{[^}]*font-size: 12px;/s)
-  assert.match(styles, /prefers-reduced-motion: reduce[\s\S]*\.rule-filter-icon\.is-middle > i,[\s\S]*animation: none !important/)
+  assert.match(styles, /\.rule-filter-select select:focus-visible \{[^}]*box-shadow:/s)
 })

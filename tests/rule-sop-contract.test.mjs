@@ -23,6 +23,10 @@ test("변승위 Category분류를 접근 가능한 아코디언으로 제공한�
 })
 
 test("rulesop의 대분류, 중분류, 소분류를 동적 필터와 카드 설명에 매핑한다", () => {
+  assert.match(html, /<select data-rule-filter="major" aria-label="대분류 필터">/)
+  assert.match(html, /<select data-rule-filter="middle" aria-label="중분류 필터">/)
+  assert.match(html, /<select data-rule-filter="minor" aria-label="소분류 필터">/)
+  assert.doesNotMatch(html, /<button[^>]*data-rule-filter=/)
   assert.match(script, /document\.mainCategory\?\.trim\(\) \|\| "미분류"/)
   assert.match(script, /document\.subCategory\?\.trim\(\) \|\| "미분류"/)
   assert.match(script, /document\.item\?\.trim\(\) \|\| "미분류"/)
@@ -31,6 +35,8 @@ test("rulesop의 대분류, 중분류, 소분류를 동적 필터와 카드 설�
   assert.match(script, /replaceRuleFilterOptions\("major"/)
   assert.match(script, /replaceRuleFilterOptions\("middle"/)
   assert.match(script, /replaceRuleFilterOptions\("minor"/)
+  assert.match(script, /select\.addEventListener\("change"/)
+  assert.match(script, /option\.disabled = unavailable/)
   assert.match(script, /getRuleClassificationText/)
 })
 
