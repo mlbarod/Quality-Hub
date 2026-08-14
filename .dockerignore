@@ -7,7 +7,11 @@ dist
 coverage
 *.log
 .env*
-prototype/.env.local
+!.env.db
+!.env.rag
+!.env.gpt-oss
+!.env.sso
+!prototype/.env.local
 certs/
 docs
 notes

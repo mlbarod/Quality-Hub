@@ -33,6 +33,7 @@ COPY --chown=node\:node --from=build /opt/work/dist ./dist
 COPY --chown=node\:node .env.db ./
 COPY --chown=node\:node .env.rag ./
 COPY --chown=node\:node .env.gpt-oss ./
+COPY --chown=node\:node .env.sso ./
 
 USER node
 EXPOSE 8080
