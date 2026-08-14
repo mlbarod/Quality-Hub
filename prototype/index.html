@@ -114,7 +114,7 @@
       </symbol>
     </svg>
 
-    <div class="prototype" data-layout="top" data-dashboard-mode="home" data-agent-mode="closed" data-report-mode="closed" data-rule-mode="closed" data-qna-mode="closed" data-user-mode="closed" data-current-role="master" data-common-state="normal" data-can-manage-reports="true" data-can-manage-rules="true">
+    <div class="prototype" data-layout="top" data-dashboard-mode="home" data-agent-mode="closed" data-report-mode="closed" data-rule-mode="closed" data-qna-mode="closed" data-user-mode="closed" data-auth-mode="legacy" data-current-role="master" data-common-state="normal" data-can-manage-reports="true" data-can-manage-rules="true">
       <aside class="sidebar" aria-label="좌측 서비스 메뉴">
         <a class="brand sidebar-brand" href="#home" aria-label="Quality Hub 홈" data-home-refresh>
           <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -683,7 +683,7 @@
               <button class="report-back-button" type="button" data-user-close><svg class="icon"><use href="#icon-arrow"></use></svg>Main</button>
               <span><i>Quality Hub</i><b>/</b><strong>사용자 및 권한</strong></span>
             </div>
-            <div class="user-page-tools"><span class="user-page-status"><i></i>UI 검토용 권한 설정</span><button type="button" data-recovery-open><svg class="icon"><use href="#icon-refresh"></use></svg>숨김 항목 복구</button><button type="button" data-history-open><svg class="icon"><use href="#icon-history"></use></svg>변경 이력</button></div>
+            <div class="user-page-tools"><span class="user-page-status" data-permission-source><i></i>UI 검토용 권한 설정</span><button type="button" data-recovery-open><svg class="icon"><use href="#icon-refresh"></use></svg>숨김 항목 복구</button><button type="button" data-history-open><svg class="icon"><use href="#icon-history"></use></svg>변경 이력</button></div>
           </header>
 
           <div class="user-page-content">
@@ -702,7 +702,7 @@
             <section class="role-summary-grid" aria-label="역할별 접근 권한 요약">
               <article class="role-summary-card is-master">
                 <span><svg class="icon"><use href="#icon-shield"></use></svg></span>
-                <div><strong>현재 마스터 · 김품질</strong><small>quality.kim · 접근 권한 규칙을 추가하거나 삭제할 수 있습니다.</small></div>
+                <div><strong data-current-master-summary>현재 마스터 · 김품질</strong><small><span data-current-master-id>quality.kim</span> · 접근 권한 규칙을 추가하거나 삭제할 수 있습니다.</small></div>
                 <b>MASTER</b>
               </article>
               <article class="role-summary-card is-admin">
@@ -965,11 +965,12 @@
 
       <main class="access-blocked" hidden tabindex="-1" aria-labelledby="access-blocked-title" data-access-blocked>
         <span><svg class="icon"><use href="#icon-shield"></use></svg></span>
-        <p class="section-kicker">ACCESS BLOCKED · MOCK</p>
+        <p class="section-kicker" data-access-blocked-kicker>ACCESS BLOCKED · MOCK</p>
         <h1 id="access-blocked-title">Quality Hub에 접근할 수 없습니다.</h1>
         <p>사내 인증은 성공했지만 등록된 마스터 계정 또는 접근 권한 규칙과 일치하지 않습니다.</p>
         <dl><div><dt>유저 ID</dt><dd data-blocked-user-id>guest.unknown</dd></div><div><dt>소속부서</dt><dd data-blocked-department>미등록 부서</dd></div></dl>
         <strong>포털 관리자에게 접근 권한을 문의해 주세요.</strong>
+        <form class="sso-blocked-logout" method="post" action="/auth/logout"><button type="submit">통합인증 로그아웃</button></form>
       </main>
 
     </div>
@@ -1080,7 +1081,7 @@
           <small id="access-value-help" data-access-value-help>SSO에서 받은 유저 ID 값이 입력값과 정확히 같을 때 적용합니다.</small>
           <fieldset class="access-role-options"><legend>부여 권한</legend><label><input type="radio" name="access-role" value="admin" checked data-access-role />관리자</label><label><input type="radio" name="access-role" value="general" data-access-role />일반</label></fieldset>
           <p id="access-value-error" role="alert" hidden data-access-value-error></p>
-          <aside role="note"><svg class="icon"><use href="#icon-shield"></use></svg><span><strong>일치하는 규칙이 없는 사용자는 접근이 차단됩니다.</strong><small>현재 목업의 규칙은 새로고침하면 초기화되며, 실제 SSO 조회와 저장은 아직 연결하지 않았습니다.</small></span></aside>
+          <aside role="note"><svg class="icon"><use href="#icon-shield"></use></svg><span><strong>일치하는 규칙이 없는 사용자는 접근이 차단됩니다.</strong><small>SSO 적용 시 규칙은 서버 DB에 저장되며 변경한 권한은 다음 요청부터 다시 판정됩니다.</small></span></aside>
         </div>
         <footer><button type="button" class="admin-dialog-cancel" data-access-add-close>취소</button><button type="submit" class="admin-dialog-submit"><svg class="icon"><use href="#icon-plus"></use></svg><span data-access-submit-label>권한 규칙 추가</span></button></footer>
       </form>

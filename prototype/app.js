@@ -119,6 +119,9 @@ let pendingGlobalSearchReportCard;
 let suppressGlobalSearchFocusRestore = false;
 let currentRole = prototype?.dataset.currentRole ?? "master";
 let currentRolePolicy = getRolePolicy(currentRole);
+const isSsoMode = prototype?.dataset.authMode === "sso";
+let currentAuthenticatedUser = null;
+let agentChatInitialized = false;
 let currentCommonState = prototype?.dataset.commonState ?? "normal";
 let editingAccessRow = null;
 const hiddenItems = [];
@@ -139,6 +142,12 @@ const initializedModes = {
 let activeQnaViewKey = "";
 
 const chartPeriods = DASHBOARD_PERIODS;
+
+const getCurrentUser = () => currentAuthenticatedUser ?? getRoleOption(currentRole);
+
+const withIdentityHeader = (headers = {}) => isSsoMode
+  ? { ...headers }
+  : { "x-quality-hub-user-id": getCurrentUser().userId, ...headers };
 
 const showToast = (message) => {
   if (!toast) return;
@@ -213,7 +222,7 @@ const setDashboardMode = (mode, { announce = true, focus = true } = {}) => {
 };
 
 const recordHistory = (entry) => {
-  historyEntries.unshift(createHistoryEntry({ ...entry, actor: getRoleOption(currentRole).name }));
+  historyEntries.unshift(createHistoryEntry({ ...entry, actor: getCurrentUser().name }));
   activityRepository.write(historyEntries);
   renderHistoryList();
 };
@@ -277,7 +286,7 @@ const softDeleteItem = ({ type, name, element, onChange }) => {
   const id = `${type}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   element.dataset.softDeleted = "true";
   element.hidden = true;
-  hiddenItems.unshift({ id, type, name, element, onChange, hiddenAt: "방금 전", hiddenBy: getRoleOption(currentRole).name });
+  hiddenItems.unshift({ id, type, name, element, onChange, hiddenAt: "방금 전", hiddenBy: getCurrentUser().name });
   recordHistory({ action: "숨김", targetType: type, targetName: name });
   renderRecoveryList();
   onChange?.();
@@ -542,10 +551,7 @@ const requestReportApi = async (options = {}, reportId = "") => {
   const path = reportId ? `/api/reports/${encodeURIComponent(reportId)}` : "/api/reports";
   const response = await fetch(path, {
     ...options,
-    headers: {
-      "x-quality-hub-user-id": getRoleOption(currentRole).userId,
-      ...options.headers,
-    },
+    headers: withIdentityHeader(options.headers),
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload.error?.message ?? "Report DB 요청을 처리하지 못했습니다.");
@@ -938,6 +944,83 @@ document.querySelectorAll("[data-user-close]").forEach((button) => {
 const getAccessRows = ({ includeDeleted = false } = {}) => [...document.querySelectorAll("[data-access-row]")]
   .filter((row) => includeDeleted || row.dataset.softDeleted !== "true");
 
+const requestAuthAdminApi = async (path, options = {}) => {
+  const response = await fetch(path, {
+    ...options,
+    headers: { Accept: "application/json", ...options.headers },
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error?.message ?? "권한 설정 요청을 처리하지 못했습니다.");
+  return payload;
+};
+
+const populateAccessRow = (row, rule) => {
+  const field = rule.field === "user_id" ? "user-id" : "department";
+  row.dataset.ruleId = rule.ruleId ?? "";
+  row.dataset.accessRole = rule.role;
+  row.dataset.accessField = field;
+  row.dataset.accessMatch = rule.matchType;
+  row.dataset.accessValue = rule.matchValue;
+  const badge = row.querySelector("[data-access-role-label]") ?? row.querySelector(".access-role-badge");
+  badge?.replaceChildren(rule.role === "admin" ? "관리자" : "일반");
+  badge?.classList.remove("is-admin", "is-general");
+  badge?.classList.add(rule.role === "admin" ? "is-admin" : "is-general");
+  (row.querySelector("[data-access-field-label]") ?? row.children[1])?.replaceChildren(field === "user-id" ? "유저 ID" : "소속부서");
+  (row.querySelector("[data-access-match-label]") ?? row.children[2])?.replaceChildren(rule.matchType === "exact" ? "직접 일치" : "텍스트 포함");
+  (row.querySelector("[data-access-value-label]") ?? row.querySelector(".access-value"))?.replaceChildren(rule.matchValue);
+  const dateCell = row.children[4];
+  if (dateCell) dateCell.replaceChildren(rule.createdAt ? new Date(rule.createdAt).toLocaleDateString("ko-KR") : "방금 전");
+  return row;
+};
+
+const renderSsoMaster = (master) => {
+  const row = document.createElement("article");
+  row.dataset.masterRow = "";
+  row.dataset.masterId = master.userId;
+  row.innerHTML = '<span class="avatar"></span><div><strong></strong><small></small></div><b>마스터</b><button type="button" data-master-revoke>권한 회수</button>';
+  const displayName = master.displayName || master.userId;
+  row.querySelector(".avatar")?.replaceChildren(displayName.slice(0, 1));
+  row.querySelector("strong")?.replaceChildren(displayName);
+  row.querySelector("small")?.replaceChildren([master.userId, master.department].filter(Boolean).join(" · "));
+  if (master.userId === getCurrentUser().userId) row.querySelector("b")?.replaceChildren("현재 사용자");
+  return row;
+};
+
+const loadSsoPermissions = async () => {
+  if (!isSsoMode || currentRole !== "master") return;
+  const payload = await requestAuthAdminApi("/api/auth/permissions");
+  const table = document.querySelector(".user-table");
+  if (table instanceof HTMLElement && accessRowTemplate instanceof HTMLTemplateElement) {
+    getAccessRows({ includeDeleted: true }).forEach((row) => row.remove());
+    for (const rule of payload.rules ?? []) {
+      const row = accessRowTemplate.content.firstElementChild?.cloneNode(true);
+      if (row instanceof HTMLElement) table.append(populateAccessRow(row, rule));
+    }
+  }
+  if (masterList instanceof HTMLElement) {
+    masterList.replaceChildren(...(payload.masters ?? []).map(renderSsoMaster));
+  }
+  updateAccessCounts();
+  applyAccessSearch();
+  updateMasterProtection();
+};
+
+const loadSsoPermissionHistory = async () => {
+  const payload = await requestAuthAdminApi("/api/auth/permissions/history");
+  const actionLabels = { create: "등록", update: "변경", delete: "삭제" };
+  const targetLabels = { master: "마스터", access_rule: "권한 규칙" };
+  historyEntries.splice(0, historyEntries.length, ...(payload.history ?? []).map((entry) => ({
+    id: entry.historyId,
+    action: actionLabels[entry.actionType] ?? entry.actionType,
+    targetType: targetLabels[entry.targetType] ?? entry.targetType,
+    targetName: entry.targetId,
+    actor: entry.actorUserId,
+    detail: entry.detail ? JSON.stringify(entry.detail) : "",
+    occurredAt: entry.createdAt ? new Date(entry.createdAt).toLocaleString("ko-KR") : "",
+  })));
+  renderHistoryList();
+};
+
 const updateAccessCounts = () => {
   ["admin", "general"].forEach((role) => {
     const count = getAccessRows().filter((row) => row.dataset.accessRole === role).length;
@@ -973,7 +1056,7 @@ const applyAccessSearch = () => {
 
 userSearch?.addEventListener("input", applyAccessSearch);
 
-userWorkspace?.addEventListener("click", (event) => {
+userWorkspace?.addEventListener("click", async (event) => {
   const editButton = event.target.closest("[data-access-edit]");
   if (editButton instanceof HTMLButtonElement) {
     const row = editButton.closest("[data-access-row]");
@@ -999,6 +1082,18 @@ userWorkspace?.addEventListener("click", (event) => {
   if (!(row instanceof HTMLElement)) return;
 
   const accessValue = row.dataset.accessValue;
+  if (isSsoMode) {
+    try {
+      await requestAuthAdminApi(`/api/auth/permissions/${encodeURIComponent(row.dataset.ruleId ?? "")}`, { method: "DELETE" });
+      row.remove();
+      updateAccessCounts();
+      applyAccessSearch();
+      showToast(`${accessValue} 조건의 권한 규칙을 삭제했습니다.`);
+    } catch (error) {
+      showToast(error.message);
+    }
+    return;
+  }
   softDeleteItem({ type: "권한 규칙", name: accessValue, element: row, onChange: () => { updateAccessCounts(); applyAccessSearch(); } });
   showToast(`${accessValue} 조건의 권한 규칙을 숨김 처리했습니다. (목업)`);
 });
@@ -1006,6 +1101,10 @@ userWorkspace?.addEventListener("click", (event) => {
 const updateAccessFormGuide = () => {
   if (!(accessFieldInput instanceof HTMLSelectElement) || !(accessMatchInput instanceof HTMLSelectElement)) return;
   const isUserId = accessFieldInput.value === "user-id";
+  if (isUserId) accessMatchInput.value = "exact";
+  [...accessMatchInput.options].forEach((option) => {
+    if (option.value === "contains") option.disabled = isUserId;
+  });
   const isExact = accessMatchInput.value === "exact";
   accessInputPrefix?.replaceChildren(isUserId ? "ID" : "부서");
   if (accessValueInput instanceof HTMLInputElement) {
@@ -1047,7 +1146,7 @@ accessAddDialog?.addEventListener("click", (event) => {
 
 accessAddDialog?.addEventListener("close", () => accessAddReturnFocus?.focus());
 
-accessAddForm?.addEventListener("submit", (event) => {
+accessAddForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!(accessFieldInput instanceof HTMLSelectElement) || !(accessMatchInput instanceof HTMLSelectElement) || !(accessValueInput instanceof HTMLInputElement) || !(accessValueError instanceof HTMLElement)) return;
 
@@ -1079,6 +1178,36 @@ accessAddForm?.addEventListener("submit", (event) => {
   const table = document.querySelector(".user-table");
   if (!(row instanceof HTMLElement) || !(table instanceof HTMLElement)) return;
 
+  if (isSsoMode) {
+    try {
+      const existingRow = editingAccessRow;
+      const path = existingRow
+        ? `/api/auth/permissions/${encodeURIComponent(existingRow.dataset.ruleId ?? "")}`
+        : "/api/auth/permissions";
+      const payload = await requestAuthAdminApi(path, {
+        method: existingRow ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: accessRole,
+          field: accessField === "user-id" ? "user_id" : "department",
+          matchType: accessMatch,
+          matchValue: accessValue,
+        }),
+      });
+      populateAccessRow(row, payload.rule);
+      if (!existingRow) table.append(row);
+      editingAccessRow = null;
+      accessAddDialog.close();
+      updateAccessCounts();
+      applyAccessSearch();
+      showToast(`${accessValue} 조건의 권한 규칙을 ${existingRow ? "변경" : "등록"}했습니다.`);
+    } catch (error) {
+      accessValueError.hidden = false;
+      accessValueError.replaceChildren(error.message);
+    }
+    return;
+  }
+
   const roleLabel = accessRole === "admin" ? "관리자" : "일반";
   row.dataset.accessRole = accessRole;
   row.dataset.accessField = accessField;
@@ -1104,7 +1233,7 @@ accessAddForm?.addEventListener("submit", (event) => {
 updateAccessCounts();
 
 const agentChatController = createAgentChatController({
-  getUserId: () => getRoleOption(currentRole).userId,
+  getUserId: () => getCurrentUser().userId,
   showToast,
 });
 
@@ -1564,10 +1693,7 @@ const renderRuleCatalog = (documents) => {
 const requestRuleApi = async (options = {}, documentId = "") => {
   const response = await fetch(`/api/rules${documentId ? `/${encodeURIComponent(documentId)}` : ""}`, {
     ...options,
-    headers: {
-      "x-quality-hub-user-id": getRoleOption(currentRole).userId,
-      ...options.headers,
-    },
+    headers: withIdentityHeader(options.headers),
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload.error?.message ?? "Rule&SOP DB 요청을 처리하지 못했습니다.");
@@ -2186,18 +2312,46 @@ const updateMasterProtection = () => {
   });
 };
 
-masterList?.addEventListener("click", (event) => {
+masterList?.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-master-revoke]");
   if (!(button instanceof HTMLButtonElement) || button.disabled || !currentRolePolicy.canManageMasters) return;
   const row = button.closest("[data-master-row]");
   if (!(row instanceof HTMLElement)) return;
   const name = row.querySelector("strong")?.textContent ?? row.dataset.masterId ?? "마스터";
+  if (isSsoMode) {
+    try {
+      await requestAuthAdminApi(`/api/auth/masters/${encodeURIComponent(row.dataset.masterId ?? "")}`, { method: "DELETE" });
+      row.remove();
+      updateMasterProtection();
+      showToast(`${name} 계정의 마스터 권한을 회수했습니다.`);
+    } catch (error) {
+      showToast(error.message);
+    }
+    return;
+  }
   softDeleteItem({ type: "마스터", name, element: row, onChange: updateMasterProtection });
   showToast(`${name} 계정의 마스터 권한을 회수했습니다. (목업)`);
 });
 
-document.querySelector("[data-master-add]")?.addEventListener("click", () => {
+document.querySelector("[data-master-add]")?.addEventListener("click", async () => {
   if (!currentRolePolicy.canManageMasters || !(masterList instanceof HTMLElement)) return;
+  if (isSsoMode) {
+    const userId = window.prompt("마스터로 등록할 사내 사용자 ID를 입력하세요.")?.trim();
+    if (!userId) return;
+    try {
+      const payload = await requestAuthAdminApi("/api/auth/masters", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      masterList.append(renderSsoMaster(payload.master));
+      updateMasterProtection();
+      showToast(`${userId} 계정에 마스터 권한을 부여했습니다.`);
+    } catch (error) {
+      showToast(error.message);
+    }
+    return;
+  }
   const id = `quality.master${document.querySelectorAll("[data-master-row]").length + 1}`;
   const row = document.createElement("article");
   row.dataset.masterRow = "";
@@ -2214,9 +2368,16 @@ document.querySelectorAll("[data-recovery-open]").forEach((button) => button.add
   renderRecoveryList();
   recoveryDialog.showModal();
 }));
-document.querySelectorAll("[data-history-open]").forEach((button) => button.addEventListener("click", () => {
+document.querySelectorAll("[data-history-open]").forEach((button) => button.addEventListener("click", async () => {
   if (!currentRolePolicy.canViewHistory || !(historyDialog instanceof HTMLDialogElement)) return;
-  renderHistoryList();
+  if (isSsoMode) {
+    try {
+      await loadSsoPermissionHistory();
+    } catch (error) {
+      showToast(error.message);
+      return;
+    }
+  } else renderHistoryList();
   historyDialog.showModal();
 }));
 document.querySelectorAll("[data-recovery-close]").forEach((button) => button.addEventListener("click", () => recoveryDialog?.close()));
@@ -2226,12 +2387,13 @@ recoveryList?.addEventListener("click", (event) => {
   if (button instanceof HTMLButtonElement) restoreItem(button.dataset.restoreItem);
 });
 
-const applyRole = (role, { announce = true } = {}) => {
+const applyRole = (role, { announce = true, user = null } = {}) => {
   if (!(prototype instanceof HTMLElement)) return;
   const previousRole = currentRole;
   currentRole = role;
   currentRolePolicy = getRolePolicy(role);
-  const roleOption = getRoleOption(role);
+  if (user) currentAuthenticatedUser = user;
+  const roleOption = getCurrentUser();
   prototype.dataset.currentRole = role;
   prototype.dataset.canManageReports = String(currentRolePolicy.canManageContent);
   prototype.dataset.canManageRules = String(currentRolePolicy.canManageContent);
@@ -2273,14 +2435,61 @@ const applyRole = (role, { announce = true } = {}) => {
   if (currentCommonState === "denied") applyCommonState("denied", { announce: false });
   syncPrimaryWorkspaceAccessibility();
   window.dispatchEvent(new CustomEvent("qualityhub:role-change", { detail: { role, policy: currentRolePolicy, user: roleOption } }));
-  if (announce) showToast(`${roleOption.label} 역할 화면으로 전환했습니다. (목업)`);
+  if (announce) showToast(isSsoMode ? `${roleOption.label} 권한이 적용되었습니다.` : `${roleOption.label} 역할 화면으로 전환했습니다. (목업)`);
 };
 
 rolePreview?.addEventListener("change", () => applyRole(rolePreview.value));
+const initializeAuthentication = async () => {
+  if (!isSsoMode) {
+    applyRole(currentRole, { announce: false });
+    return;
+  }
+  const response = await fetch("/api/auth/session", { headers: { Accept: "application/json" } });
+  if (response.status === 401) {
+    window.location.assign(`/auth/login?returnTo=${encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`)}`);
+    return;
+  }
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.user || !payload.role) throw new Error(payload.error?.message ?? "SSO 세션을 확인하지 못했습니다.");
+  const user = {
+    name: payload.user.displayName,
+    userId: payload.user.userId,
+    department: payload.user.department,
+    label: { master: "마스터", admin: "관리자", general: "일반유저", blocked: "접근 차단" }[payload.role] ?? "접근 차단",
+  };
+  applyRole(payload.role, { announce: false, user });
+  document.querySelector("[data-permission-source]")?.replaceChildren(document.createElement("i"), "DB 권한 설정");
+  document.querySelector("[data-access-blocked-kicker]")?.replaceChildren("ACCESS BLOCKED");
+  document.querySelector("[data-current-master-summary]")?.replaceChildren(`현재 마스터 · ${user.name}`);
+  document.querySelector("[data-current-master-id]")?.replaceChildren(user.userId);
+  document.querySelectorAll("[data-recovery-open]").forEach((button) => { button.hidden = true; });
+  document.querySelectorAll('[data-planned="내 프로필"]').forEach((button) => {
+    button.removeAttribute("data-planned");
+    button.title = "통합인증 로그아웃";
+    button.addEventListener("click", () => {
+      const form = document.createElement("form");
+      form.method = "post";
+      form.action = "/auth/logout";
+      document.body.append(form);
+      form.submit();
+    });
+  });
+  if (payload.role === "master") await loadSsoPermissions();
+};
+
 updateMasterProtection();
 renderRecoveryList();
 renderHistoryList();
-applyRole(currentRole, { announce: false });
 applyCommonState(currentCommonState, { announce: false });
-void agentChatController.initialize();
-window.addEventListener("qualityhub:role-change", () => { void agentChatController.changeUser(); });
+void initializeAuthentication()
+  .then(async () => {
+    await agentChatController.initialize();
+    agentChatInitialized = true;
+  })
+  .catch(() => {
+    if (accessBlocked instanceof HTMLElement) accessBlocked.hidden = false;
+    showToast("SSO 사용자 정보를 불러오지 못했습니다. 다시 로그인해 주세요.");
+  });
+window.addEventListener("qualityhub:role-change", () => {
+  if (agentChatInitialized) void agentChatController.changeUser();
+});

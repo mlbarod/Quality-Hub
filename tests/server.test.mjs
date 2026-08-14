@@ -137,7 +137,7 @@ test("컨테이너 헬스체크 경로는 Backend 연결 없이 응답한다", a
 test("운영 준비 상태는 필수 Backend 설정의 입력 여부를 구분한다", async (t) => {
   assert.deepEqual(getRuntimeReadiness({}), {
     ready: false,
-    components: { database: "not_configured", rag: "not_configured", gptOss: "not_configured" },
+    components: { database: "not_configured", rag: "not_configured", gptOss: "not_configured", sso: "disabled" },
   })
 
   const configuredEnvironment = {
@@ -165,7 +165,7 @@ test("운영 준비 상태는 필수 Backend 설정의 입력 여부를 구분�
   assert.equal(response.status, 200)
   assert.deepEqual(await response.json(), {
     status: "ready",
-    components: { database: "configured", rag: "configured", gptOss: "configured" },
+    components: { database: "configured", rag: "configured", gptOss: "configured", sso: "disabled" },
   })
 })
 
@@ -182,4 +182,59 @@ test("HEAD, 미존재 경로와 허용하지 않는 메서드를 처리한다", 
   const postResponse = await fetch(`${baseUrl}/`, { method: "POST" })
   assert.equal(postResponse.status, 405)
   assert.equal(postResponse.headers.get("allow"), "GET, HEAD")
+})
+
+test("SSO 모드는 미인증 화면을 로그인으로 보내고 서버 사용자·역할을 HTML과 API에 강제한다", async (t) => {
+  let principal = null
+  let observedUserId = null
+  let reportCalls = 0
+  const authApi = {
+    enabled: true,
+    async handle() { return false },
+    async authenticate() { return principal },
+    async close() {},
+  }
+  const reportApi = {
+    async handle(req, res) {
+      if (!req.url?.startsWith("/api/reports")) return false
+      reportCalls += 1
+      observedUserId = req.headers["x-quality-hub-user-id"]
+      const body = JSON.stringify({ reports: [] })
+      res.writeHead(200, { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) })
+      res.end(body)
+      return true
+    },
+    async close() {},
+  }
+  const inertApi = { async handle() { return false }, async close() {} }
+  const server = createQualityHubServer({ staticDir: sourceStaticDir, authApi, reportApi, agentApi: inertApi, ruleSopApi: inertApi })
+  server.listen(0, "127.0.0.1")
+  await once(server, "listening")
+  t.after(() => closeTestServer(server))
+  const address = server.address()
+  const baseUrl = `http://127.0.0.1:${address.port}`
+
+  const redirectResponse = await fetch(`${baseUrl}/`, { redirect: "manual" })
+  assert.equal(redirectResponse.status, 302)
+  assert.equal(redirectResponse.headers.get("location"), "/auth/login?returnTo=%2F")
+
+  principal = {
+    userId: "server.identity",
+    displayName: "서버 사용자",
+    department: "품질관리",
+    role: "general",
+    expiresAt: new Date("2030-01-01T00:00:00.000Z"),
+  }
+  const indexResponse = await fetch(`${baseUrl}/`)
+  const index = await indexResponse.text()
+  assert.match(index, /data-auth-mode="sso"/)
+  assert.match(index, /data-current-role="general"/)
+
+  const reportResponse = await fetch(`${baseUrl}/api/reports`, { headers: { "x-quality-hub-user-id": "browser.spoof" } })
+  assert.equal(reportResponse.status, 200)
+  assert.equal(observedUserId, "server.identity")
+
+  const deniedResponse = await fetch(`${baseUrl}/api/reports`, { method: "POST" })
+  assert.equal(deniedResponse.status, 403)
+  assert.equal(reportCalls, 1)
 })

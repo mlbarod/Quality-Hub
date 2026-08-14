@@ -6,4 +6,6 @@ coverage/
 .env.gpt-oss
 .env.db
 .env.compose
+.env.sso
+certs/sso/*
 prototype/.env.local

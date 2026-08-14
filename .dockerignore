@@ -7,10 +7,8 @@ dist
 coverage
 *.log
 .env*
-!.env.db 
-!.env.rag 
-!.env.gpt-oss
-!prototype/.env.local
+prototype/.env.local
+certs/
 docs
 notes
 scripts

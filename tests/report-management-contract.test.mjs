@@ -46,7 +46,8 @@ test("Report 조회와 신규 등록은 report_reg 컬럼에 직접 대응한다
   assert.match(repository, /user_id,[\s\S]*reg_time[\s\S]*CURRENT_TIMESTAMP/)
   assert.match(api, /const API_PATH = "\/api\/reports"/)
   assert.match(script, /const path = reportId \? `\/api\/reports\/\$\{encodeURIComponent\(reportId\)\}` : "\/api\/reports"/)
-  assert.match(script, /"x-quality-hub-user-id": getRoleOption\(currentRole\)\.userId/)
+  assert.match(script, /const withIdentityHeader = \(headers = \{\}\) => isSsoMode/)
+  assert.match(script, /"x-quality-hub-user-id": getCurrentUser\(\)\.userId/)
   assert.match(requirements, /`report_reg`/)
 })
 

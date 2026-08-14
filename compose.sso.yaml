@@ -1,0 +1,6 @@
+services:
+  app:
+    env_file:
+      - .env.sso
+    volumes:
+      - ./certs/sso:/run/secrets/quality-hub:ro

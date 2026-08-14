@@ -733,6 +733,10 @@ kbd {
 }
 
 .role-preview-control select:focus-visible { border-color: var(--primary); box-shadow: 0 0 0 3px hsl(204 94% 45% / 14%); }
+.prototype[data-auth-mode="sso"] .role-preview-control { display: none; }
+.sso-blocked-logout { display: none; }
+.prototype[data-auth-mode="sso"] .sso-blocked-logout { display: block; }
+.sso-blocked-logout button { min-height: 40px; margin-top: 18px; padding: 0 18px; border: 1px solid var(--border-strong); border-radius: 8px; background: white; color: var(--foreground); cursor: pointer; font-weight: 650; }
 
 .header-search {
   min-width: 230px;

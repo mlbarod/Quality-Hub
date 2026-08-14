@@ -43,7 +43,7 @@ test("conversation CRUD와 Backend Chat API를 source·built 서버에서 함께
   assert.match(packageSource, /"start": "node server\.mjs"/)
 })
 
-test("실제 SSO 전 테스트 user ID 경계와 Streaming 제외를 요구사항에 기록한다", () => {
-  assert.match(requirements, /역할 미리보기의 user ID를 테스트 식별값으로 사용/)
+test("SSO 세션 user ID와 비활성화 테스트 경계, Streaming 제외를 요구사항에 기록한다", () => {
+  assert.match(requirements, /SSO 비활성화 시에만 역할 미리보기의 user ID를 테스트 식별값으로 사용/)
   assert.match(requirements, /Streaming은 적용하지 않음/)
 })

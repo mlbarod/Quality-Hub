@@ -88,7 +88,7 @@ test("현재 로컬 가상 데이터와 운영 검증 경계를 요구사항에 
   assert.match(requirements, /현재 브라우저의 로컬 저장소에만 보관/)
   assert.match(requirements, /품질 Agent는 사내 RAG·GPT-OSS와 대화 DB를 Backend 흐름과 기존 UI에 연결/)
   assert.match(requirements, /Report 목록 조회·신규 등록·수정·실제 삭제는 `report_reg`에, Rule&SOP 목록 조회·수정·실제 삭제는 `rulesop`에 연결/)
-  assert.match(requirements, /실제 SSO·Spotfire 인증·나머지 업무 DB·Parquet·공유 폴더 연동과 운영 보안·성능 검증은 후속 작업/)
+  assert.match(requirements, /SSO 코드와 DB 세션·권한 저장 구조는 구현했으나 실제 사내 IdP·DB 검증/)
   assert.match(developmentPlan, /별도 설명 없이 찾고 전체 사용 흐름을 체험할 수 있으며/)
 })
 
@@ -110,7 +110,7 @@ test("사용자 및 권한 화면의 표와 조작 요소를 읽기 쉬운 크�
 test("품질 Agent UI와 실제 연동 경계를 요구사항에 명시한다", () => {
   assert.match(requirements, /기본 우측 대화 패널에서 사용하고 필요할 때 전체 작업 화면으로 확장/)
   assert.match(requirements, /RAG 검색, GPT-OSS 답변 생성과 MariaDB\/MySQL 대화 History를 Backend API로 연결/)
-  assert.match(requirements, /실제 SSO 인증과 Report 참조 범위는 후속 연동에서 확정/)
+  assert.match(requirements, /SSO 활성화 시 서버가 검증한 세션의 user ID를 대화 소유권에 사용/)
 })
 
 test("현재 단계는 개발 계획을 단일 기준으로 삼고 완료 보고서는 당시 증거를 보존한다", () => {

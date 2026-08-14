@@ -5,13 +5,15 @@ import { parseEnv } from "node:util"
 import { fileURLToPath, URL } from "node:url"
 
 import { createAgentChatApi } from "./server/agentChatApi.mjs"
+import { authorizePrincipal, createAuthApi, sendAuthorizationFailure } from "./server/authApi.mjs"
+import { loadOidcConfig } from "./server/oidcService.mjs"
 import { createReportApi } from "./server/reportApi.mjs"
 import { createRuleSopApi } from "./server/ruleSopApi.mjs"
 
 const rootDir = fileURLToPath(new URL(".", import.meta.url))
 export const sourceStaticDir = join(rootDir, "prototype")
 export const builtStaticDir = join(rootDir, "dist")
-export const serverEnvironmentFiles = [".env.rag", ".env.gpt-oss", ".env.db"]
+export const serverEnvironmentFiles = [".env.rag", ".env.gpt-oss", ".env.db", ".env.sso"]
 const defaultPort = 4173
 const defaultHost = "0.0.0.0"
 const healthPath = "/healthz"
@@ -114,7 +116,13 @@ export function getRuntimeReadiness(environment = process.env) {
       ? "configured"
       : "not_configured",
   ]))
-  const ready = Object.values(components).every((status) => status === "configured")
+  try {
+    const oidc = loadOidcConfig(environment)
+    components.sso = oidc.enabled ? "configured" : "disabled"
+  } catch {
+    components.sso = "not_configured"
+  }
+  const ready = Object.values(components).every((status) => status === "configured" || status === "disabled")
   return { ready, components }
 }
 
@@ -201,7 +209,24 @@ function getStaticCacheControl(filePath, staticDir) {
   return "no-cache"
 }
 
-function serveStatic(req, res, staticDir) {
+function isPublicStaticAsset(pathname, staticDir) {
+  const { filePath, badRequest, forbidden } = resolveStaticPath(pathname, staticDir)
+  if (badRequest || forbidden || !filePath || relative(staticDir, filePath) === "index.html") return false
+  return existsSync(filePath) && statSync(filePath).isFile()
+}
+
+function escapeHtmlAttribute(value) {
+  return String(value).replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
+}
+
+function personalizeIndex(source, principal, authEnabled) {
+  if (!authEnabled || !principal) return source
+  return source
+    .replace('data-auth-mode="legacy"', 'data-auth-mode="sso"')
+    .replace(/data-current-role="(?:master|admin|general|blocked)"/, `data-current-role="${escapeHtmlAttribute(principal.role)}"`)
+}
+
+function serveStatic(req, res, staticDir, { principal = null, authEnabled = false } = {}) {
   if (req.method !== "GET" && req.method !== "HEAD") {
     sendText(res, 405, "Method Not Allowed", { Allow: "GET, HEAD" })
     return
@@ -232,7 +257,9 @@ function serveStatic(req, res, staticDir) {
     return
   }
 
-  const fileSize = statSync(filePath).size
+  const isIndex = relative(staticDir, filePath) === "index.html"
+  const personalizedBody = isIndex ? personalizeIndex(readFileSync(filePath, "utf8"), principal, authEnabled) : null
+  const fileSize = personalizedBody === null ? statSync(filePath).size : Buffer.byteLength(personalizedBody)
   const contentType = mimeTypes[extname(filePath).toLowerCase()] ?? "application/octet-stream"
 
   res.writeHead(200, {
@@ -243,6 +270,11 @@ function serveStatic(req, res, staticDir) {
 
   if (req.method === "HEAD") {
     res.end()
+    return
+  }
+
+  if (personalizedBody !== null) {
+    res.end(personalizedBody)
     return
   }
 
@@ -261,6 +293,7 @@ export function createQualityHubServer({
   reportApi = createReportApi(),
   ruleSopApi = createRuleSopApi(),
   environment = process.env,
+  authApi = createAuthApi({ environment }),
 } = {}) {
   const server = createHttpServer(async (req, res) => {
     try {
@@ -274,10 +307,35 @@ export function createQualityHubServer({
         serveReadiness(req, res, environment)
         return
       }
+      if (authApi.enabled && (req.method === "GET" || req.method === "HEAD") && isPublicStaticAsset(url.pathname, staticDir)) {
+        serveStatic(req, res, staticDir)
+        return
+      }
+      if (authApi.enabled && url.pathname.startsWith("/auth/") && await authApi.handle(req, res)) return
+      let principal = null
+      if (authApi.enabled) {
+        principal = await authApi.authenticate(req)
+        req.auth = principal
+        const authorization = authorizePrincipal(principal, req)
+        if (!authorization.allowed) {
+          if (url.pathname.startsWith("/api/")) {
+            sendAuthorizationFailure(res, authorization.status)
+          } else if ((req.method === "GET" || req.method === "HEAD") && authorization.status === 401) {
+            const returnTo = `${url.pathname}${url.search}`
+            res.writeHead(302, { Location: `/auth/login?returnTo=${encodeURIComponent(returnTo)}`, "Cache-Control": "no-store" })
+            res.end()
+          } else {
+            sendText(res, authorization.status, authorization.status === 401 ? "Authentication Required" : "Forbidden")
+          }
+          return
+        }
+        if (principal) req.headers["x-quality-hub-user-id"] = principal.userId
+        if (url.pathname.startsWith("/api/auth/") && await authApi.handle(req, res)) return
+      }
       if (await agentApi.handle(req, res)) return
       if (await reportApi.handle(req, res)) return
       if (await ruleSopApi.handle(req, res)) return
-      serveStatic(req, res, staticDir)
+      serveStatic(req, res, staticDir, { principal, authEnabled: authApi.enabled })
     } catch (error) {
       console.error("Quality Hub request failed:", error)
       if (!res.headersSent) sendText(res, 500, "Internal Server Error")
@@ -292,6 +350,7 @@ export function createQualityHubServer({
     void agentApi.close()
     void reportApi.close()
     void ruleSopApi.close()
+    void authApi.close()
   })
   return server
 }
@@ -322,12 +381,50 @@ async function startSourceServer({ host, port }) {
   const agentApi = createAgentChatApi()
   const reportApi = createReportApi()
   const ruleSopApi = createRuleSopApi()
+  const authApi = createAuthApi()
   let viteServer
   const httpServer = createHttpServer(async (req, res) => {
     try {
+      const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`)
+      if (url.pathname === healthPath) {
+        serveHealth(req, res)
+        return
+      }
+      if (url.pathname === readinessPath) {
+        serveReadiness(req, res, process.env)
+        return
+      }
+      if (authApi.enabled && url.pathname.startsWith("/auth/") && await authApi.handle(req, res)) return
+      let principal = null
+      if (authApi.enabled) {
+        principal = await authApi.authenticate(req)
+        req.auth = principal
+        const authorization = authorizePrincipal(principal, req)
+        if (!authorization.allowed) {
+          if (url.pathname.startsWith("/api/")) sendAuthorizationFailure(res, authorization.status)
+          else if ((req.method === "GET" || req.method === "HEAD") && authorization.status === 401) {
+            res.writeHead(302, { Location: `/auth/login?returnTo=${encodeURIComponent(`${url.pathname}${url.search}`)}`, "Cache-Control": "no-store" })
+            res.end()
+          } else sendText(res, authorization.status, "Forbidden")
+          return
+        }
+        if (principal) req.headers["x-quality-hub-user-id"] = principal.userId
+        if (url.pathname.startsWith("/api/auth/") && await authApi.handle(req, res)) return
+      }
       if (await agentApi.handle(req, res)) return
       if (await reportApi.handle(req, res)) return
       if (await ruleSopApi.handle(req, res)) return
+      if (authApi.enabled && principal && (url.pathname === "/" || url.pathname === "/index.html") && (req.method === "GET" || req.method === "HEAD")) {
+        const transformed = await viteServer.transformIndexHtml(url.pathname, readFileSync(join(sourceStaticDir, "index.html"), "utf8"))
+        const body = personalizeIndex(transformed, principal, true)
+        res.writeHead(200, {
+          "Content-Type": "text/html; charset=utf-8",
+          "Content-Length": Buffer.byteLength(body),
+          "Cache-Control": "no-store",
+        })
+        res.end(req.method === "HEAD" ? undefined : body)
+        return
+      }
       viteServer.middlewares(req, res)
     } catch (error) {
       console.error("Quality Hub source request failed:", error)
@@ -339,6 +436,7 @@ async function startSourceServer({ host, port }) {
     void agentApi.close()
     void reportApi.close()
     void ruleSopApi.close()
+    void authApi.close()
     void viteServer?.close()
   })
 
