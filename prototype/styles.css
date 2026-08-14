@@ -4091,7 +4091,7 @@ kbd {
 
 .rule-document-meta {
   display: flex;
-  min-width: 112px;
+  min-width: 52px;
   grid-column: 3;
   grid-row: 1 / 4;
   align-items: center;
@@ -4100,14 +4100,6 @@ kbd {
   align-self: stretch;
   padding-left: 18px;
   border-left: 1px solid var(--border);
-}
-
-.rule-document-meta > i {
-  color: var(--faint-foreground);
-  font-size: 6px;
-  font-style: normal;
-  font-weight: 700;
-  letter-spacing: .05em;
 }
 
 .rule-document-meta .icon {
@@ -4147,6 +4139,18 @@ kbd {
 }
 .rule-empty-state strong { margin-top: 4px; font-size: 11px; }
 .rule-empty-state span { color: var(--faint-foreground); font-size: 8px; }
+.rule-empty-state > button {
+  min-height: 36px;
+  margin-top: 8px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: white;
+  color: var(--primary-dark);
+  cursor: pointer;
+  font-weight: 680;
+}
+.rule-empty-state > button:hover { background: var(--primary-soft); }
 
 body:not(.rule-manager) .rule-admin-only { display: none !important; }
 
@@ -4297,7 +4301,7 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
 
 .rule-detail-classification {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin: 0;
 }
@@ -4358,34 +4362,6 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
 }
 .rule-source-link > button:hover { background: var(--primary-soft); }
 .rule-source-link > button .icon { width: 16px; height: 16px; }
-
-.rule-revision-section {
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-}
-
-.rule-revision-section > header {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-  background: #f8fbfd;
-}
-
-.rule-revision-section > header > span { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 9px; background: var(--primary-soft); color: var(--primary-dark); }
-.rule-revision-section > header > span .icon { width: 17px; height: 17px; }
-.rule-revision-section > header > div { display: grid; gap: 2px; }
-.rule-revision-section > header strong { font-size: 14px; }
-.rule-revision-section > header small { color: var(--muted-foreground); font-size: 12px; }
-.rule-revision-section ol { display: grid; max-height: 210px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
-.rule-revision-section li { display: flex; align-items: flex-start; gap: 12px; padding: 13px 16px; border-bottom: 1px solid #e8eef2; }
-.rule-revision-section li:last-child { border-bottom: 0; }
-.rule-revision-section li > b { min-width: 48px; padding: 4px 7px; border-radius: 999px; background: var(--primary-soft); color: var(--primary-dark); font-size: 11px; text-align: center; }
-.rule-revision-section li > span { display: grid; gap: 2px; }
-.rule-revision-section li strong { font-size: 13px; }
-.rule-revision-section li small { color: var(--muted-foreground); font-size: 11px; }
 
 .rule-detail-panel > footer {
   display: flex;
@@ -4448,7 +4424,7 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
 .rule-editor-body select:focus,
 .rule-editor-body textarea:focus { border-color: hsl(204 94% 45% / 48%); box-shadow: 0 0 0 4px hsl(204 94% 45% / 8%); }
 
-.rule-editor-taxonomy { margin: 0; padding: 16px; border: 1px solid #dce7ee; border-radius: 11px; background: var(--surface-soft); }
+.rule-editor-taxonomy { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 16px; border: 1px solid #dce7ee; border-radius: 11px; background: var(--surface-soft); }
 .rule-editor-taxonomy legend { padding: 0 5px; font-size: 14px; font-weight: 720; }
 .rule-editor-taxonomy legend small { margin-left: 6px; color: var(--muted-foreground); font-size: 11px; font-weight: 500; }
 .rule-editor-taxonomy > div { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
@@ -7119,14 +7095,11 @@ body,
 .rule-document-card > strong { font-size: 16px; }
 .rule-document-card > small { font-size: 12px; }
 .rule-document-type > i,
-.rule-document-type > em,
-.rule-document-meta > i { font-size: 12px; }
+.rule-document-type > em { font-size: 12px; }
 .rule-empty-state strong { font-size: 14px; }
 .rule-document-create-card > em { font-size: 12px; }
 .rule-detail-panel > header small,
 .rule-detail-classification dt,
-.rule-revision-section li > b,
-.rule-revision-section li small,
 .rule-detail-panel > footer > span,
 .rule-editor-taxonomy legend small,
 .rule-editor-url small { font-size: 12px; }

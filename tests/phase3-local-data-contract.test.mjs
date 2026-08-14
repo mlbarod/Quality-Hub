@@ -47,14 +47,14 @@ test("손상되거나 규격이 다른 로컬 데이터는 안전하게 가상 �
   assert.throws(() => repository.write({ documents: [], revisions: null }), /Invalid local test data/)
 })
 
-test("Rule&SOP와 Q&A가 로컬 저장 및 동적 통합 검색에 연결된다", async () => {
+test("Rule&SOP DB 조회와 Q&A 로컬 저장이 동적 통합 검색에 연결된다", async () => {
   const app = await readFile(new URL("../prototype/app.js", import.meta.url), "utf8")
   const qna = await readFile(new URL("../prototype/src/qna/QnaApp.jsx", import.meta.url), "utf8")
   const styles = await readFile(new URL("../prototype/styles.css", import.meta.url), "utf8")
 
-  assert.match(app, /createLocalRepository/)
-  assert.match(app, /hydrateRuleDocuments/)
-  assert.match(app, /persistRuleData/)
+  assert.match(app, /fetch\(`\/api\/rules/)
+  assert.match(app, /renderRuleCatalog/)
+  assert.doesNotMatch(app, /key: "rules"/)
   assert.match(app, /syncGlobalSearchResults/)
   assert.match(app, /qnaRepository\.read\(\)/)
   assert.match(qna, /qnaRepository\.write\(\{ posts, notifications, history: historyEntries \}\)/)

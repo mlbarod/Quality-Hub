@@ -114,7 +114,7 @@
       </symbol>
     </svg>
 
-    <div class="prototype" data-layout="top" data-dashboard-mode="home" data-agent-mode="closed" data-report-mode="closed" data-rule-mode="closed" data-qna-mode="closed" data-user-mode="closed" data-current-role="master" data-common-state="normal" data-can-manage-rules="true" data-can-manage-reports="true">
+    <div class="prototype" data-layout="top" data-dashboard-mode="home" data-agent-mode="closed" data-report-mode="closed" data-rule-mode="closed" data-qna-mode="closed" data-user-mode="closed" data-current-role="master" data-common-state="normal" data-can-manage-reports="true" data-can-manage-rules="true">
       <aside class="sidebar" aria-label="좌측 서비스 메뉴">
         <a class="brand sidebar-brand" href="#home" aria-label="Quality Hub 홈" data-home-refresh>
           <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -142,7 +142,7 @@
           <button class="side-nav-item" type="button" data-rule-open>
             <svg class="icon"><use href="#icon-book"></use></svg>
             <span>Rule&amp;SOP</span>
-            <span class="nav-count">12</span>
+            <span class="nav-count" data-rule-total-count>0</span>
           </button>
           <button class="side-nav-item" type="button" data-qna-open>
             <svg class="icon"><use href="#icon-message"></use></svg>
@@ -599,11 +599,11 @@
               <div>
                 <p class="section-kicker">RULE &amp; SOP WORKSPACE</p>
                 <h1 id="rule-page-title">업무 기준을 분류별로<br />빠르게 찾아보세요.</h1>
-                <p>현재 화면의 분류와 문서는 UI 검토용 예시이며, 실제 항목은 데이터 연결 단계에서 정의합니다.</p>
+                <p>rulesop에 등록된 문서를 대분류, 중분류, 소분류 순서로 좁혀서 확인합니다.</p>
               </div>
               <div class="rule-mock-notice" role="note">
                 <svg class="icon"><use href="#icon-shield"></use></svg>
-                <span><strong>예시 분류 데이터</strong><small>실제 Rule·SOP 아님</small></span>
+                <span><strong>실제 DB 연결</strong><small>rulesop 최신 목록</small></span>
               </div>
             </section>
 
@@ -623,7 +623,7 @@
 
             <section class="rule-sop-browser" aria-labelledby="rule-sop-browser-title">
               <header class="rule-sop-heading">
-                <div><p class="section-kicker">RULE &amp; SOP</p><h2 id="rule-sop-browser-title">분류 범위로 문서 찾기</h2><span>대분류부터 소분류까지 선택하면 조건에 맞는 예시 문서만 목록에 표시됩니다.</span></div>
+                <div><p class="section-kicker">RULE &amp; SOP</p><h2 id="rule-sop-browser-title">분류 범위로 문서 찾기</h2><span>대분류부터 소분류까지 선택하면 조건에 맞는 문서만 목록에 표시됩니다.</span></div>
                 <button type="button" data-rule-filter-reset><svg class="icon"><use href="#icon-refresh"></use></svg>필터 초기화</button>
               </header>
 
@@ -632,9 +632,6 @@
                   <legend><span>01</span><strong>대분류</strong><small>가장 넓은 업무 범위</small></legend>
                   <div>
                     <button class="is-selected" type="button" data-rule-filter="major" data-rule-filter-value="all" aria-pressed="true"><span class="rule-filter-icon is-major"><i></i><i></i><i></i></span><span>전체</span></button>
-                    <button type="button" data-rule-filter="major" data-rule-filter-value="major-a" aria-pressed="false"><span class="rule-filter-icon is-major"><i></i><i></i><i></i></span><span>예시 대분류 A</span></button>
-                    <button type="button" data-rule-filter="major" data-rule-filter-value="major-b" aria-pressed="false"><span class="rule-filter-icon is-major"><i></i><i></i><i></i></span><span>예시 대분류 B</span></button>
-                    <button type="button" data-rule-filter="major" data-rule-filter-value="major-c" aria-pressed="false"><span class="rule-filter-icon is-major"><i></i><i></i><i></i></span><span>예시 대분류 C</span></button>
                   </div>
                 </fieldset>
 
@@ -642,12 +639,6 @@
                   <legend><span>02</span><strong>중분류</strong><small>업무 목적과 절차 범위</small></legend>
                   <div>
                     <button class="is-selected" type="button" data-rule-filter="middle" data-rule-filter-value="all" aria-pressed="true"><span class="rule-filter-icon is-middle"><i></i><i></i><i></i></span><span>전체</span></button>
-                    <button type="button" data-rule-filter="middle" data-rule-filter-value="middle-a1" aria-pressed="false"><span class="rule-filter-icon is-middle"><i></i><i></i><i></i></span><span>예시 중분류 A-1</span></button>
-                    <button type="button" data-rule-filter="middle" data-rule-filter-value="middle-a2" aria-pressed="false"><span class="rule-filter-icon is-middle"><i></i><i></i><i></i></span><span>예시 중분류 A-2</span></button>
-                    <button type="button" data-rule-filter="middle" data-rule-filter-value="middle-b1" aria-pressed="false"><span class="rule-filter-icon is-middle"><i></i><i></i><i></i></span><span>예시 중분류 B-1</span></button>
-                    <button type="button" data-rule-filter="middle" data-rule-filter-value="middle-b2" aria-pressed="false"><span class="rule-filter-icon is-middle"><i></i><i></i><i></i></span><span>예시 중분류 B-2</span></button>
-                    <button type="button" data-rule-filter="middle" data-rule-filter-value="middle-c1" aria-pressed="false"><span class="rule-filter-icon is-middle"><i></i><i></i><i></i></span><span>예시 중분류 C-1</span></button>
-                    <button type="button" data-rule-filter="middle" data-rule-filter-value="middle-c2" aria-pressed="false"><span class="rule-filter-icon is-middle"><i></i><i></i><i></i></span><span>예시 중분류 C-2</span></button>
                   </div>
                 </fieldset>
 
@@ -655,78 +646,27 @@
                   <legend><span>03</span><strong>소분류</strong><small>세부 문서 단위</small></legend>
                   <div>
                     <button class="is-selected" type="button" data-rule-filter="minor" data-rule-filter-value="all" aria-pressed="true"><span class="rule-filter-icon is-minor"><i></i><i></i><i></i></span><span>전체</span></button>
-                    <button type="button" data-rule-filter="minor" data-rule-filter-value="minor-01" aria-pressed="false"><span class="rule-filter-icon is-minor"><i></i><i></i><i></i></span><span>예시 소분류 01</span></button>
-                    <button type="button" data-rule-filter="minor" data-rule-filter-value="minor-02" aria-pressed="false"><span class="rule-filter-icon is-minor"><i></i><i></i><i></i></span><span>예시 소분류 02</span></button>
-                    <button type="button" data-rule-filter="minor" data-rule-filter-value="minor-03" aria-pressed="false"><span class="rule-filter-icon is-minor"><i></i><i></i><i></i></span><span>예시 소분류 03</span></button>
-                    <button type="button" data-rule-filter="minor" data-rule-filter-value="minor-04" aria-pressed="false"><span class="rule-filter-icon is-minor"><i></i><i></i><i></i></span><span>예시 소분류 04</span></button>
                   </div>
                 </fieldset>
               </div>
 
               <div class="rule-results-heading">
                 <div><strong>Rule&amp;SOP 문서 목록</strong><span data-rule-filter-summary>전체 분류</span></div>
-                <p><strong data-rule-result-count>8</strong>개의 예시 문서</p>
+                <p><strong data-rule-result-count>0</strong>개의 문서</p>
               </div>
 
-              <div class="rule-card-grid" data-rule-card-grid aria-live="polite">
-                <button class="rule-document-card" type="button" data-rule-card data-rule-id="rule-a-01" data-rule-major="major-a" data-rule-middle="middle-a1" data-rule-minor="minor-01" data-rule-process="식각" data-rule-type="rule" data-rule-version="0.1" data-rule-url="https://quality-hub.internal/rules/a-01" data-rule-updated="2026-08-05" data-rule-title="예시 Rule 문서 A-01">
-                  <span class="rule-document-visual is-rule" aria-hidden="true"><i></i><i></i><i></i><b></b></span>
-                  <span class="rule-document-type"><i>RULE</i><em>예시 데이터</em></span>
-                  <strong>예시 Rule 문서 A-01</strong><small>예시 대분류 A · 중분류 A-1 · 소분류 01</small><span class="rule-document-meta"><i>v0.1 MOCK</i><svg class="icon"><use href="#icon-arrow"></use></svg></span>
-                </button>
-                <button class="rule-document-card" type="button" data-rule-card data-rule-id="sop-a-02" data-rule-major="major-a" data-rule-middle="middle-a1" data-rule-minor="minor-02" data-rule-process="세정" data-rule-type="sop" data-rule-version="0.1" data-rule-url="https://quality-hub.internal/sop/a-02" data-rule-updated="2026-08-05" data-rule-title="예시 SOP 문서 A-02">
-                  <span class="rule-document-visual is-sop" aria-hidden="true"><i></i><i></i><i></i><b></b></span>
-                  <span class="rule-document-type"><i>SOP</i><em>예시 데이터</em></span>
-                  <strong>예시 SOP 문서 A-02</strong><small>예시 대분류 A · 중분류 A-1 · 소분류 02</small><span class="rule-document-meta"><i>v0.1 MOCK</i><svg class="icon"><use href="#icon-arrow"></use></svg></span>
-                </button>
-                <button class="rule-document-card" type="button" data-rule-card data-rule-id="rule-a-03" data-rule-major="major-a" data-rule-middle="middle-a2" data-rule-minor="minor-03" data-rule-process="검사" data-rule-type="rule" data-rule-version="0.1" data-rule-url="https://quality-hub.internal/rules/a-03" data-rule-updated="2026-08-05" data-rule-title="예시 Rule 문서 A-03">
-                  <span class="rule-document-visual is-rule" aria-hidden="true"><i></i><i></i><i></i><b></b></span>
-                  <span class="rule-document-type"><i>RULE</i><em>예시 데이터</em></span>
-                  <strong>예시 Rule 문서 A-03</strong><small>예시 대분류 A · 중분류 A-2 · 소분류 03</small><span class="rule-document-meta"><i>v0.1 MOCK</i><svg class="icon"><use href="#icon-arrow"></use></svg></span>
-                </button>
-                <button class="rule-document-card" type="button" data-rule-card data-rule-id="sop-b-01" data-rule-major="major-b" data-rule-middle="middle-b1" data-rule-minor="minor-01" data-rule-process="확산" data-rule-type="sop" data-rule-version="0.1" data-rule-url="https://quality-hub.internal/sop/b-01" data-rule-updated="2026-08-05" data-rule-title="예시 SOP 문서 B-01">
-                  <span class="rule-document-visual is-sop" aria-hidden="true"><i></i><i></i><i></i><b></b></span>
-                  <span class="rule-document-type"><i>SOP</i><em>예시 데이터</em></span>
-                  <strong>예시 SOP 문서 B-01</strong><small>예시 대분류 B · 중분류 B-1 · 소분류 01</small><span class="rule-document-meta"><i>v0.1 MOCK</i><svg class="icon"><use href="#icon-arrow"></use></svg></span>
-                </button>
-                <button class="rule-document-card" type="button" data-rule-card data-rule-id="rule-b-04" data-rule-major="major-b" data-rule-middle="middle-b1" data-rule-minor="minor-04" data-rule-process="식각" data-rule-type="rule" data-rule-version="0.1" data-rule-url="https://quality-hub.internal/rules/b-04" data-rule-updated="2026-08-05" data-rule-title="예시 Rule 문서 B-04">
-                  <span class="rule-document-visual is-rule" aria-hidden="true"><i></i><i></i><i></i><b></b></span>
-                  <span class="rule-document-type"><i>RULE</i><em>예시 데이터</em></span>
-                  <strong>예시 Rule 문서 B-04</strong><small>예시 대분류 B · 중분류 B-1 · 소분류 04</small><span class="rule-document-meta"><i>v0.1 MOCK</i><svg class="icon"><use href="#icon-arrow"></use></svg></span>
-                </button>
-                <button class="rule-document-card" type="button" data-rule-card data-rule-id="sop-b-02" data-rule-major="major-b" data-rule-middle="middle-b2" data-rule-minor="minor-02" data-rule-process="포토" data-rule-type="sop" data-rule-version="0.1" data-rule-url="https://quality-hub.internal/sop/b-02" data-rule-updated="2026-08-05" data-rule-title="예시 SOP 문서 B-02">
-                  <span class="rule-document-visual is-sop" aria-hidden="true"><i></i><i></i><i></i><b></b></span>
-                  <span class="rule-document-type"><i>SOP</i><em>예시 데이터</em></span>
-                  <strong>예시 SOP 문서 B-02</strong><small>예시 대분류 B · 중분류 B-2 · 소분류 02</small><span class="rule-document-meta"><i>v0.1 MOCK</i><svg class="icon"><use href="#icon-arrow"></use></svg></span>
-                </button>
-                <button class="rule-document-card" type="button" data-rule-card data-rule-id="rule-c-03" data-rule-major="major-c" data-rule-middle="middle-c1" data-rule-minor="minor-03" data-rule-process="검사" data-rule-type="rule" data-rule-version="0.1" data-rule-url="https://quality-hub.internal/rules/c-03" data-rule-updated="2026-08-05" data-rule-title="예시 Rule 문서 C-03">
-                  <span class="rule-document-visual is-rule" aria-hidden="true"><i></i><i></i><i></i><b></b></span>
-                  <span class="rule-document-type"><i>RULE</i><em>예시 데이터</em></span>
-                  <strong>예시 Rule 문서 C-03</strong><small>예시 대분류 C · 중분류 C-1 · 소분류 03</small><span class="rule-document-meta"><i>v0.1 MOCK</i><svg class="icon"><use href="#icon-arrow"></use></svg></span>
-                </button>
-                <button class="rule-document-card" type="button" data-rule-card data-rule-id="sop-c-04" data-rule-major="major-c" data-rule-middle="middle-c2" data-rule-minor="minor-04" data-rule-process="세정" data-rule-type="sop" data-rule-version="0.1" data-rule-url="https://quality-hub.internal/sop/c-04" data-rule-updated="2026-08-05" data-rule-title="예시 SOP 문서 C-04">
-                  <span class="rule-document-visual is-sop" aria-hidden="true"><i></i><i></i><i></i><b></b></span>
-                  <span class="rule-document-type"><i>SOP</i><em>예시 데이터</em></span>
-                  <strong>예시 SOP 문서 C-04</strong><small>예시 대분류 C · 중분류 C-2 · 소분류 04</small><span class="rule-document-meta"><i>v0.1 MOCK</i><svg class="icon"><use href="#icon-arrow"></use></svg></span>
-                </button>
-                <button class="rule-document-create-card rule-admin-only" type="button" data-rule-create-open>
-                  <span class="rule-create-icon" aria-hidden="true"><svg class="icon"><use href="#icon-plus"></use></svg></span>
-                  <strong>신규 문서 등록</strong>
-                  <small>대·중·소분류와 담당 공정을 선택해 새 문서를 추가합니다.</small>
-                  <em>관리자 전용</em>
-                </button>
-              </div>
+              <div class="rule-card-grid" data-rule-card-grid aria-live="polite"></div>
 
               <template data-rule-card-template>
                 <button class="rule-document-card" type="button" data-rule-card>
                   <span class="rule-document-visual is-rule" aria-hidden="true"><i></i><i></i><i></i><b></b></span>
-                  <span class="rule-document-type"><i>RULE</i><em>관리자 등록</em></span>
-                  <strong data-rule-card-title></strong><small data-rule-card-classification></small><span class="rule-document-meta"><i data-rule-card-version>v0.1 MOCK</i><svg class="icon"><use href="#icon-arrow"></use></svg></span>
+                  <span class="rule-document-type"><i>RULE&amp;SOP</i></span>
+                  <strong data-rule-card-title></strong><small data-rule-card-classification></small><span class="rule-document-meta"><svg class="icon"><use href="#icon-arrow"></use></svg></span>
                 </button>
               </template>
 
               <div class="rule-empty-state" hidden data-rule-empty>
-                <svg class="icon"><use href="#icon-search"></use></svg><strong>조건에 맞는 예시 문서가 없습니다.</strong><span>다른 분류를 선택하거나 필터를 초기화하세요.</span>
+                <svg class="icon"><use href="#icon-search" data-rule-empty-icon></use></svg><strong data-rule-empty-title>등록된 문서가 없습니다.</strong><span data-rule-empty-description>rulesop에 문서가 등록되면 이곳에 표시됩니다.</span><button type="button" hidden data-rule-retry>다시 시도</button>
               </div>
             </section>
           </div>
@@ -1064,7 +1004,7 @@
       <article class="rule-detail-panel">
         <header>
           <span class="rule-dialog-mark"><svg class="icon"><use href="#icon-file-check"></use></svg></span>
-          <span><small data-rule-detail-type>RULE · v0.1</small><strong id="rule-detail-title" data-rule-detail-title>Rule&amp;SOP 문서</strong><em id="rule-detail-description">등록된 분류, 원문 링크와 개정 이력을 확인합니다.</em></span>
+          <span><small data-rule-detail-type>RULE&amp;SOP</small><strong id="rule-detail-title" data-rule-detail-title>Rule&amp;SOP 문서</strong><em id="rule-detail-description">등록된 분류와 원문 링크를 확인합니다.</em></span>
           <button type="button" aria-label="Rule&SOP 상세 닫기" data-rule-detail-close><svg class="icon"><use href="#icon-close"></use></svg></button>
         </header>
         <div class="rule-detail-body">
@@ -1072,22 +1012,17 @@
             <div><dt>대분류</dt><dd data-rule-detail-major></dd></div>
             <div><dt>중분류</dt><dd data-rule-detail-middle></dd></div>
             <div><dt>소분류</dt><dd data-rule-detail-minor></dd></div>
-            <div><dt>담당 공정</dt><dd data-rule-detail-process></dd></div>
           </dl>
           <section class="rule-source-link" aria-labelledby="rule-source-title">
             <span><svg class="icon"><use href="#icon-link"></use></svg></span>
             <div><strong id="rule-source-title">문서 원문 링크</strong><small data-rule-detail-url></small></div>
             <button type="button" data-rule-view><svg class="icon"><use href="#icon-eye"></use></svg>조회</button>
           </section>
-          <section class="rule-revision-section" aria-labelledby="rule-revision-title">
-            <header><span><svg class="icon"><use href="#icon-history"></use></svg></span><div><strong id="rule-revision-title">개정 이력</strong><small>변경 시점과 개정 내용을 표시합니다. 이전 버전 원문 조회는 제공하지 않습니다.</small></div></header>
-            <ol data-rule-revision-list></ol>
-          </section>
         </div>
         <footer>
-          <span>별도 DB URL·분류 컬럼 연동 전 목업입니다.</span>
+          <span>rulesop에 등록된 분류와 URL을 표시합니다.</span>
           <div class="rule-admin-actions rule-admin-only">
-            <button class="rule-detail-delete" type="button" data-rule-delete-open><svg class="icon"><use href="#icon-trash"></use></svg>숨김</button>
+            <button class="rule-detail-delete" type="button" data-rule-delete-open><svg class="icon"><use href="#icon-trash"></use></svg>삭제</button>
             <button class="rule-detail-edit" type="button" data-rule-edit-open><svg class="icon"><use href="#icon-edit"></use></svg>수정</button>
           </div>
         </footer>
@@ -1096,39 +1031,32 @@
 
     <dialog class="rule-editor-dialog" aria-labelledby="rule-editor-title" aria-describedby="rule-editor-description" data-rule-editor-dialog>
       <form class="rule-editor-form" data-rule-editor-form novalidate>
-        <header>
+        <header role="presentation">
           <span class="rule-dialog-mark"><svg class="icon"><use href="#icon-edit"></use></svg></span>
-          <span><strong id="rule-editor-title" data-rule-editor-title>Rule&amp;SOP 신규 등록</strong><small id="rule-editor-description">DB 분류 컬럼 구조에 맞춰 순서대로 선택하세요.</small></span>
-          <button type="button" aria-label="Rule&SOP 등록·수정 닫기" data-rule-editor-close><svg class="icon"><use href="#icon-close"></use></svg></button>
+          <span><strong id="rule-editor-title">Rule&amp;SOP 문서 수정</strong><small id="rule-editor-description">rulesop의 분류, 제목과 URL을 수정합니다.</small></span>
+          <button type="button" aria-label="Rule&SOP 수정 닫기" data-rule-editor-close><svg class="icon"><use href="#icon-close"></use></svg></button>
         </header>
         <div class="rule-editor-body">
-          <div class="rule-editor-basic-grid">
-            <label>문서 구분<select required data-rule-editor-type><option value="rule">RULE</option><option value="sop">SOP</option></select></label>
-            <label>문서 제목<input type="text" required maxlength="80" placeholder="예: 식각 공정 관리 기준" data-rule-editor-name /></label>
+          <label>제목<input type="text" required maxlength="200" placeholder="문서 제목" data-rule-editor-title-input /><small>rulesop.title 값으로 저장합니다.</small></label>
+          <div class="rule-editor-taxonomy">
+            <label>대분류<input type="text" required maxlength="50" placeholder="대분류" data-rule-editor-major /></label>
+            <label>중분류<input type="text" required maxlength="50" placeholder="중분류" data-rule-editor-middle /></label>
+            <label>소분류<input type="text" required maxlength="50" placeholder="소분류" data-rule-editor-minor /></label>
           </div>
-          <fieldset class="rule-editor-taxonomy">
-            <legend>분류 드릴다운 <small>앞 단계 선택에 따라 다음 항목이 표시됩니다.</small></legend>
-            <div>
-              <label><span><i>01</i>대분류</span><select required data-rule-editor-major><option value="major-a">예시 대분류 A</option><option value="major-b">예시 대분류 B</option><option value="major-c">예시 대분류 C</option></select></label>
-              <label><span><i>02</i>중분류</span><select required data-rule-editor-middle></select></label>
-              <label><span><i>03</i>소분류</span><select required data-rule-editor-minor></select></label>
-              <label><span><i>04</i>담당 공정</span><select required data-rule-editor-process></select></label>
-            </div>
-          </fieldset>
-          <label class="rule-editor-url">문서 파일 또는 원문 링크<input type="url" required placeholder="https://quality-hub.internal/rules/..." data-rule-editor-url /><small>실제 연동 시 별도 DB의 URL 컬럼 값을 사용합니다.</small></label>
-          <label class="rule-editor-note">개정 내용<textarea rows="3" maxlength="200" placeholder="신규 등록 또는 이번 개정 내용을 입력하세요." data-rule-editor-note></textarea></label>
+          <label class="rule-editor-url">문서 URL<input type="url" required maxlength="500" placeholder="https://..." data-rule-editor-url /><small>조회 버튼에서 열 rulesop.url 값입니다.</small></label>
           <p class="rule-editor-error" role="alert" hidden data-rule-editor-error></p>
         </div>
-        <footer><button type="button" class="rule-editor-cancel" data-rule-editor-close>취소</button><button type="submit" class="rule-editor-submit"><svg class="icon"><use href="#icon-plus"></use></svg><span data-rule-editor-submit-label>신규 등록</span></button></footer>
+        <footer><button type="button" class="rule-editor-cancel" data-rule-editor-close>취소</button><button type="submit" class="rule-editor-submit"><svg class="icon"><use href="#icon-edit"></use></svg>수정 완료</button></footer>
       </form>
     </dialog>
 
     <dialog class="rule-delete-dialog" aria-labelledby="rule-delete-title" aria-describedby="rule-delete-description" data-rule-delete-dialog>
       <div class="rule-delete-panel">
         <span class="rule-delete-mark"><svg class="icon"><use href="#icon-trash"></use></svg></span>
-        <strong id="rule-delete-title">문서를 숨김 처리할까요?</strong>
-        <p id="rule-delete-description"><b data-rule-delete-name></b> 카드가 일반 목록에서 숨겨지며 마스터가 복구할 수 있습니다.</p>
-        <div><button type="button" data-rule-delete-close>취소</button><button type="button" data-rule-delete-confirm>숨김 처리</button></div>
+        <strong id="rule-delete-title">Rule&amp;SOP 문서를 삭제할까요?</strong>
+        <p id="rule-delete-description"><b data-rule-delete-name></b> 카드와 rulesop 데이터가 즉시 삭제되며 복구할 수 없습니다.</p>
+        <p class="rule-editor-error" role="alert" hidden data-rule-delete-error></p>
+        <div><button type="button" data-rule-delete-close>취소</button><button type="button" data-rule-delete-confirm>삭제</button></div>
       </div>
     </dialog>
 
@@ -1157,7 +1085,7 @@
 
     <dialog class="phase2-dialog" aria-labelledby="recovery-title" data-recovery-dialog>
       <section class="phase2-dialog-panel">
-        <header><span><svg class="icon"><use href="#icon-refresh"></use></svg></span><div><strong id="recovery-title">숨김 항목 복구</strong><small>Report, Rule&amp;SOP, 권한 규칙의 숨김 항목을 복구합니다.</small></div><button type="button" aria-label="숨김 항목 복구 닫기" data-recovery-close><svg class="icon"><use href="#icon-close"></use></svg></button></header>
+        <header><span><svg class="icon"><use href="#icon-refresh"></use></svg></span><div><strong id="recovery-title">숨김 항목 복구</strong><small>권한 규칙 등 숨김 항목을 복구합니다.</small></div><button type="button" aria-label="숨김 항목 복구 닫기" data-recovery-close><svg class="icon"><use href="#icon-close"></use></svg></button></header>
         <div class="phase2-dialog-body" data-recovery-list><p class="phase2-empty">숨김 처리된 항목이 없습니다.</p></div>
       </section>
     </dialog>
@@ -1184,7 +1112,7 @@
           <kbd>ESC</kbd>
         </label>
 
-        <div class="global-search-result-heading"><strong>검색 결과</strong><span aria-live="polite" data-global-search-count>6개 콘텐츠</span></div>
+        <div class="global-search-result-heading"><strong>검색 결과</strong><span aria-live="polite" data-global-search-count>4개 콘텐츠</span></div>
         <div class="global-search-results" data-global-search-results>
           <button type="button" data-global-search-result data-search-target="report" data-search-id="공정 이상 분석" data-search-text="공정 이상 분석 FDC 원인 추적 Report 이상 구간">
             <span class="search-result-type is-report"><svg class="icon"><use href="#icon-grid"></use></svg></span>
@@ -1194,16 +1122,6 @@
           <button type="button" data-global-search-result data-search-target="report" data-search-id="AOI 검사 분석" data-search-text="AOI 검사 분석 VM 오경보 결함 분포 Report">
             <span class="search-result-type is-report"><svg class="icon"><use href="#icon-grid"></use></svg></span>
             <span><i>REPORT · VM</i><strong>AOI 검사 분석</strong><small>검사 위치별 결함 분포와 오경보 패턴을 분석합니다.</small></span>
-            <svg class="icon search-result-arrow"><use href="#icon-arrow"></use></svg>
-          </button>
-          <button type="button" data-global-search-result data-search-target="rule" data-search-id="예시 Rule 문서 A-01" data-search-text="예시 Rule 문서 A-01 기준 대분류 A 중분류 A-1 소분류 01">
-            <span class="search-result-type is-rule"><svg class="icon"><use href="#icon-book"></use></svg></span>
-            <span><i>RULE · 기준 문서</i><strong>예시 Rule 문서 A-01</strong><small>예시 대분류 A · 중분류 A-1 · 소분류 01</small></span>
-            <svg class="icon search-result-arrow"><use href="#icon-arrow"></use></svg>
-          </button>
-          <button type="button" data-global-search-result data-search-target="rule" data-search-id="예시 SOP 문서 B-02" data-search-text="예시 SOP 문서 B-02 절차 대분류 B 중분류 B-2 소분류 02">
-            <span class="search-result-type is-rule"><svg class="icon"><use href="#icon-book"></use></svg></span>
-            <span><i>SOP · 절차 문서</i><strong>예시 SOP 문서 B-02</strong><small>예시 대분류 B · 중분류 B-2 · 소분류 02</small></span>
             <svg class="icon search-result-arrow"><use href="#icon-arrow"></use></svg>
           </button>
           <button type="button" data-global-search-result data-search-target="qna" data-search-id="Q-2026-084" data-search-text="식각 Rate 관리 기준 변경 적용 시점 Q&A 이상률 v2.4">

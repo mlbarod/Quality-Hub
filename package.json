@@ -16,6 +16,7 @@
     "gpt-oss:chat": "node --env-file-if-exists=.env.gpt-oss scripts/gpt-oss-chat.mjs",
     "db:history:check": "node --env-file-if-exists=.env.db scripts/db-history-check.mjs",
     "db:reports:check": "node --env-file-if-exists=.env.db scripts/db-reports-check.mjs",
+    "db:rules:check": "node --env-file-if-exists=.env.db scripts/db-rules-check.mjs",
     "backend:chat:check": "node --env-file-if-exists=.env.rag --env-file-if-exists=.env.gpt-oss --env-file-if-exists=.env.db scripts/backend-chat-check.mjs",
     "test": "node --test --test-concurrency=1 tests/*.test.mjs && vitest run"
   },

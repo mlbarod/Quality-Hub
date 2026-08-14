@@ -22,29 +22,16 @@ test("변승위 Category분류를 접근 가능한 아코디언으로 제공한�
   assert.match(script, /button\.setAttribute\("aria-expanded", String\(!isExpanded\)\)/)
 })
 
-test("대분류, 중분류, 소분류 필터가 모든 예시 카드 분류값을 포함한다", () => {
-  const filterValues = {
-    major: new Set(),
-    middle: new Set(),
-    minor: new Set(),
-  }
-
-  for (const match of html.matchAll(/data-rule-filter="(major|middle|minor)" data-rule-filter-value="([^"]+)"/g)) {
-    filterValues[match[1]].add(match[2])
-  }
-
-  Object.values(filterValues).forEach((values) => assert.ok(values.has("all")))
-
-  const cards = [...html.matchAll(
-    /data-rule-card[^>]*data-rule-major="([^"]+)" data-rule-middle="([^"]+)" data-rule-minor="([^"]+)"/g,
-  )]
-  assert.equal(cards.length, 8)
-
-  cards.forEach(([, major, middle, minor]) => {
-    assert.ok(filterValues.major.has(major), `대분류 필터 누락: ${major}`)
-    assert.ok(filterValues.middle.has(middle), `중분류 필터 누락: ${middle}`)
-    assert.ok(filterValues.minor.has(minor), `소분류 필터 누락: ${minor}`)
-  })
+test("rulesop의 대분류, 중분류, 소분류를 동적 필터와 카드 설명에 매핑한다", () => {
+  assert.match(script, /document\.mainCategory\?\.trim\(\) \|\| "미분류"/)
+  assert.match(script, /document\.subCategory\?\.trim\(\) \|\| "미분류"/)
+  assert.match(script, /document\.item\?\.trim\(\) \|\| "미분류"/)
+  assert.match(script, /document\.title\?\.trim\(\) \|\| "제목 없음"/)
+  assert.match(script, /document\.url\?\.trim\(\) \|\| ""/)
+  assert.match(script, /replaceRuleFilterOptions\("major"/)
+  assert.match(script, /replaceRuleFilterOptions\("middle"/)
+  assert.match(script, /replaceRuleFilterOptions\("minor"/)
+  assert.match(script, /getRuleClassificationText/)
 })
 
 test("필터 결과 수, 요약과 목록 재배치 상태를 갱신한다", () => {
@@ -54,51 +41,57 @@ test("필터 결과 수, 요약과 목록 재배치 상태를 갱신한다", () 
   assert.match(script, /prefers-reduced-motion: reduce/)
 })
 
-test("관리자는 목록 마지막 행에서 문서를 등록하고 상세에서 조회·수정·삭제한다", () => {
-  const cardGrid = html.match(/<div class="rule-card-grid"[^>]*>([\s\S]*?)<\/div>\s*<template data-rule-card-template>/)?.[1] ?? ""
-
-  assert.match(html, /data-can-manage-rules="true"/)
-  assert.match(html, /class="rule-document-create-card rule-admin-only"[^>]*data-rule-create-open/)
-  assert.ok(cardGrid.lastIndexOf("data-rule-create-open") > cardGrid.lastIndexOf("data-rule-card "))
-  assert.match(html, /data-rule-detail-dialog/)
-  assert.match(html, /data-rule-view/)
-  assert.match(html, /data-rule-edit-open/)
-  assert.match(html, /data-rule-delete-open/)
-  assert.match(html, /data-rule-editor-dialog/)
-  assert.match(html, /data-rule-delete-dialog/)
-  assert.match(script, /let canManageRuleDocuments = prototype\?\.dataset\.canManageRules === "true"/)
-  assert.match(script, /document\.body\.classList\.toggle\("rule-manager", canManageRuleDocuments\)/)
-  assert.match(script, /ruleCardGrid\?\.addEventListener\("click"/)
-  assert.match(script, /ruleEditorForm\?\.addEventListener\("submit"/)
-  assert.match(script, /softDeleteItem\(\{\s*type: "Rule&SOP"/)
+test("Rule&SOP 목록을 실제 API에서 읽고 오류 재시도를 제공한다", () => {
+  assert.match(script, /fetch\(`\/api\/rules/)
+  assert.match(script, /x-quality-hub-user-id/)
+  assert.match(script, /Array\.isArray\(payload\.documents\)/)
+  assert.match(html, /data-rule-retry/)
+  assert.match(html, /rulesop 최신 목록/)
+  assert.doesNotMatch(html, /예시 Rule 문서|v0\.1 MOCK|신규 문서 등록/)
 })
 
-test("등록·수정 분류는 대분류부터 담당 공정까지 드릴다운하고 URL 컬럼을 보관한다", () => {
+test("카드를 누르면 분류와 원문 링크 팝업을 열고 개정 이력은 표시하지 않는다", () => {
+  assert.match(html, /data-rule-detail-dialog/)
+  assert.match(html, /data-rule-detail-major/)
+  assert.match(html, /data-rule-detail-middle/)
+  assert.match(html, /data-rule-detail-minor/)
+  assert.match(html, /data-rule-detail-url/)
+  assert.match(html, /data-rule-view/)
+  assert.match(script, /openRuleDetail\(card, card\)/)
+  assert.match(script, /window\.open\(url\.href, "_blank", "noopener,noreferrer"\)/)
+  assert.doesNotMatch(html, /data-rule-revision-list|개정 이력/)
+  assert.doesNotMatch(script, /ruleRevisionHistory|revisions\.unshift/)
+})
+
+test("관리자는 상세 팝업에서 Rule&SOP를 수정하거나 실제 삭제한다", () => {
+  assert.match(html, /data-rule-edit-open[^>]*>[\s\S]*수정/)
+  assert.match(html, /data-rule-delete-open[^>]*>[\s\S]*삭제/)
+  assert.match(html, /data-rule-editor-dialog/)
+  assert.match(html, /data-rule-delete-dialog/)
+  assert.match(html, /rulesop 데이터가 즉시 삭제되며 복구할 수 없습니다/)
+  assert.match(script, /method: "PATCH"/)
+  assert.match(script, /method: "DELETE"/)
+  assert.match(script, /canManageRuleDocuments/)
+  assert.doesNotMatch(html, /data-rule-revision-input|개정 내용|숨김 버튼|>숨김</)
+})
+
+test("Rule&SOP 수정 폼은 다섯 표시 컬럼만 편집하고 개정 코멘트를 받지 않는다", () => {
+  assert.match(html, /data-rule-editor-title-input/)
   assert.match(html, /data-rule-editor-major/)
   assert.match(html, /data-rule-editor-middle/)
   assert.match(html, /data-rule-editor-minor/)
-  assert.match(html, /data-rule-editor-process/)
-  assert.match(html, /type="url"[^>]*data-rule-editor-url/)
-  assert.match(html, /data-rule-card[^>]*data-rule-process="[^"]+"[^>]*data-rule-url="[^"]+"/)
-  assert.match(script, /const ruleMiddleByMajor/)
-  assert.match(script, /const ruleMinorByMiddle/)
-  assert.match(script, /const ruleProcessesByMinor/)
-  assert.match(script, /card\.dataset\.ruleUrl = ruleEditorUrl\.value\.trim\(\)/)
+  assert.match(html, /data-rule-editor-url/)
+  assert.doesNotMatch(html, /개정 내용|개정 코멘트|revision-comment/)
+  assert.match(script, /mainCategory: ruleEditorMajor\.value\.trim\(\)/)
+  assert.match(script, /subCategory: ruleEditorMiddle\.value\.trim\(\)/)
+  assert.match(script, /item: ruleEditorMinor\.value\.trim\(\)/)
 })
 
-test("문서 상세 팝업에 개정 이력을 누적하되 이전 버전 조회는 제공하지 않는다", () => {
-  assert.match(html, /data-rule-revision-list/)
-  assert.match(html, /이전 버전 원문 조회는 제공하지 않습니다\./)
-  assert.match(script, /const ruleRevisionHistory = new Map\(\)/)
-  assert.match(script, /revisions\.unshift\(/)
-  assert.doesNotMatch(html, /data-rule-previous-version-view/)
-})
-
-test("현재 요구사항에 Rule&SOP 관리와 실제 DB 연동 경계를 기록한다", () => {
-  assert.match(requirements, /분류, 담당 공정, 원문 링크와 개정 이력을 상세 팝업에 표시/)
-  assert.match(requirements, /긴 제목을 읽기 쉬운 목록 형태로 배치/)
-  assert.match(requirements, /목록 마지막의 신규 등록 행과 상세 팝업에서 마스터와 관리자가/)
-  assert.match(requirements, /대분류·중분류·소분류·담당 공정을 순서대로 선택/)
-  assert.match(requirements, /이전 버전 원문 조회 기능은 제공하지 않음/)
-  assert.match(requirements, /별도 DB의 분류 컬럼과 URL 컬럼을 참조/)
+test("현재 요구사항에 rulesop 컬럼과 표시 계약을 기록한다", () => {
+  assert.match(requirements, /실제 DB `rulesop`의 `main_category`, `sub_category`, `item`, `title`, `url`, `reg_user`, `reg_date`를 조회/)
+  assert.match(requirements, /각각 대분류·중분류·소분류 필터와 카드 설명에 사용/)
+  assert.match(requirements, /`title`을 카드 제목으로 표시/)
+  assert.match(requirements, /상세 팝업에 표시하고 조회 버튼으로 `url`을 새 창에서 열기/)
+  assert.match(requirements, /MOCK 문구, 상세 팝업의 개정 이력/)
+  assert.match(requirements, /실제 삭제/)
 })

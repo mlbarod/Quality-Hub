@@ -6,6 +6,7 @@ import { fileURLToPath, URL } from "node:url"
 
 import { createAgentChatApi } from "./server/agentChatApi.mjs"
 import { createReportApi } from "./server/reportApi.mjs"
+import { createRuleSopApi } from "./server/ruleSopApi.mjs"
 
 const rootDir = fileURLToPath(new URL(".", import.meta.url))
 export const sourceStaticDir = join(rootDir, "prototype")
@@ -258,6 +259,7 @@ export function createQualityHubServer({
   staticDir = builtStaticDir,
   agentApi = createAgentChatApi(),
   reportApi = createReportApi(),
+  ruleSopApi = createRuleSopApi(),
   environment = process.env,
 } = {}) {
   const server = createHttpServer(async (req, res) => {
@@ -274,6 +276,7 @@ export function createQualityHubServer({
       }
       if (await agentApi.handle(req, res)) return
       if (await reportApi.handle(req, res)) return
+      if (await ruleSopApi.handle(req, res)) return
       serveStatic(req, res, staticDir)
     } catch (error) {
       console.error("Quality Hub request failed:", error)
@@ -288,6 +291,7 @@ export function createQualityHubServer({
   server.once("close", () => {
     void agentApi.close()
     void reportApi.close()
+    void ruleSopApi.close()
   })
   return server
 }
@@ -317,11 +321,13 @@ async function startSourceServer({ host, port }) {
   const { createServer: createViteServer } = await import("vite")
   const agentApi = createAgentChatApi()
   const reportApi = createReportApi()
+  const ruleSopApi = createRuleSopApi()
   let viteServer
   const httpServer = createHttpServer(async (req, res) => {
     try {
       if (await agentApi.handle(req, res)) return
       if (await reportApi.handle(req, res)) return
+      if (await ruleSopApi.handle(req, res)) return
       viteServer.middlewares(req, res)
     } catch (error) {
       console.error("Quality Hub source request failed:", error)
@@ -332,6 +338,7 @@ async function startSourceServer({ host, port }) {
   httpServer.once("close", () => {
     void agentApi.close()
     void reportApi.close()
+    void ruleSopApi.close()
     void viteServer?.close()
   })
 

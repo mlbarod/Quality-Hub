@@ -6,7 +6,7 @@ import {
   getRoleOption,
   getRolePolicy,
 } from "./src/mock/phase2.js";
-import { createLocalRepository, isRuleLocalData, LOCAL_DATA_EVENT } from "./src/data/localRepository.js";
+import { createLocalRepository, LOCAL_DATA_EVENT } from "./src/data/localRepository.js";
 import { createAgentChatController } from "./src/agent/chatController.js";
 import { qnaRepository } from "./src/qna/repository.js";
 import { buildQnaSearchText, buildTitleSearchText, matchesSearchQuery } from "./src/search/globalSearch.js";
@@ -51,19 +51,23 @@ const rulePage = document.querySelector("[data-rule-page]");
 const ruleCardGrid = document.querySelector("[data-rule-card-grid]");
 const ruleCardTemplate = document.querySelector("[data-rule-card-template]");
 const ruleEmptyState = document.querySelector("[data-rule-empty]");
+const ruleEmptyIcon = document.querySelector("[data-rule-empty-icon]");
+const ruleEmptyTitle = document.querySelector("[data-rule-empty-title]");
+const ruleEmptyDescription = document.querySelector("[data-rule-empty-description]");
+const ruleRetry = document.querySelector("[data-rule-retry]");
 const ruleDetailDialog = document.querySelector("[data-rule-detail-dialog]");
 const ruleEditorDialog = document.querySelector("[data-rule-editor-dialog]");
 const ruleEditorForm = document.querySelector("[data-rule-editor-form]");
-const ruleDeleteDialog = document.querySelector("[data-rule-delete-dialog]");
-const ruleEditorType = document.querySelector("[data-rule-editor-type]");
-const ruleEditorName = document.querySelector("[data-rule-editor-name]");
+const ruleEditorTitle = document.querySelector("[data-rule-editor-title-input]");
 const ruleEditorMajor = document.querySelector("[data-rule-editor-major]");
 const ruleEditorMiddle = document.querySelector("[data-rule-editor-middle]");
 const ruleEditorMinor = document.querySelector("[data-rule-editor-minor]");
-const ruleEditorProcess = document.querySelector("[data-rule-editor-process]");
 const ruleEditorUrl = document.querySelector("[data-rule-editor-url]");
-const ruleEditorNote = document.querySelector("[data-rule-editor-note]");
 const ruleEditorError = document.querySelector("[data-rule-editor-error]");
+const ruleDeleteDialog = document.querySelector("[data-rule-delete-dialog]");
+const ruleDeleteName = document.querySelector("[data-rule-delete-name]");
+const ruleDeleteError = document.querySelector("[data-rule-delete-error]");
+const ruleDeleteConfirm = document.querySelector("[data-rule-delete-confirm]");
 const qnaWorkspace = document.querySelector("[data-qna-workspace]");
 const userWorkspace = document.querySelector("[data-user-workspace]");
 const userPage = document.querySelector("[data-user-page]");
@@ -100,11 +104,13 @@ let reportLoadPromise;
 let reportLoadState = "idle";
 let reportEditorMode = "create";
 let ruleArrangeTimer;
+let ruleLoadPromise;
+let ruleLoadState = "idle";
 let ruleReturnFocus;
 let ruleDialogReturnFocus;
 let ruleEditorReturnFocus;
+let ruleDeleteReturnFocus;
 let activeRuleCard;
-let ruleEditorMode = "create";
 let qnaReturnFocus;
 let userReturnFocus;
 let accessAddReturnFocus;
@@ -360,7 +366,9 @@ const setAgentMode = (mode, { announce = true, focus = true } = {}) => {
 const reportModes = new Set(["closed", "catalog", "viewer"]);
 const REPORT_CARD_VISUALS = ["line", "bars", "donut", "document", "scatter", "pareto", "area", "rings", "pulse", "heatmap", "columns", "slides"];
 let canManageReports = prototype?.dataset.canManageReports === "true";
+let canManageRuleDocuments = prototype?.dataset.canManageRules === "true";
 document.body.classList.toggle("report-manager", canManageReports);
+document.body.classList.toggle("rule-manager", canManageRuleDocuments);
 
 const getReportCards = ({ includeDeleted = false } = {}) => [...document.querySelectorAll("[data-report-card]")]
   .filter((card) => includeDeleted || card.dataset.softDeleted !== "true");
@@ -1370,159 +1378,30 @@ const ruleFilterLabels = {
   minor: "소분류",
 };
 
-const ruleTaxonomyLabels = {
-  major: {
-    "major-a": "예시 대분류 A",
-    "major-b": "예시 대분류 B",
-    "major-c": "예시 대분류 C",
-  },
-  middle: {
-    "middle-a1": "예시 중분류 A-1",
-    "middle-a2": "예시 중분류 A-2",
-    "middle-b1": "예시 중분류 B-1",
-    "middle-b2": "예시 중분류 B-2",
-    "middle-c1": "예시 중분류 C-1",
-    "middle-c2": "예시 중분류 C-2",
-  },
-  minor: {
-    "minor-01": "예시 소분류 01",
-    "minor-02": "예시 소분류 02",
-    "minor-03": "예시 소분류 03",
-    "minor-04": "예시 소분류 04",
-  },
-};
-
-const ruleMiddleByMajor = {
-  "major-a": ["middle-a1", "middle-a2"],
-  "major-b": ["middle-b1", "middle-b2"],
-  "major-c": ["middle-c1", "middle-c2"],
-};
-
-const ruleMinorByMiddle = {
-  "middle-a1": ["minor-01", "minor-02"],
-  "middle-a2": ["minor-03"],
-  "middle-b1": ["minor-01", "minor-04"],
-  "middle-b2": ["minor-02"],
-  "middle-c1": ["minor-03"],
-  "middle-c2": ["minor-04"],
-};
-
-const ruleProcessesByMinor = {
-  "minor-01": ["식각", "확산"],
-  "minor-02": ["세정", "포토"],
-  "minor-03": ["검사", "증착"],
-  "minor-04": ["식각", "세정"],
-};
-
-const ruleRevisionHistory = new Map();
-const serializeRuleCard = (card) => ({
-  id: card.dataset.ruleId ?? "",
-  title: card.dataset.ruleTitle ?? "",
-  major: card.dataset.ruleMajor ?? "",
-  middle: card.dataset.ruleMiddle ?? "",
-  minor: card.dataset.ruleMinor ?? "",
-  process: card.dataset.ruleProcess ?? "",
-  type: card.dataset.ruleType ?? "rule",
-  version: card.dataset.ruleVersion ?? "0.1",
-  url: card.dataset.ruleUrl ?? "",
-  updated: card.dataset.ruleUpdated ?? "",
-  softDeleted: card.dataset.softDeleted === "true",
-});
-const initialRuleDocuments = [...document.querySelectorAll("[data-rule-card]")].map(serializeRuleCard);
-const ruleRepository = createLocalRepository({
-  key: "rules",
-  seed: { documents: initialRuleDocuments, revisions: {} },
-  validate: isRuleLocalData,
-});
-const savedRuleData = ruleRepository.read();
-Object.entries(savedRuleData.revisions).forEach(([ruleId, revisions]) => {
-  if (Array.isArray(revisions)) ruleRevisionHistory.set(ruleId, revisions);
-});
-let canManageRuleDocuments = prototype?.dataset.canManageRules === "true";
-document.body.classList.toggle("rule-manager", canManageRuleDocuments);
-
-const replaceRuleSelectOptions = (select, values, labels, preferredValue) => {
-  if (!(select instanceof HTMLSelectElement)) return;
-  select.replaceChildren(...values.map((value) => new Option(labels?.[value] ?? value, value)));
-  if (preferredValue && values.includes(preferredValue)) select.value = preferredValue;
-};
-
-const syncRuleEditorTaxonomy = ({ middle, minor, process } = {}) => {
-  if (!(ruleEditorMajor instanceof HTMLSelectElement)) return;
-  const middleValues = ruleMiddleByMajor[ruleEditorMajor.value] ?? [];
-  replaceRuleSelectOptions(ruleEditorMiddle, middleValues, ruleTaxonomyLabels.middle, middle);
-
-  const minorValues = ruleMinorByMiddle[ruleEditorMiddle?.value] ?? [];
-  replaceRuleSelectOptions(ruleEditorMinor, minorValues, ruleTaxonomyLabels.minor, minor);
-
-  const processValues = ruleProcessesByMinor[ruleEditorMinor?.value] ?? [];
-  replaceRuleSelectOptions(ruleEditorProcess, processValues, null, process);
-};
-
-const getRuleRevisionHistory = (card) => {
-  if (!(card instanceof HTMLElement)) return [];
-  const ruleId = card.dataset.ruleId;
-  if (!ruleId) return [];
-  if (!ruleRevisionHistory.has(ruleId)) {
-    ruleRevisionHistory.set(ruleId, [{
-      version: `v${card.dataset.ruleVersion ?? "0.1"}`,
-      date: card.dataset.ruleUpdated ?? "2026-08-05",
-      author: "김품질",
-      note: "초기 문서 등록",
-    }]);
-  }
-  return ruleRevisionHistory.get(ruleId);
-};
-
-const renderRuleRevisionHistory = (card) => {
-  const list = document.querySelector("[data-rule-revision-list]");
-  if (!(list instanceof HTMLOListElement)) return;
-  const items = getRuleRevisionHistory(card).map((revision) => {
-    const item = document.createElement("li");
-    const version = document.createElement("b");
-    const copy = document.createElement("span");
-    const note = document.createElement("strong");
-    const meta = document.createElement("small");
-    version.textContent = revision.version;
-    note.textContent = revision.note;
-    meta.textContent = `${revision.date} · ${revision.author}`;
-    copy.append(note, meta);
-    item.append(version, copy);
-    return item;
-  });
-  list.replaceChildren(...items);
-};
-
 const getRuleClassificationText = (card) => [
-  ruleTaxonomyLabels.major[card.dataset.ruleMajor],
-  ruleTaxonomyLabels.middle[card.dataset.ruleMiddle],
-  ruleTaxonomyLabels.minor[card.dataset.ruleMinor],
-  `${card.dataset.ruleProcess} 공정`,
+  card.dataset.ruleMajor,
+  card.dataset.ruleMiddle,
+  card.dataset.ruleMinor,
 ].filter(Boolean).join(" · ");
 
 const renderRuleCard = (card) => {
   if (!(card instanceof HTMLElement)) return;
-  const type = card.dataset.ruleType === "sop" ? "SOP" : "RULE";
   const visual = card.querySelector(".rule-document-visual");
-  visual?.classList.toggle("is-rule", type === "RULE");
-  visual?.classList.toggle("is-sop", type === "SOP");
-  card.querySelector(".rule-document-type > i")?.replaceChildren(type);
+  visual?.classList.add("is-rule");
+  visual?.classList.remove("is-sop");
+  card.querySelector(".rule-document-type > i")?.replaceChildren("RULE&SOP");
   (card.querySelector("[data-rule-card-title]") ?? card.querySelector(":scope > strong"))?.replaceChildren(card.dataset.ruleTitle ?? "제목 없음");
   (card.querySelector("[data-rule-card-classification]") ?? card.querySelector(":scope > small"))?.replaceChildren(getRuleClassificationText(card));
-  (card.querySelector("[data-rule-card-version]") ?? card.querySelector(".rule-document-meta > i"))?.replaceChildren(`v${card.dataset.ruleVersion ?? "0.1"} MOCK`);
 };
 
 const populateRuleDetail = (card) => {
   if (!(card instanceof HTMLElement)) return;
-  const type = card.dataset.ruleType === "sop" ? "SOP" : "RULE";
-  document.querySelector("[data-rule-detail-type]")?.replaceChildren(`${type} · v${card.dataset.ruleVersion ?? "0.1"}`);
+  document.querySelector("[data-rule-detail-type]")?.replaceChildren("RULE&SOP");
   document.querySelector("[data-rule-detail-title]")?.replaceChildren(card.dataset.ruleTitle ?? "Rule&SOP 문서");
-  document.querySelector("[data-rule-detail-major]")?.replaceChildren(ruleTaxonomyLabels.major[card.dataset.ruleMajor] ?? "미분류");
-  document.querySelector("[data-rule-detail-middle]")?.replaceChildren(ruleTaxonomyLabels.middle[card.dataset.ruleMiddle] ?? "미분류");
-  document.querySelector("[data-rule-detail-minor]")?.replaceChildren(ruleTaxonomyLabels.minor[card.dataset.ruleMinor] ?? "미분류");
-  document.querySelector("[data-rule-detail-process]")?.replaceChildren(card.dataset.ruleProcess ?? "미지정");
+  document.querySelector("[data-rule-detail-major]")?.replaceChildren(card.dataset.ruleMajor ?? "미분류");
+  document.querySelector("[data-rule-detail-middle]")?.replaceChildren(card.dataset.ruleMiddle ?? "미분류");
+  document.querySelector("[data-rule-detail-minor]")?.replaceChildren(card.dataset.ruleMinor ?? "미분류");
   document.querySelector("[data-rule-detail-url]")?.replaceChildren(card.dataset.ruleUrl ?? "URL 미등록");
-  renderRuleRevisionHistory(card);
 };
 
 const openRuleDetail = (card, returnFocus = card) => {
@@ -1533,94 +1412,8 @@ const openRuleDetail = (card, returnFocus = card) => {
   if (!ruleDetailDialog.open) ruleDetailDialog.showModal();
 };
 
-const closeRuleEditor = () => {
-  if (ruleEditorDialog instanceof HTMLDialogElement && ruleEditorDialog.open) ruleEditorDialog.close();
-};
-
-const openRuleEditor = (mode, card = null, returnFocus = null) => {
-  if (!canManageRuleDocuments || !(ruleEditorDialog instanceof HTMLDialogElement) || !(ruleEditorForm instanceof HTMLFormElement)) return;
-  ruleEditorMode = mode;
-  ruleEditorReturnFocus = returnFocus ?? card ?? document.querySelector("[data-rule-create-open]");
-  ruleEditorForm.reset();
-  if (ruleEditorError instanceof HTMLElement) ruleEditorError.hidden = true;
-  document.querySelector("[data-rule-editor-title]")?.replaceChildren(mode === "edit" ? "Rule&SOP 문서 수정" : "Rule&SOP 신규 등록");
-  document.querySelector("[data-rule-editor-submit-label]")?.replaceChildren(mode === "edit" ? "수정 완료" : "신규 등록");
-
-  if (mode === "edit" && card instanceof HTMLElement) {
-    activeRuleCard = card;
-    if (ruleEditorType instanceof HTMLSelectElement) ruleEditorType.value = card.dataset.ruleType ?? "rule";
-    if (ruleEditorName instanceof HTMLInputElement) ruleEditorName.value = card.dataset.ruleTitle ?? "";
-    if (ruleEditorMajor instanceof HTMLSelectElement) ruleEditorMajor.value = card.dataset.ruleMajor ?? "major-a";
-    syncRuleEditorTaxonomy({ middle: card.dataset.ruleMiddle, minor: card.dataset.ruleMinor, process: card.dataset.ruleProcess });
-    if (ruleEditorUrl instanceof HTMLInputElement) ruleEditorUrl.value = card.dataset.ruleUrl ?? "";
-    if (ruleEditorNote instanceof HTMLTextAreaElement) ruleEditorNote.value = "";
-  } else {
-    activeRuleCard = null;
-    syncRuleEditorTaxonomy();
-  }
-
-  ruleEditorDialog.showModal();
-  window.requestAnimationFrame(() => ruleEditorName?.focus());
-};
-
 const getRuleCards = ({ includeDeleted = false } = {}) => [...document.querySelectorAll("[data-rule-card]")]
   .filter((card) => includeDeleted || card.dataset.softDeleted !== "true");
-
-const persistRuleData = () => {
-  ruleRepository.write({
-    documents: getRuleCards({ includeDeleted: true }).map(serializeRuleCard),
-    revisions: Object.fromEntries(ruleRevisionHistory),
-  });
-};
-
-const hydrateRuleDocuments = () => {
-  const existingCards = new Map(getRuleCards({ includeDeleted: true }).map((card) => [card.dataset.ruleId, card]));
-  const savedIds = new Set(savedRuleData.documents.map((document) => document.id));
-  existingCards.forEach((card, id) => {
-    if (!savedIds.has(id)) card.remove();
-  });
-
-  savedRuleData.documents.forEach((document) => {
-    let card = existingCards.get(document.id);
-    if (!(card instanceof HTMLElement)) {
-      const fragment = ruleCardTemplate?.content.cloneNode(true);
-      card = fragment?.querySelector("[data-rule-card]");
-      if (!(card instanceof HTMLElement) || !(ruleCardGrid instanceof HTMLElement)) return;
-      ruleCardGrid.append(card);
-    }
-    card.dataset.ruleId = document.id;
-    card.dataset.ruleTitle = document.title;
-    card.dataset.ruleMajor = document.major;
-    card.dataset.ruleMiddle = document.middle;
-    card.dataset.ruleMinor = document.minor;
-    card.dataset.ruleProcess = document.process;
-    card.dataset.ruleType = document.type;
-    card.dataset.ruleVersion = document.version;
-    card.dataset.ruleUrl = document.url;
-    card.dataset.ruleUpdated = document.updated;
-    if (document.softDeleted) {
-      card.dataset.softDeleted = "true";
-      card.hidden = true;
-      hiddenItems.push({
-        id: `Rule&SOP-${document.id}`,
-        type: "Rule&SOP",
-        name: document.title,
-        element: card,
-        hiddenAt: "이전 로컬 세션",
-        hiddenBy: "저장된 사용자",
-        onChange: () => {
-          applyRuleFilters({ animate: false });
-          persistRuleData();
-          syncGlobalSearchResults();
-        },
-      });
-    } else {
-      delete card.dataset.softDeleted;
-    }
-    renderRuleCard(card);
-  });
-  renderRecoveryList();
-};
 
 const matchesRuleScope = (card, scope, value = ruleFilterState[scope]) =>
   value === "all" || card.dataset[`rule${scope[0].toUpperCase()}${scope.slice(1)}`] === value;
@@ -1695,16 +1488,154 @@ const applyRuleFilters = ({ animate = true } = {}) => {
 
   document.querySelector("[data-rule-result-count]")?.replaceChildren(String(visibleCardCount));
   document.querySelector("[data-rule-filter-summary]")?.replaceChildren(activeFilterLabels.join(" · ") || "전체 분류");
-  if (ruleEmptyState instanceof HTMLElement) ruleEmptyState.hidden = visibleCardCount > 0;
-  if (ruleCardGrid instanceof HTMLElement) ruleCardGrid.hidden = visibleCardCount === 0 && !canManageRuleDocuments;
+  if (ruleLoadState === "ready") setRuleCatalogState(visibleCardCount > 0 ? "ready" : "search");
+  if (ruleCardGrid instanceof HTMLElement) ruleCardGrid.hidden = visibleCardCount === 0;
 
   if (animate) playRuleCardArrangement();
+};
+
+const setRuleCatalogState = (state) => {
+  ruleLoadState = state;
+  if (!(ruleEmptyState instanceof HTMLElement)) return;
+  const stateContent = {
+    loading: ["#icon-refresh", "Rule&SOP를 불러오고 있습니다.", "rulesop에서 최신 목록을 조회하고 있습니다."],
+    empty: ["#icon-book", "등록된 문서가 없습니다.", "rulesop에 문서가 등록되면 이곳에 표시됩니다."],
+    error: ["#icon-alert", "Rule&SOP 조회 오류가 발생했습니다.", "DB 연결 상태를 확인한 뒤 다시 시도해 주세요."],
+    search: ["#icon-search", "조건에 맞는 문서가 없습니다.", "다른 분류를 선택하거나 필터를 초기화하세요."],
+  };
+  const content = stateContent[state];
+  ruleEmptyState.dataset.ruleState = state;
+  ruleEmptyState.hidden = !content;
+  if (!content) return;
+  ruleEmptyIcon?.setAttribute("href", content[0]);
+  ruleEmptyTitle?.replaceChildren(content[1]);
+  ruleEmptyDescription?.replaceChildren(content[2]);
+  if (ruleRetry instanceof HTMLButtonElement) ruleRetry.hidden = state !== "error";
+};
+
+const resetRuleFilters = () => {
+  Object.keys(ruleFilterState).forEach((scope) => {
+    ruleFilterState[scope] = "all";
+  });
+};
+
+const createRuleFilterButton = (scope, value) => {
+  const button = document.createElement("button");
+  const icon = document.createElement("span");
+  const label = document.createElement("span");
+  button.type = "button";
+  button.dataset.ruleFilter = scope;
+  button.dataset.ruleFilterValue = value;
+  button.setAttribute("aria-pressed", "false");
+  icon.className = `rule-filter-icon is-${scope}`;
+  icon.append(document.createElement("i"), document.createElement("i"), document.createElement("i"));
+  label.textContent = value;
+  button.append(icon, label);
+  button.addEventListener("click", () => {
+    ruleFilterState[scope] = value;
+    if (scope === "major") {
+      ruleFilterState.middle = "all";
+      ruleFilterState.minor = "all";
+    } else if (scope === "middle") {
+      ruleFilterState.minor = "all";
+    }
+    applyRuleFilters();
+  });
+  return button;
+};
+
+const replaceRuleFilterOptions = (scope, values) => {
+  const container = document.querySelector(`[data-rule-filter-group="${scope}"] > div`);
+  const allButton = container?.querySelector('[data-rule-filter-value="all"]');
+  if (!(container instanceof HTMLElement) || !(allButton instanceof HTMLButtonElement)) return;
+  container.replaceChildren(allButton, ...values.map((value) => createRuleFilterButton(scope, value)));
+};
+
+const clearRuleCatalog = () => {
+  getRuleCards({ includeDeleted: true }).forEach((card) => card.remove());
+  ["major", "middle", "minor"].forEach((scope) => replaceRuleFilterOptions(scope, []));
+  resetRuleFilters();
+  document.querySelector("[data-rule-result-count]")?.replaceChildren("0");
+  document.querySelectorAll("[data-rule-total-count]").forEach((element) => element.replaceChildren("0"));
+  document.querySelector("[data-rule-filter-summary]")?.replaceChildren("전체 분류");
+};
+
+const renderRuleCatalog = (documents) => {
+  clearRuleCatalog();
+  const normalizedDocuments = documents.map((document) => ({
+    id: document.documentId,
+    major: document.mainCategory?.trim() || "미분류",
+    middle: document.subCategory?.trim() || "미분류",
+    minor: document.item?.trim() || "미분류",
+    title: document.title?.trim() || "제목 없음",
+    url: document.url?.trim() || "",
+  }));
+  const uniqueSorted = (values) => [...new Set(values)].sort((left, right) => left.localeCompare(right, "ko-KR"));
+  replaceRuleFilterOptions("major", uniqueSorted(normalizedDocuments.map((document) => document.major)));
+  replaceRuleFilterOptions("middle", uniqueSorted(normalizedDocuments.map((document) => document.middle)));
+  replaceRuleFilterOptions("minor", uniqueSorted(normalizedDocuments.map((document) => document.minor)));
+
+  normalizedDocuments.forEach((document) => {
+    const fragment = ruleCardTemplate?.content.cloneNode(true);
+    const card = fragment?.querySelector("[data-rule-card]");
+    if (!(card instanceof HTMLElement) || !(ruleCardGrid instanceof HTMLElement)) return;
+    card.dataset.ruleId = document.id;
+    card.dataset.ruleMajor = document.major;
+    card.dataset.ruleMiddle = document.middle;
+    card.dataset.ruleMinor = document.minor;
+    card.dataset.ruleTitle = document.title;
+    card.dataset.ruleUrl = document.url;
+    renderRuleCard(card);
+    ruleCardGrid.append(card);
+  });
+
+  document.querySelectorAll("[data-rule-total-count]").forEach((element) => element.replaceChildren(String(normalizedDocuments.length)));
+  setRuleCatalogState(normalizedDocuments.length > 0 ? "ready" : "empty");
+  applyRuleFilters({ animate: false });
+  syncGlobalSearchResults();
+};
+
+const requestRuleApi = async (options = {}, documentId = "") => {
+  const response = await fetch(`/api/rules${documentId ? `/${encodeURIComponent(documentId)}` : ""}`, {
+    ...options,
+    headers: {
+      "x-quality-hub-user-id": getRoleOption(currentRole).userId,
+      ...options.headers,
+    },
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error?.message ?? "Rule&SOP DB 요청을 처리하지 못했습니다.");
+  return payload;
+};
+
+const loadRuleCatalog = ({ force = false } = {}) => {
+  if (ruleLoadPromise && !force) return ruleLoadPromise;
+  if (ruleLoadPromise && force) return ruleLoadPromise.then(() => loadRuleCatalog({ force: true }));
+
+  clearRuleCatalog();
+  setRuleCatalogState("loading");
+  ruleLoadPromise = requestRuleApi()
+    .then((payload) => {
+      if (!Array.isArray(payload.documents)) throw new Error("Rule&SOP 목록 응답 형식이 올바르지 않습니다.");
+      renderRuleCatalog(payload.documents);
+      return payload.documents;
+    })
+    .catch((error) => {
+      setRuleCatalogState("error");
+      console.error("Rule&SOP catalog load failed", { name: error?.name, message: error?.message });
+      return [];
+    })
+    .finally(() => {
+      ruleLoadPromise = undefined;
+    });
+  return ruleLoadPromise;
 };
 
 document.querySelectorAll("[data-rule-open]").forEach((button) => {
   button.addEventListener("click", () => {
     ruleReturnFocus = button;
     setRuleMode("open");
+    void loadRuleCatalog();
   });
 });
 
@@ -1713,17 +1644,12 @@ document.querySelectorAll("[data-rule-close]").forEach((button) => {
 });
 
 document.querySelectorAll("[data-rule-action]").forEach((button) => {
-  button.addEventListener("click", () => showToast(`${button.dataset.ruleAction} 기능은 실제 데이터 연결 단계에서 제공할 예정입니다.`));
+  button.addEventListener("click", () => showToast("대·중·소분류로 문서를 찾고 카드를 선택해 원문 링크를 확인하세요."));
 });
 
 ruleCardGrid?.addEventListener("click", (event) => {
   const target = event.target;
   if (!(target instanceof Element)) return;
-  const createButton = target.closest("[data-rule-create-open]");
-  if (createButton) {
-    openRuleEditor("create", null, createButton);
-    return;
-  }
   const card = target.closest("[data-rule-card]");
   if (card instanceof HTMLElement) openRuleDetail(card, card);
 });
@@ -1733,54 +1659,34 @@ document.querySelectorAll("[data-rule-detail-close]").forEach((button) => {
 });
 
 ruleDetailDialog?.addEventListener("close", () => {
-  if (ruleDialogReturnFocus instanceof HTMLElement && ruleEditorDialog instanceof HTMLDialogElement && !ruleEditorDialog.open) {
-    ruleDialogReturnFocus.focus();
-  }
+  if (ruleDialogReturnFocus instanceof HTMLElement) ruleDialogReturnFocus.focus();
 });
 
-document.querySelector("[data-rule-view]")?.addEventListener("click", () => {
-  if (!(activeRuleCard instanceof HTMLElement)) return;
-  showToast(`${activeRuleCard.dataset.ruleUrl ?? "원문 URL"} · 실제 DB 연동 후 원문을 엽니다.`);
-});
+const closeRuleEditor = () => {
+  if (ruleEditorDialog instanceof HTMLDialogElement && ruleEditorDialog.open) ruleEditorDialog.close();
+};
+
+const openRuleEditor = (card, returnFocus = card) => {
+  if (!canManageRuleDocuments || !(card instanceof HTMLElement) || !(ruleEditorDialog instanceof HTMLDialogElement) || !(ruleEditorForm instanceof HTMLFormElement)) return;
+  activeRuleCard = card;
+  ruleEditorReturnFocus = returnFocus;
+  ruleEditorForm.reset();
+  if (ruleEditorError instanceof HTMLElement) ruleEditorError.hidden = true;
+  if (ruleEditorTitle instanceof HTMLInputElement) ruleEditorTitle.value = card.dataset.ruleTitle ?? "";
+  if (ruleEditorMajor instanceof HTMLInputElement) ruleEditorMajor.value = card.dataset.ruleMajor ?? "";
+  if (ruleEditorMiddle instanceof HTMLInputElement) ruleEditorMiddle.value = card.dataset.ruleMiddle ?? "";
+  if (ruleEditorMinor instanceof HTMLInputElement) ruleEditorMinor.value = card.dataset.ruleMinor ?? "";
+  if (ruleEditorUrl instanceof HTMLInputElement) ruleEditorUrl.value = card.dataset.ruleUrl ?? "";
+  ruleEditorDialog.showModal();
+  window.requestAnimationFrame(() => ruleEditorTitle?.focus());
+};
 
 document.querySelector("[data-rule-edit-open]")?.addEventListener("click", () => {
-  if (!canManageRuleDocuments || !(activeRuleCard instanceof HTMLElement)) return;
-  const card = activeRuleCard;
-  if (ruleDetailDialog instanceof HTMLDialogElement && ruleDetailDialog.open) ruleDetailDialog.close();
-  window.requestAnimationFrame(() => openRuleEditor("edit", card, card));
-});
-
-document.querySelector("[data-rule-delete-open]")?.addEventListener("click", () => {
-  if (!canManageRuleDocuments || !(activeRuleCard instanceof HTMLElement) || !(ruleDeleteDialog instanceof HTMLDialogElement)) return;
-  document.querySelector("[data-rule-delete-name]")?.replaceChildren(activeRuleCard.dataset.ruleTitle ?? "선택한 문서");
-  if (ruleDetailDialog instanceof HTMLDialogElement && ruleDetailDialog.open) ruleDetailDialog.close();
-  window.requestAnimationFrame(() => ruleDeleteDialog.showModal());
-});
-
-document.querySelectorAll("[data-rule-delete-close]").forEach((button) => {
-  button.addEventListener("click", () => ruleDeleteDialog?.close());
-});
-
-ruleDeleteDialog?.addEventListener("close", () => activeRuleCard?.focus());
-
-document.querySelector("[data-rule-delete-confirm]")?.addEventListener("click", () => {
   if (!(activeRuleCard instanceof HTMLElement)) return;
   const card = activeRuleCard;
-  const deletedTitle = activeRuleCard.dataset.ruleTitle ?? "선택한 문서";
-  activeRuleCard = null;
-  ruleDeleteDialog?.close();
-  softDeleteItem({
-    type: "Rule&SOP",
-    name: deletedTitle,
-    element: card,
-    onChange: () => {
-      applyRuleFilters({ animate: false });
-      persistRuleData();
-      syncGlobalSearchResults();
-    },
-  });
-  document.querySelector("[data-rule-create-open]")?.focus();
-  showToast(`${deletedTitle} 문서를 숨김 처리했습니다. (목업)`);
+  ruleDialogReturnFocus = null;
+  ruleDetailDialog?.close();
+  window.requestAnimationFrame(() => openRuleEditor(card, card));
 });
 
 document.querySelectorAll("[data-rule-editor-close]").forEach((button) => {
@@ -1788,72 +1694,130 @@ document.querySelectorAll("[data-rule-editor-close]").forEach((button) => {
 });
 
 ruleEditorDialog?.addEventListener("close", () => {
-  if (ruleEditorReturnFocus instanceof HTMLElement && !(ruleDetailDialog instanceof HTMLDialogElement && ruleDetailDialog.open)) {
-    ruleEditorReturnFocus.focus();
-  }
+  if (ruleEditorReturnFocus instanceof HTMLElement && ruleEditorReturnFocus.isConnected) ruleEditorReturnFocus.focus();
 });
 
-ruleEditorMajor?.addEventListener("change", () => syncRuleEditorTaxonomy());
-ruleEditorMiddle?.addEventListener("change", () => syncRuleEditorTaxonomy({ middle: ruleEditorMiddle.value }));
-ruleEditorMinor?.addEventListener("change", () => {
-  const processValues = ruleProcessesByMinor[ruleEditorMinor.value] ?? [];
-  replaceRuleSelectOptions(ruleEditorProcess, processValues);
-});
-
-ruleEditorForm?.addEventListener("submit", (event) => {
+ruleEditorForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!(ruleEditorForm instanceof HTMLFormElement)) return;
   if (!ruleEditorForm.checkValidity()) {
     if (ruleEditorError instanceof HTMLElement) {
-      ruleEditorError.textContent = "문서 제목, 분류와 원문 링크를 모두 입력해 주세요.";
+      ruleEditorError.textContent = "제목, 대분류, 중분류, 소분류와 문서 URL을 모두 입력해 주세요.";
       ruleEditorError.hidden = false;
     }
     ruleEditorForm.reportValidity();
     return;
   }
 
-  let card = ruleEditorMode === "edit" ? activeRuleCard : null;
-  if (!(card instanceof HTMLElement)) {
-    const fragment = ruleCardTemplate?.content.cloneNode(true);
-    card = fragment?.querySelector("[data-rule-card]");
-    if (!(card instanceof HTMLElement) || !(ruleCardGrid instanceof HTMLElement)) return;
-    ruleCardGrid.append(card);
-    card.dataset.ruleId = `rule-${Date.now()}`;
-    card.dataset.ruleVersion = "0.1";
+  const documentId = activeRuleCard?.dataset.ruleId ?? "";
+  if (!documentId) {
+    if (ruleEditorError instanceof HTMLElement) {
+      ruleEditorError.textContent = "수정할 문서를 찾지 못했습니다. 목록을 새로고침해 주세요.";
+      ruleEditorError.hidden = false;
+    }
+    return;
   }
 
-  const isEdit = ruleEditorMode === "edit";
-  const nextVersion = isEdit ? (Number.parseFloat(card.dataset.ruleVersion ?? "0.1") + 0.1).toFixed(1) : "0.1";
-  const today = new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()).replace(/\. /g, "-").replace(".", "");
-  card.dataset.ruleType = ruleEditorType.value;
-  card.dataset.ruleTitle = ruleEditorName.value.trim();
-  card.dataset.ruleMajor = ruleEditorMajor.value;
-  card.dataset.ruleMiddle = ruleEditorMiddle.value;
-  card.dataset.ruleMinor = ruleEditorMinor.value;
-  card.dataset.ruleProcess = ruleEditorProcess.value;
-  card.dataset.ruleUrl = ruleEditorUrl.value.trim();
-  card.dataset.ruleVersion = nextVersion;
-  card.dataset.ruleUpdated = today;
-  renderRuleCard(card);
-
-  const revisions = getRuleRevisionHistory(card);
-  if (!isEdit) revisions.length = 0;
-  revisions.unshift({
-    version: `v${nextVersion}`,
-    date: today,
-    author: "김품질",
-    note: ruleEditorNote.value.trim() || (isEdit ? "문서 정보 수정" : "신규 문서 등록"),
-  });
-
-  activeRuleCard = card;
-  recordHistory({ action: isEdit ? "수정" : "등록", targetType: "Rule&SOP", targetName: card.dataset.ruleTitle });
-  persistRuleData();
-  syncGlobalSearchResults();
-  closeRuleEditor();
-  applyRuleFilters();
-  showToast(`${card.dataset.ruleTitle} 문서를 ${isEdit ? "수정" : "등록"}했습니다. (목업)`);
-  window.requestAnimationFrame(() => openRuleDetail(card, card));
+  const submitButton = ruleEditorForm.querySelector("[type='submit']");
+  if (submitButton instanceof HTMLButtonElement) submitButton.disabled = true;
+  try {
+    const payload = await requestRuleApi({
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mainCategory: ruleEditorMajor.value.trim(),
+        subCategory: ruleEditorMiddle.value.trim(),
+        item: ruleEditorMinor.value.trim(),
+        title: ruleEditorTitle.value.trim(),
+        url: ruleEditorUrl.value.trim(),
+      }),
+    }, documentId);
+    await loadRuleCatalog({ force: true });
+    const card = getRuleCards().find((item) => (
+      item.dataset.ruleTitle === payload.document?.title
+      && item.dataset.ruleUrl === payload.document?.url
+      && item.dataset.ruleMajor === payload.document?.mainCategory
+      && item.dataset.ruleMiddle === payload.document?.subCategory
+      && item.dataset.ruleMinor === payload.document?.item
+    ));
+    const title = payload.document?.title ?? "Rule&SOP 문서";
+    activeRuleCard = card instanceof HTMLElement ? card : null;
+    ruleEditorReturnFocus = activeRuleCard;
+    closeRuleEditor();
+    if (activeRuleCard instanceof HTMLElement) openRuleDetail(activeRuleCard, activeRuleCard);
+    recordHistory({ action: "수정", targetType: "Rule&SOP", targetName: title, detail: "rulesop" });
+    showToast(`Rule&SOP 문서를 수정했습니다: ${title}`);
+  } catch (error) {
+    if (ruleEditorError instanceof HTMLElement) {
+      ruleEditorError.textContent = error instanceof Error ? error.message : "Rule&SOP 문서 수정에 실패했습니다.";
+      ruleEditorError.hidden = false;
+    }
+  } finally {
+    if (submitButton instanceof HTMLButtonElement) submitButton.disabled = false;
+  }
 });
+
+document.querySelector("[data-rule-delete-open]")?.addEventListener("click", () => {
+  if (!canManageRuleDocuments || !(activeRuleCard instanceof HTMLElement) || !(ruleDeleteDialog instanceof HTMLDialogElement)) return;
+  const card = activeRuleCard;
+  ruleDeleteReturnFocus = card;
+  ruleDeleteName?.replaceChildren(card.dataset.ruleTitle ?? "Rule&SOP 문서");
+  if (ruleDeleteError instanceof HTMLElement) ruleDeleteError.hidden = true;
+  ruleDialogReturnFocus = null;
+  ruleDetailDialog?.close();
+  window.requestAnimationFrame(() => ruleDeleteDialog.showModal());
+});
+
+document.querySelectorAll("[data-rule-delete-close]").forEach((button) => {
+  button.addEventListener("click", () => ruleDeleteDialog?.close());
+});
+
+ruleDeleteDialog?.addEventListener("close", () => {
+  if (ruleDeleteReturnFocus instanceof HTMLElement && ruleDeleteReturnFocus.isConnected) ruleDeleteReturnFocus.focus();
+});
+
+ruleDeleteConfirm?.addEventListener("click", async () => {
+  const documentId = activeRuleCard?.dataset.ruleId ?? "";
+  const title = activeRuleCard?.dataset.ruleTitle ?? "Rule&SOP 문서";
+  if (!documentId) {
+    if (ruleDeleteError instanceof HTMLElement) {
+      ruleDeleteError.textContent = "삭제할 문서를 찾지 못했습니다. 목록을 새로고침해 주세요.";
+      ruleDeleteError.hidden = false;
+    }
+    return;
+  }
+  if (ruleDeleteConfirm instanceof HTMLButtonElement) ruleDeleteConfirm.disabled = true;
+  try {
+    await requestRuleApi({ method: "DELETE" }, documentId);
+    ruleDeleteReturnFocus = null;
+    ruleDeleteDialog?.close();
+    activeRuleCard = null;
+    const documents = await loadRuleCatalog({ force: true });
+    recordHistory({ action: "삭제", targetType: "Rule&SOP", targetName: title, detail: "rulesop 실제 삭제" });
+    showToast(`Rule&SOP 문서를 삭제했습니다: ${title}`);
+    if (documents.length === 0) setRuleCatalogState("empty");
+  } catch (error) {
+    if (ruleDeleteError instanceof HTMLElement) {
+      ruleDeleteError.textContent = error instanceof Error ? error.message : "Rule&SOP 문서 삭제에 실패했습니다.";
+      ruleDeleteError.hidden = false;
+    }
+  } finally {
+    if (ruleDeleteConfirm instanceof HTMLButtonElement) ruleDeleteConfirm.disabled = false;
+  }
+});
+
+document.querySelector("[data-rule-view]")?.addEventListener("click", () => {
+  if (!(activeRuleCard instanceof HTMLElement)) return;
+  try {
+    const url = new URL(activeRuleCard.dataset.ruleUrl ?? "");
+    if (url.protocol !== "http:" && url.protocol !== "https:") throw new TypeError();
+    window.open(url.href, "_blank", "noopener,noreferrer");
+  } catch {
+    showToast("등록된 문서 URL을 확인해 주세요.");
+  }
+});
+
+ruleRetry?.addEventListener("click", () => { void loadRuleCatalog({ force: true }); });
 
 document.querySelectorAll("[data-rule-filter]").forEach((button) => {
   button.addEventListener("click", () => {
@@ -1897,8 +1861,7 @@ if (initialReportQuery === "catalog" || initialReportQuery === "viewer") {
   setReportMode("closed", { announce: false, focus: false, restoreAgent: false });
 }
 
-hydrateRuleDocuments();
-applyRuleFilters({ animate: false });
+void loadRuleCatalog();
 const initialRuleQuery = new URL(window.location.href).searchParams.get("rule");
 setRuleMode(initialRuleQuery === "open" ? "open" : "closed", { announce: false, focus: false, restoreAgent: false });
 
@@ -1962,8 +1925,8 @@ function syncGlobalSearchResults() {
   const ruleResults = getRuleCards()
     .map((card) => createGlobalSearchResult({
       target: "rule",
-      id: card.dataset.ruleTitle ?? "",
-      type: `${card.dataset.ruleType === "sop" ? "SOP" : "RULE"} · ${card.dataset.ruleProcess ?? "미지정"}`,
+      id: card.dataset.ruleId ?? "",
+      type: "RULE&SOP",
       title: card.dataset.ruleTitle ?? "제목 없음",
       description: getRuleClassificationText(card),
       searchText: buildTitleSearchText(card.dataset.ruleTitle),
@@ -2061,7 +2024,7 @@ document.querySelector("[data-global-search-results]")?.addEventListener("click"
     globalSearch?.close();
 
     if (target === "rule") {
-      const card = [...document.querySelectorAll("[data-rule-card]")].find((item) => item.dataset.ruleTitle === contentId);
+      const card = [...document.querySelectorAll("[data-rule-card]")].find((item) => item.dataset.ruleId === contentId);
       setRuleMode("open", { focus: false });
       window.setTimeout(() => {
         card?.classList.add("is-search-target");
