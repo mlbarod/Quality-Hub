@@ -86,6 +86,13 @@ const globalSearch = document.querySelector("[data-global-search]");
 const globalSearchInput = document.querySelector("[data-global-search-input]");
 const globalSearchEmpty = document.querySelector("[data-global-search-empty]");
 const rolePreview = document.querySelector("[data-role-preview]");
+const profileTrigger = document.querySelector("[data-profile-trigger]");
+const profilePopover = document.querySelector("[data-profile-popover]");
+const profileClose = document.querySelector("[data-profile-close]");
+const profileLogout = document.querySelector("[data-profile-logout]");
+const profileUserId = document.querySelector("[data-profile-user-id]");
+const profileDepartment = document.querySelector("[data-profile-department]");
+const profileRole = document.querySelector("[data-profile-role]");
 const commonStatePreview = document.querySelector("[data-common-state-preview]");
 const commonStateSurface = document.querySelector("[data-common-state-surface]");
 const chartsSection = document.querySelector(".charts-section");
@@ -2168,6 +2175,32 @@ document.querySelectorAll("[data-planned]").forEach((element) => {
   });
 });
 
+const setProfilePopoverOpen = (open, { focus = true } = {}) => {
+  if (!(profileTrigger instanceof HTMLButtonElement) || !(profilePopover instanceof HTMLElement)) return;
+  profilePopover.hidden = !open;
+  profileTrigger.setAttribute("aria-expanded", String(open));
+  if (open && focus) profilePopover.focus();
+};
+
+profileTrigger?.addEventListener("click", () => {
+  const shouldOpen = profilePopover instanceof HTMLElement && profilePopover.hidden;
+  setProfilePopoverOpen(shouldOpen);
+});
+profileClose?.addEventListener("click", () => {
+  setProfilePopoverOpen(false, { focus: false });
+  profileTrigger?.focus();
+});
+document.addEventListener("click", (event) => {
+  if (!(profilePopover instanceof HTMLElement) || profilePopover.hidden) return;
+  if (profilePopover.contains(event.target) || profileTrigger?.contains(event.target)) return;
+  setProfilePopoverOpen(false, { focus: false });
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" || !(profilePopover instanceof HTMLElement) || profilePopover.hidden) return;
+  setProfilePopoverOpen(false, { focus: false });
+  profileTrigger?.focus();
+});
+
 document.querySelectorAll("[data-motion-card]").forEach((card) => {
   const visual = card.querySelector("[data-motion-visual]");
   if (!visual) return;
@@ -2409,6 +2442,10 @@ const applyRole = (role, { announce = true, user = null } = {}) => {
   document.querySelectorAll("[data-current-user-name]").forEach((element) => element.replaceChildren(roleOption.name));
   document.querySelectorAll("[data-current-role-label]").forEach((element) => element.replaceChildren(roleOption.label));
   document.querySelectorAll("[data-current-user-initial]").forEach((element) => element.replaceChildren(roleOption.name.slice(0, 1)));
+  document.querySelectorAll("[data-profile-user-name]").forEach((element) => element.replaceChildren(roleOption.name));
+  profileUserId?.replaceChildren(roleOption.userId);
+  profileDepartment?.replaceChildren(roleOption.department);
+  profileRole?.replaceChildren(roleOption.label);
   document.querySelector("[data-blocked-user-id]")?.replaceChildren(roleOption.userId);
   document.querySelector("[data-blocked-department]")?.replaceChildren(roleOption.department);
   if (accessBlocked instanceof HTMLElement) accessBlocked.hidden = currentRolePolicy.canAccess;
@@ -2421,6 +2458,7 @@ const applyRole = (role, { announce = true, user = null } = {}) => {
     setUserMode("closed", { announce: false, focus: false });
   }
   if (!currentRolePolicy.canAccess) {
+    setProfilePopoverOpen(false, { focus: false });
     setReportMode("closed", { announce: false, focus: false, restoreAgent: false });
     setRuleMode("closed", { announce: false, focus: false, restoreAgent: false });
     setQnaMode("closed", { announce: false, focus: false, restoreAgent: false });
@@ -2463,17 +2501,8 @@ const initializeAuthentication = async () => {
   document.querySelector("[data-current-master-summary]")?.replaceChildren(`현재 마스터 · ${user.name}`);
   document.querySelector("[data-current-master-id]")?.replaceChildren(user.userId);
   document.querySelectorAll("[data-recovery-open]").forEach((button) => { button.hidden = true; });
-  document.querySelectorAll('[data-planned="내 프로필"]').forEach((button) => {
-    button.removeAttribute("data-planned");
-    button.title = "통합인증 로그아웃";
-    button.addEventListener("click", () => {
-      const form = document.createElement("form");
-      form.method = "post";
-      form.action = "/auth/logout";
-      document.body.append(form);
-      form.submit();
-    });
-  });
+  if (profileTrigger instanceof HTMLButtonElement) profileTrigger.title = "로그인 사용자 정보";
+  if (profileLogout instanceof HTMLFormElement) profileLogout.hidden = false;
   if (payload.role === "master") await loadSsoPermissions();
 };
 

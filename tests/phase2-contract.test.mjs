@@ -52,6 +52,24 @@ test("공통 화면 상태와 역할 미리보기를 화면에서 체험할 수 
   assert.match(script, /denied: "#icon-shield"/)
 })
 
+test("상단 사용자 버튼은 계정 정보 팝업을 열고 SSO 로그아웃을 팝업 안에 제공한다", () => {
+  const profileTrigger = html.match(/<button class="header-profile"[^>]*>/)?.[0] ?? ""
+  assert.match(profileTrigger, /data-profile-trigger/)
+  assert.match(profileTrigger, /aria-haspopup="dialog"/)
+  assert.match(profileTrigger, /aria-expanded="false"/)
+  assert.match(html, /data-profile-popover/)
+  assert.match(html, /data-profile-user-id/)
+  assert.match(html, /data-profile-user-name/)
+  assert.match(html, /data-profile-department/)
+  assert.match(html, /data-profile-role/)
+  assert.match(html, /data-profile-logout/)
+  assert.match(script, /const setProfilePopoverOpen/)
+  assert.match(script, /event\.key !== "Escape"/)
+  assert.match(script, /profileLogout\.hidden = false/)
+  assert.doesNotMatch(script, /button\.title = "통합인증 로그아웃"/)
+  assert.match(styles, /\.header-profile-popover \{[\s\S]*width: 320px;/)
+})
+
 test("대시보드 예시 지표를 교체 가능한 목업 데이터로 제공한다", () => {
   assert.deepEqual(Object.keys(DASHBOARD_PERIODS), ["7", "30"])
   assert.equal(DASHBOARD_PERIODS[7].compliance, "98.4%")

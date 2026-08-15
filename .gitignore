@@ -7,5 +7,6 @@ coverage/
 .env.db
 .env.compose
 .env.sso
+server/certs/*
 certs/sso/*
 prototype/.env.local

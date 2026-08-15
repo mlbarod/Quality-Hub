@@ -221,7 +221,23 @@
           <button class="icon-button" type="button" data-qna-notifications aria-label="Q&A 알림 3개">
             <svg class="icon"><use href="#icon-bell"></use></svg><i>3</i>
           </button>
-          <button class="header-profile" type="button" data-planned="내 프로필"><span class="avatar" data-current-user-initial>김</span><span data-current-user-name>김품질</span></button>
+          <button class="header-profile" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="header-profile-popover" aria-label="로그인 사용자 정보 열기" data-profile-trigger>
+            <span class="avatar" data-current-user-initial>김</span><span data-current-user-name>김품질</span><svg class="icon" aria-hidden="true"><use href="#icon-chevron-down"></use></svg>
+          </button>
+          <section class="header-profile-popover" id="header-profile-popover" role="dialog" aria-labelledby="header-profile-title" tabindex="-1" hidden data-profile-popover>
+            <header>
+              <span class="avatar" data-current-user-initial>김</span>
+              <span><small>CURRENT USER</small><strong id="header-profile-title" data-profile-user-name>김품질</strong></span>
+              <button type="button" aria-label="사용자 정보 닫기" data-profile-close><svg class="icon"><use href="#icon-close"></use></svg></button>
+            </header>
+            <dl>
+              <div><dt>USER ID</dt><dd data-profile-user-id>quality.kim</dd></div>
+              <div><dt>USER NAME</dt><dd data-profile-user-name>김품질</dd></div>
+              <div><dt>DEP NAME</dt><dd data-profile-department>품질기획</dd></div>
+              <div><dt>권한</dt><dd><span data-profile-role>마스터</span></dd></div>
+            </dl>
+            <form method="post" action="/auth/logout" hidden data-profile-logout><button type="submit">통합인증 로그아웃</button></form>
+          </section>
         </div>
       </header>
 
