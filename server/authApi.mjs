@@ -158,7 +158,7 @@ function pathPart(pathname, prefix) {
 
 function cookieNames(config) {
   return config.secureCookies
-    ? { correlation: "__Host-qh_oidc", session: "__Host-qh_session" }
+    ? { correlation: "__Secure-qh_oidc", session: "__Host-qh_session" }
     : { correlation: "qh_oidc", session: "qh_session" }
 }
 

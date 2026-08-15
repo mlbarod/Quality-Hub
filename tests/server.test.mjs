@@ -218,6 +218,10 @@ test("SSO 모드는 미인증 화면을 로그인으로 보내고 서버 사용�
   assert.equal(redirectResponse.status, 302)
   assert.equal(redirectResponse.headers.get("location"), "/auth/login?returnTo=%2F")
 
+  const faviconResponse = await fetch(`${baseUrl}/favicon.ico`, { redirect: "manual" })
+  assert.equal(faviconResponse.status, 204)
+  assert.equal(faviconResponse.headers.get("location"), null)
+
   principal = {
     userId: "server.identity",
     displayName: "서버 사용자",

@@ -129,6 +129,26 @@ test("로그인부터 callback, 서버 세션 조회까지 브라우저 토큰�
   assert.equal(principal.role, "general")
 })
 
+test("운영 correlation 쿠키는 callback 전용 경로와 호환되는 보안 prefix를 사용한다", async () => {
+  const api = createAuthApi({
+    config: config({ secureCookies: true }),
+    repository: createRepository(),
+    publicKey,
+    now: () => fixedNow,
+    logger: { error() {} },
+  })
+  const loginResponse = response()
+
+  await api.handle(request({ url: "/auth/login" }), loginResponse)
+
+  const correlationCookie = loginResponse.headers["Set-Cookie"][0]
+  assert.match(correlationCookie, /^__Secure-qh_oidc=/)
+  assert.match(correlationCookie, /; Path=\/auth\/callback;/)
+  assert.match(correlationCookie, /; Secure;/)
+  assert.match(correlationCookie, /; SameSite=None;/)
+  assert.doesNotMatch(correlationCookie, /^__Host-/)
+})
+
 test("Claim 확인 모드는 키 자료형만 기록하고 세션을 만들지 않는다", async () => {
   const repository = createRepository()
   const records = []

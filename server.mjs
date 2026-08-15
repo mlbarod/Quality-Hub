@@ -18,6 +18,7 @@ const defaultPort = 4173
 const defaultHost = "0.0.0.0"
 const healthPath = "/healthz"
 const readinessPath = "/readyz"
+const faviconPath = "/favicon.ico"
 const shutdownTimeoutMs = 10_000
 const readinessRequirements = {
   database: ["DB_HOST", "DB_USER", "DB_PASSWORD", "DB_NAME"],
@@ -107,6 +108,13 @@ function serveHealth(req, res) {
     "Cache-Control": "no-store",
   })
   res.end(req.method === "HEAD" ? undefined : body)
+}
+
+function serveFaviconFallback(res) {
+  res.writeHead(204, {
+    "Cache-Control": "public, max-age=86400",
+  })
+  res.end()
 }
 
 export function getRuntimeReadiness(environment = process.env) {
@@ -307,6 +315,10 @@ export function createQualityHubServer({
         serveReadiness(req, res, environment)
         return
       }
+      if ((req.method === "GET" || req.method === "HEAD") && url.pathname === faviconPath) {
+        serveFaviconFallback(res)
+        return
+      }
       if (authApi.enabled && (req.method === "GET" || req.method === "HEAD") && isPublicStaticAsset(url.pathname, staticDir)) {
         serveStatic(req, res, staticDir)
         return
@@ -392,6 +404,10 @@ async function startSourceServer({ host, port }) {
       }
       if (url.pathname === readinessPath) {
         serveReadiness(req, res, process.env)
+        return
+      }
+      if ((req.method === "GET" || req.method === "HEAD") && url.pathname === faviconPath) {
+        serveFaviconFallback(res)
         return
       }
       if (authApi.enabled && url.pathname.startsWith("/auth/") && await authApi.handle(req, res)) return
