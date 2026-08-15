@@ -4,6 +4,7 @@ import test from "node:test"
 
 import {
   createOidcLoginRequest,
+  loadCertificatePublicKey,
   loadOidcConfig,
   mapIdentityClaims,
   normalizeReturnTo,
@@ -68,6 +69,25 @@ test("로그인 URL은 form_post hybrid flow와 state, nonce를 포함한다", (
   assert.equal(url.searchParams.get("scope"), "openid profile")
   assert.equal(url.searchParams.get("state"), request.state)
   assert.equal(url.searchParams.get("nonce"), request.nonce)
+})
+
+test("X.509 인증서에서 추출한 공개키 객체를 재변환하지 않는다", () => {
+  const certificateBytes = Buffer.from("synthetic-certificate")
+  class Certificate {
+    constructor(source) {
+      assert.equal(source, certificateBytes)
+      this.publicKey = publicKey
+    }
+  }
+
+  const loadedKey = loadCertificatePublicKey(
+    "/run/secrets/idp.cer",
+    () => certificateBytes,
+    Certificate,
+  )
+
+  assert.equal(loadedKey, publicKey)
+  assert.equal(loadedKey.type, "public")
 })
 
 test("RS256 ID token의 서명, issuer, audience, 만료, nonce와 c_hash를 검증한다", () => {

@@ -2,7 +2,6 @@ import {
   X509Certificate,
   createHash,
   createHmac,
-  createPublicKey,
   createVerify,
   randomBytes,
   timingSafeEqual,
@@ -141,9 +140,13 @@ export function createOidcLoginRequest(config, { returnTo = "/" } = {}) {
   return { url: url.toString(), state, nonce, correlation, returnTo }
 }
 
-export function loadCertificatePublicKey(certificatePath, readFile = readFileSync) {
-  const certificate = new X509Certificate(readFile(certificatePath))
-  return createPublicKey(certificate.publicKey)
+export function loadCertificatePublicKey(
+  certificatePath,
+  readFile = readFileSync,
+  Certificate = X509Certificate,
+) {
+  const certificate = new Certificate(readFile(certificatePath))
+  return certificate.publicKey
 }
 
 export function verifyIdToken(idToken, {
