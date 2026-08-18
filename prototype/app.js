@@ -1,8 +1,5 @@
 import {
-  COMMON_STATE_OPTIONS,
   createHistoryEntry,
-  DASHBOARD_PERIODS,
-  getPermissionMessage,
   getRoleOption,
   getRolePolicy,
 } from "./src/mock/phase2.js";
@@ -22,7 +19,16 @@ const dashboardWorkspace = document.querySelector(".workspace");
 const homeView = document.querySelector("[data-home-view]");
 const dashboardView = document.querySelector("[data-dashboard-view]");
 const toast = document.querySelector("[data-toast]");
-const refreshButton = document.querySelector("[data-refresh]");
+const dashboardRefresh = document.querySelector("[data-dashboard-refresh]");
+const dashboardOpenExternal = document.querySelector("[data-dashboard-open-external]");
+const dashboardSourceState = document.querySelector("[data-dashboard-source-state]");
+const dashboardSpotfireCard = document.querySelector(".dashboard-spotfire-card");
+const dashboardSpotfireFrame = document.querySelector("[data-dashboard-spotfire-frame]");
+const dashboardSpotfirePlaceholder = document.querySelector("[data-dashboard-spotfire-placeholder]");
+const dashboardStateIcon = document.querySelector("[data-dashboard-state-icon]");
+const dashboardStateTitle = document.querySelector("[data-dashboard-state-title]");
+const dashboardStateDescription = document.querySelector("[data-dashboard-state-description]");
+const dashboardRetry = document.querySelector("[data-dashboard-retry]");
 const skipLink = document.querySelector(".skip-link");
 const agentWorkspace = document.querySelector("[data-agent-workspace]");
 const reportWorkspace = document.querySelector("[data-report-workspace]");
@@ -114,9 +120,6 @@ const profileLogout = document.querySelector("[data-profile-logout]");
 const profileUserId = document.querySelector("[data-profile-user-id]");
 const profileDepartment = document.querySelector("[data-profile-department]");
 const profileRole = document.querySelector("[data-profile-role]");
-const commonStatePreview = document.querySelector("[data-common-state-preview]");
-const commonStateSurface = document.querySelector("[data-common-state-surface]");
-const chartsSection = document.querySelector(".charts-section");
 const accessBlocked = document.querySelector("[data-access-blocked]");
 const recoveryDialog = document.querySelector("[data-recovery-dialog]");
 const recoveryList = document.querySelector("[data-recovery-list]");
@@ -124,6 +127,8 @@ const historyDialog = document.querySelector("[data-history-dialog]");
 const historyList = document.querySelector("[data-history-list]");
 const masterList = document.querySelector("[data-master-list]");
 let toastTimer;
+let dashboardLoadPromise;
+let dashboardUrl = "";
 let reportEntryTimer;
 let reportEditorReturnFocus;
 let reportDeleteReturnFocus;
@@ -158,7 +163,6 @@ let currentRolePolicy = getRolePolicy(currentRole);
 const isSsoMode = prototype?.dataset.authMode === "sso";
 let currentAuthenticatedUser = null;
 let agentChatInitialized = false;
-let currentCommonState = prototype?.dataset.commonState ?? "normal";
 let editingAccessRow = null;
 const hiddenItems = [];
 const activityRepository = createLocalRepository({
@@ -177,13 +181,105 @@ const initializedModes = {
 };
 let activeQnaViewKey = "";
 
-const chartPeriods = DASHBOARD_PERIODS;
-
 const getCurrentUser = () => currentAuthenticatedUser ?? getRoleOption(currentRole);
 
 const withIdentityHeader = (headers = {}) => isSsoMode
   ? { ...headers }
   : { "x-quality-hub-user-id": getCurrentUser().userId, ...headers };
+
+const dashboardStateCopy = {
+  loading: {
+    icon: "#icon-refresh",
+    title: "대시보드를 불러오고 있습니다.",
+    description: "dashboard_report.url에서 Spotfire 주소를 조회하고 있습니다.",
+    source: "dashboard_report 조회 중",
+  },
+  empty: {
+    icon: "#icon-empty",
+    title: "등록된 대시보드가 없습니다.",
+    description: "dashboard_report 테이블의 url 컬럼을 확인해 주세요.",
+    source: "대시보드 URL 없음",
+  },
+  error: {
+    icon: "#icon-alert",
+    title: "대시보드를 불러오지 못했습니다.",
+    description: "DB 연결과 dashboard_report.url 값을 확인한 뒤 다시 시도해 주세요.",
+    source: "대시보드 연결 오류",
+  },
+  ready: {
+    icon: "#icon-grid",
+    title: "Spotfire 대시보드",
+    description: "Spotfire 원본 화면을 표시하고 있습니다.",
+    source: "dashboard_report 연결",
+  },
+};
+
+const setDashboardState = (state, description) => {
+  const copy = dashboardStateCopy[state] ?? dashboardStateCopy.error;
+  const isReady = state === "ready";
+  const isLoading = state === "loading";
+  if (dashboardSpotfireCard instanceof HTMLElement) dashboardSpotfireCard.setAttribute("aria-busy", String(isLoading));
+  if (dashboardSpotfireFrame instanceof HTMLIFrameElement) dashboardSpotfireFrame.hidden = !isReady;
+  if (dashboardSpotfirePlaceholder instanceof HTMLElement) dashboardSpotfirePlaceholder.hidden = isReady;
+  dashboardStateIcon?.setAttribute("href", copy.icon);
+  dashboardStateTitle?.replaceChildren(copy.title);
+  dashboardStateDescription?.replaceChildren(description ?? copy.description);
+  dashboardSourceState?.classList.toggle("is-error", state === "error" || state === "empty");
+  if (dashboardSourceState instanceof HTMLElement) dashboardSourceState.lastChild.textContent = copy.source;
+  if (dashboardRetry instanceof HTMLButtonElement) dashboardRetry.hidden = state !== "error";
+  if (dashboardRefresh instanceof HTMLButtonElement) {
+    dashboardRefresh.disabled = isLoading;
+    dashboardRefresh.classList.toggle("is-loading", isLoading);
+    dashboardRefresh.setAttribute("aria-busy", String(isLoading));
+  }
+  if (dashboardOpenExternal instanceof HTMLButtonElement) dashboardOpenExternal.disabled = !isReady;
+};
+
+const isEmbeddableDashboardUrl = (value) => {
+  if (typeof value !== "string" || value.length === 0) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
+const loadDashboard = ({ force = false } = {}) => {
+  if (dashboardLoadPromise && !force) return dashboardLoadPromise;
+  if (dashboardLoadPromise && force) return dashboardLoadPromise.then(() => loadDashboard({ force: true }));
+
+  setDashboardState("loading");
+  if (force && dashboardSpotfireFrame instanceof HTMLIFrameElement) dashboardSpotfireFrame.removeAttribute("src");
+  dashboardLoadPromise = fetch("/api/dashboard", { headers: withIdentityHeader({ Accept: "application/json" }) })
+    .then(async (response) => {
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error?.message ?? "대시보드 DB 요청을 처리하지 못했습니다.");
+      const nextUrl = payload.dashboard?.url;
+      if (nextUrl == null || nextUrl === "") {
+        dashboardUrl = "";
+        if (dashboardSpotfireFrame instanceof HTMLIFrameElement) dashboardSpotfireFrame.removeAttribute("src");
+        setDashboardState("empty");
+        return null;
+      }
+      if (!isEmbeddableDashboardUrl(nextUrl)) throw new Error("dashboard_report.url이 올바른 http 또는 https URL이 아닙니다.");
+      dashboardUrl = nextUrl;
+      if (dashboardSpotfireFrame instanceof HTMLIFrameElement) dashboardSpotfireFrame.src = nextUrl;
+      setDashboardState("ready");
+      return nextUrl;
+    })
+    .catch((error) => {
+      dashboardUrl = "";
+      if (dashboardSpotfireFrame instanceof HTMLIFrameElement) dashboardSpotfireFrame.removeAttribute("src");
+      setDashboardState("error", error instanceof Error ? error.message : undefined);
+      console.error("Dashboard load failed", { name: error?.name, message: error?.message });
+      return null;
+    })
+    .finally(() => {
+      dashboardLoadPromise = undefined;
+    });
+  return dashboardLoadPromise;
+};
 
 const showToast = (message) => {
   if (!toast) return;
@@ -255,6 +351,7 @@ const setDashboardMode = (mode, { announce = true, focus = true } = {}) => {
 
   if (focus) focusAfterTransition(isDashboard ? dashboardView : homeView, 80);
   if (announce) showToast(isDashboard ? "품질 대시보드를 열었습니다." : "App 홈으로 돌아왔습니다.");
+  if (isDashboard) void loadDashboard();
 };
 
 const recordHistory = (entry) => {
@@ -890,19 +987,6 @@ const setUserMode = (mode, { announce = true, focus = true, restoreAgent = true 
   else showToast("Main으로 돌아왔습니다.");
 };
 
-const formatDate = (date) =>
-  new Intl.DateTimeFormat("ko-KR", {
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  }).format(date);
-
-const formatTime = (date) =>
-  new Intl.DateTimeFormat("ko-KR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-
 const openDashboard = ({ announce = true, focus = true } = {}) => {
   setReportMode("closed", { announce: false, focus: false, restoreAgent: false });
   setRuleMode("closed", { announce: false, focus: false, restoreAgent: false });
@@ -935,6 +1019,22 @@ document.querySelectorAll("[data-home-refresh]").forEach((link) => {
 
 document.querySelectorAll("[data-dashboard-open]").forEach((button) => {
   button.addEventListener("click", () => openDashboard());
+});
+
+dashboardRefresh?.addEventListener("click", () => {
+  void loadDashboard({ force: true }).then((url) => {
+    if (url) showToast("Spotfire 대시보드를 새로고침했습니다.");
+  });
+});
+
+dashboardRetry?.addEventListener("click", () => { void loadDashboard({ force: true }); });
+
+dashboardOpenExternal?.addEventListener("click", () => {
+  if (!isEmbeddableDashboardUrl(dashboardUrl)) {
+    showToast("등록된 대시보드 URL을 확인해 주세요.");
+    return;
+  }
+  window.open(dashboardUrl, "_blank", "noopener,noreferrer");
 });
 
 document.querySelectorAll("[data-agent-open]").forEach((button) => {
@@ -2400,10 +2500,6 @@ globalSearch?.addEventListener("close", () => {
   suppressGlobalSearchFocusRestore = false;
 });
 
-document.querySelectorAll("[data-today]").forEach((element) => {
-  element.textContent = formatDate(new Date());
-});
-
 document.querySelectorAll("[data-planned]").forEach((element) => {
   element.addEventListener("click", () => {
     showToast(`${element.dataset.planned} 화면은 디자인 확정 후 연결할 예정입니다.`);
@@ -2454,51 +2550,6 @@ document.querySelectorAll("[data-motion-card]").forEach((card) => {
   });
 });
 
-document.querySelectorAll("[data-period]").forEach((button) => {
-  button.addEventListener("click", () => {
-    const state = chartPeriods[button.dataset.period];
-    if (!state) return;
-
-    document.querySelectorAll("[data-period]").forEach((item) => {
-      const isSelected = item === button;
-      item.classList.toggle("is-selected", isSelected);
-      item.setAttribute("aria-pressed", String(isSelected));
-    });
-
-    document.querySelector("[data-compliance-value]")?.replaceChildren(state.compliance);
-    document.querySelector("[data-anomaly-value]")?.replaceChildren(state.anomaly);
-    document.querySelectorAll("[data-period-label]").forEach((item) => {
-      item.replaceChildren(state.label);
-    });
-
-    const linePath = document.querySelector("[data-line-path]");
-    const lineArea = document.querySelector("[data-line-area]");
-    linePath?.setAttribute("d", state.path);
-    lineArea?.setAttribute("d", `${state.path} L654 108 L42 108Z`);
-  });
-});
-
-refreshButton?.addEventListener("click", () => {
-  if (refreshButton.classList.contains("is-loading")) return;
-
-  const label = refreshButton.querySelector("span");
-  refreshButton.classList.add("is-loading");
-  refreshButton.setAttribute("aria-busy", "true");
-  if (label) label.textContent = "확인 중";
-
-  window.setTimeout(() => {
-    const now = new Date();
-    refreshButton.classList.remove("is-loading");
-    refreshButton.removeAttribute("aria-busy");
-    if (label) label.textContent = "최신 상태 확인";
-    document.querySelectorAll("[data-last-updated]").forEach((element) => {
-      element.textContent = `${formatTime(now)} (목업)`;
-      element.setAttribute("datetime", now.toISOString());
-    });
-    showToast("예시 데이터의 최신 상태를 확인했습니다.");
-  }, 720);
-});
-
 document.addEventListener("keydown", (event) => {
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
     event.preventDefault();
@@ -2517,57 +2568,6 @@ document.addEventListener("keydown", (event) => {
     else if (prototype?.dataset.agentMode === "full") setAgentMode("drawer");
     else if (prototype?.dataset.agentMode === "drawer") setAgentMode("closed");
   }
-});
-
-const applyCommonState = (state, { announce = true } = {}) => {
-  if (!(prototype instanceof HTMLElement) || !COMMON_STATE_OPTIONS.some((option) => option.value === state)) return;
-  currentCommonState = state;
-  prototype.dataset.commonState = state;
-  if (commonStatePreview instanceof HTMLSelectElement) commonStatePreview.value = state;
-  chartsSection?.setAttribute("aria-busy", String(state === "loading"));
-  if (chartsSection instanceof HTMLElement) chartsSection.hidden = state === "empty" || state === "denied";
-  if (!(commonStateSurface instanceof HTMLElement)) return;
-
-  const stateCopy = {
-    loading: ["처리 중", "예시 품질 지표를 확인하고 있습니다."],
-    empty: ["데이터가 없습니다.", "현재 조건에서 표시할 예시 품질 지표가 없습니다."],
-    error: ["조회 오류가 발생했습니다.", "다시 시도해 주세요. 현재 화면의 기존 내용은 유지됩니다."],
-    stale: ["오래된 데이터", "마지막 정상 시각: 오늘 09:40 (목업)"],
-    denied: ["권한 없음", getPermissionMessage(currentRole)],
-  };
-  const stateIcons = {
-    loading: "#icon-refresh",
-    empty: "#icon-empty",
-    error: "#icon-alert",
-    stale: "#icon-history",
-    denied: "#icon-shield",
-  };
-
-  commonStateSurface.className = "common-state-surface";
-  if (state === "normal") {
-    commonStateSurface.hidden = true;
-    return;
-  }
-  const [title, description] = stateCopy[state];
-  commonStateSurface.hidden = false;
-  commonStateSurface.classList.add(`is-${state}`);
-  document.querySelector("[data-common-state-title]")?.replaceChildren(title);
-  document.querySelector("[data-common-state-description]")?.replaceChildren(description);
-  document.querySelector("[data-common-state-icon-use]")?.setAttribute("href", stateIcons[state]);
-  const retryButton = document.querySelector("[data-common-state-retry]");
-  if (retryButton instanceof HTMLButtonElement) retryButton.hidden = state !== "error";
-  if (announce) showToast(`${title} 상태를 표시했습니다. (목업)`);
-};
-
-commonStatePreview?.addEventListener("change", () => applyCommonState(commonStatePreview.value));
-document.querySelector("[data-common-state-close]")?.addEventListener("click", () => applyCommonState("normal", { announce: false }));
-document.querySelector("[data-common-state-retry]")?.addEventListener("click", () => {
-  applyCommonState("loading", { announce: false });
-  window.setTimeout(() => {
-    applyCommonState("normal", { announce: false });
-    showToast("예시 데이터를 다시 조회했습니다.");
-    commonStatePreview?.focus();
-  }, 480);
 });
 
 const updateMasterProtection = () => {
@@ -2706,7 +2706,6 @@ const applyRole = (role, { announce = true, user = null } = {}) => {
     focusAfterTransition(rolePreview, 0);
   }
 
-  if (currentCommonState === "denied") applyCommonState("denied", { announce: false });
   syncPrimaryWorkspaceAccessibility();
   window.dispatchEvent(new CustomEvent("qualityhub:role-change", { detail: { role, policy: currentRolePolicy, user: roleOption } }));
   if (announce) showToast(isSsoMode ? `${roleOption.label} 권한이 적용되었습니다.` : `${roleOption.label} 역할 화면으로 전환했습니다. (목업)`);
@@ -2745,7 +2744,6 @@ const initializeAuthentication = async () => {
 updateMasterProtection();
 renderRecoveryList();
 renderHistoryList();
-applyCommonState(currentCommonState, { announce: false });
 void initializeAuthentication()
   .then(async () => {
     await agentChatController.initialize();

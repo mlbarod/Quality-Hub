@@ -114,7 +114,7 @@
       </symbol>
     </svg>
 
-    <div class="prototype" data-layout="top" data-dashboard-mode="home" data-agent-mode="closed" data-report-mode="closed" data-rule-mode="closed" data-qna-mode="closed" data-user-mode="closed" data-auth-mode="legacy" data-current-role="master" data-common-state="normal" data-can-manage-reports="true" data-can-manage-rules="true">
+    <div class="prototype" data-layout="top" data-dashboard-mode="home" data-agent-mode="closed" data-report-mode="closed" data-rule-mode="closed" data-qna-mode="closed" data-user-mode="closed" data-auth-mode="legacy" data-current-role="master" data-can-manage-reports="true" data-can-manage-rules="true">
       <aside class="sidebar" aria-label="좌측 서비스 메뉴">
         <a class="brand sidebar-brand" href="#home" aria-label="Quality Hub 홈" data-home-refresh>
           <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -352,170 +352,44 @@
           </section>
 
           <div class="dashboard-view" id="dashboard" tabindex="-1" data-dashboard-view hidden aria-hidden="true">
-          <section class="page-heading" aria-labelledby="dashboard-title">
-            <div>
-              <p class="eyebrow"><span></span> 오늘의 품질 브리핑</p>
-              <h1 id="dashboard-title">공정 품질을 한눈에.</h1>
-              <p><span data-today></span> 기준으로 담당 공정의 주요 변화와 업무를 확인하세요.</p>
-            </div>
-            <div class="heading-actions">
-              <div class="period-control" role="group" aria-label="조회 기간">
-                <button class="is-selected" type="button" data-period="7" aria-pressed="true">7일</button>
-                <button type="button" data-period="30" aria-pressed="false">30일</button>
+            <section class="page-heading dashboard-page-heading" aria-labelledby="dashboard-title">
+              <div>
+                <p class="eyebrow"><span></span> QUALITY DASHBOARD</p>
+                <h1 id="dashboard-title">품질 대시보드</h1>
+                <p>Spotfire에서 제공하는 대시보드 원본 화면을 그대로 표시합니다.</p>
               </div>
-              <button class="refresh-button" type="button" data-refresh>
-                <svg class="icon"><use href="#icon-refresh"></use></svg><span>최신 상태 확인</span>
-              </button>
-            </div>
-          </section>
+              <div class="heading-actions dashboard-actions">
+                <span class="dashboard-source-state" data-dashboard-source-state><i></i>dashboard_report 연결</span>
+                <button class="refresh-button" type="button" data-dashboard-refresh>
+                  <svg class="icon"><use href="#icon-refresh"></use></svg><span>새로고침</span>
+                </button>
+                <button class="dashboard-open-button" type="button" disabled data-dashboard-open-external>
+                  <svg class="icon"><use href="#icon-expand"></use></svg><span>Spotfire에서 열기</span>
+                </button>
+              </div>
+            </section>
 
-          <div class="demo-notice" role="note">
-            <span class="demo-badge">DEMO</span>
-            <strong>UI 검토용 예시 데이터</strong>
-            <span>실제 품질 현황이나 사내 시스템과 연결되지 않았습니다.</span>
-            <span class="notice-state"><i></i> 마지막 화면 갱신 <time data-last-updated>방금 전</time></span>
-            <label class="state-preview-control"><span>상태 미리보기</span><select aria-label="공통 화면 상태 미리보기" data-common-state-preview><option value="normal">정상</option><option value="loading">로딩</option><option value="empty">데이터 없음</option><option value="error">조회 오류</option><option value="stale">오래된 데이터</option><option value="denied">권한 없음</option></select></label>
-          </div>
-
-          <section class="common-state-surface" hidden aria-live="polite" data-common-state-surface>
-            <span class="common-state-icon" aria-hidden="true" data-common-state-icon><svg class="icon"><use href="#icon-refresh" data-common-state-icon-use></use></svg></span>
-            <div><strong data-common-state-title></strong><p data-common-state-description></p></div>
-            <button type="button" hidden data-common-state-retry><svg class="icon"><use href="#icon-refresh"></use></svg>다시 시도</button>
-            <button type="button" aria-label="상태 안내 닫기" data-common-state-close>닫기</button>
-          </section>
-
-          <section class="charts-section" aria-labelledby="chart-section-title">
-            <div class="section-heading">
-              <div><p class="section-kicker">QUALITY OVERVIEW</p><h2 id="chart-section-title">핵심 품질 지표</h2></div>
-              <p>미확정 지표를 시각 검토용 데이터로 표현했습니다.</p>
-            </div>
-
-            <div class="chart-grid">
-              <article class="chart-card">
-                <header class="card-heading">
-                  <div><p>공정 준수율</p><strong data-compliance-value>98.4%</strong></div>
-                  <span class="trend-badge">↗ 1.2%p</span>
+            <div class="dashboard-spotfire-shell">
+              <section class="spotfire-embed-card dashboard-spotfire-card" aria-labelledby="dashboard-spotfire-title" aria-busy="true">
+                <header>
+                  <div><span class="spotfire-dot"></span><strong id="dashboard-spotfire-title">Spotfire Web Player</strong><i>원본 화면</i></div>
+                  <span>Quality Hub는 대시보드 데이터를 별도 가공하지 않습니다.</span>
                 </header>
-                <div class="chart-meta"><span data-period-label>최근 7일</span><span><i class="legend-dot green"></i>전체 공정 평균</span><span><i class="legend-dot gray"></i>목표 97%</span></div>
-                <div class="line-chart-wrap">
-                  <svg class="quality-line-chart" viewBox="0 0 680 125" role="img" aria-labelledby="line-chart-title line-chart-desc">
-                    <title id="line-chart-title">최근 7일 공정 준수율 추이</title>
-                    <desc id="line-chart-desc">준수율이 96.4퍼센트에서 98.4퍼센트로 상승한 예시 차트입니다.</desc>
-                    <defs>
-                      <linearGradient id="qualityArea" x1="0" x2="0" y1="0" y2="1">
-                        <stop offset="0%" stop-color="#0788df" stop-opacity=".22" />
-                        <stop offset="100%" stop-color="#0788df" stop-opacity="0" />
-                      </linearGradient>
-                    </defs>
-                    <g class="chart-gridlines"><path d="M42 17H654M42 43H654M42 69H654M42 95H654" /></g>
-                    <path class="target-line" d="M42 72.5H654" />
-                    <path class="chart-area" data-line-area d="M42 86 C90 82 112 78 142 79 S202 67.5 242 70 S302 58 342 60 S402 50 442 52 S502 39 542 42 S612 24 654 27 L654 108 L42 108Z" />
-                    <path class="chart-line" data-line-path d="M42 86 C90 82 112 78 142 79 S202 67.5 242 70 S302 58 342 60 S402 50 442 52 S502 39 542 42 S612 24 654 27" />
-                    <g class="chart-points"><circle cx="42" cy="86" r="4"/><circle cx="142" cy="79" r="4"/><circle cx="242" cy="70" r="4"/><circle cx="342" cy="60" r="4"/><circle cx="442" cy="52" r="4"/><circle cx="542" cy="42" r="4"/><circle cx="654" cy="27" r="5"/></g>
-                  </svg>
-                  <div class="line-labels"><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span><span>일</span></div>
+                <iframe class="spotfire-embed-frame dashboard-spotfire-frame" title="Spotfire 품질 대시보드 원본 화면" referrerpolicy="no-referrer" hidden data-dashboard-spotfire-frame></iframe>
+                <div class="spotfire-embed-placeholder dashboard-spotfire-placeholder" role="status" aria-live="polite" data-dashboard-spotfire-placeholder>
+                  <span class="spotfire-placeholder-mark"><svg class="icon"><use href="#icon-refresh" data-dashboard-state-icon></use></svg></span>
+                  <p data-dashboard-state-title>대시보드를 불러오고 있습니다.</p>
+                  <strong>품질 대시보드</strong>
+                  <small data-dashboard-state-description>dashboard_report.url에서 Spotfire 주소를 조회하고 있습니다.</small>
+                  <button class="dashboard-retry-button" type="button" hidden data-dashboard-retry><svg class="icon"><use href="#icon-refresh"></use></svg>다시 시도</button>
                 </div>
-              </article>
+              </section>
 
-              <article class="chart-card">
-                <header class="card-heading">
-                  <div><p>공정별 이상 건수</p><strong data-anomaly-value>7건</strong></div>
-                  <span class="trend-badge is-neutral">↓ 3건</span>
-                </header>
-                <div class="chart-meta"><span data-period-label>최근 7일</span><span><i class="legend-dot green"></i>정상 범위</span><span><i class="legend-dot amber"></i>확인 필요</span></div>
-                <div class="bar-chart" role="img" aria-label="포토 1건, 식각 4건, 증착 2건, 검사 0건인 예시 막대 차트">
-                  <div class="bar-scale"><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span><span>0</span></div>
-                  <div class="bars">
-                    <div><i style="--height: 22%"><b>1</b></i><span>포토</span></div>
-                    <div><i class="is-warning" style="--height: 78%"><b>4</b></i><span>식각</span></div>
-                    <div><i style="--height: 42%"><b>2</b></i><span>증착</span></div>
-                    <div><i style="--height: 5%"><b>0</b></i><span>검사</span></div>
-                    <div><i style="--height: 22%"><b>1</b></i><span>세정</span></div>
-                  </div>
-                </div>
-              </article>
+              <aside class="report-viewer-note dashboard-viewer-note" role="note">
+                <svg class="icon"><use href="#icon-shield"></use></svg>
+                <span><strong>Spotfire 화면과 권한을 그대로 적용합니다.</strong><small>화면이 표시되지 않으면 Spotfire 로그인 상태와 iframe 허용 정책을 확인해 주세요.</small></span>
+              </aside>
             </div>
-          </section>
-
-          <section class="apps-section" aria-labelledby="apps-title">
-            <div class="section-heading apps-heading">
-              <div><p class="section-kicker">WORK APPS</p><h2 id="apps-title">자주 쓰는 품질 업무</h2></div>
-              <p>카드를 선택하면 해당 업무 화면으로 이동합니다.</p>
-            </div>
-
-            <div class="app-grid">
-              <button class="app-card app-card-featured" type="button" data-report-open data-motion-card="report">
-                <span class="app-card-header">
-                  <span class="app-icon"><svg class="icon"><use href="#icon-grid"></use></svg></span>
-                  <span><strong>각종 Report 조회</strong><small>Report catalog</small></span>
-                  <i class="app-status">Report DB 연결</i>
-                </span>
-                <span class="app-description">Quality Hub의 Report를 카테고리별로 찾고<br />선택한 Spotfire 화면을 바로 조회합니다.</span>
-                <span class="report-illustration" aria-hidden="true" data-motion-visual>
-                  <span class="visual-glow"></span>
-                  <span class="report-screen-preview">
-                    <span class="report-screen-heading">
-                      <span><i>REPORT CATALOG</i><b>필요한 품질 Report를<br />한곳에서 찾아보세요.</b></span>
-                      <strong><i>12</i><small>REPORTS</small></strong>
-                    </span>
-                    <span class="report-screen-toolbar">
-                      <span><svg class="icon"><use href="#icon-search"></use></svg><i>Report 검색</i></span>
-                      <span class="report-screen-filters"><i class="is-selected">전체</i><i>FDC</i><i>SPC</i><i>VM</i></span>
-                    </span>
-                    <span class="report-screen-grid">
-                      <span class="report-screen-card"><span class="report-mini-chart is-line"><i></i><i></i><i></i><b></b></span><small>FDC</small><b>종합 모니터링</b></span>
-                      <span class="report-screen-card"><span class="report-mini-chart is-bars"><i></i><i></i><i></i><i></i></span><small>SPC</small><b>관리도 분석</b></span>
-                      <span class="report-screen-card"><span class="report-mini-chart is-ring"><i></i><b></b></span><small>VM</small><b>예측 분석</b></span>
-                      <span class="report-screen-card is-more"><span><strong>+9</strong><small>MORE</small></span><b>전체 Report</b></span>
-                    </span>
-                  </span>
-                </span>
-                <span class="app-card-footer"><span>카테고리 · Report 카드 · 원본 화면</span><svg class="icon"><use href="#icon-arrow"></use></svg></span>
-              </button>
-
-              <button class="app-card" type="button" data-rule-open data-motion-card="rule">
-                <span class="app-card-header">
-                  <span class="app-icon"><svg class="icon"><use href="#icon-book"></use></svg></span>
-                  <span><strong>Rule&amp;SOP</strong><small>Rule &amp; SOP workspace</small></span>
-                  <i class="app-status">분류 목업</i>
-                </span>
-                <span class="app-description">변승위 Category와 Rule·SOP를<br />분류 범위에 따라 빠르게 탐색합니다.</span>
-                <span class="rule-illustration" aria-hidden="true" data-motion-visual>
-                  <span class="visual-glow"></span>
-                  <span class="rule-grid"></span>
-                  <span class="rule-preview-accordion"><i><svg class="icon"><use href="#icon-folder"></use></svg></i><b>변승위 Category분류</b><svg class="icon"><use href="#icon-chevron-down"></use></svg></span>
-                  <span class="rule-preview-scopes">
-                    <i><svg class="icon"><use href="#icon-folder"></use></svg><b>대분류</b></i>
-                    <i><svg class="icon"><use href="#icon-hierarchy"></use></svg><b>중분류</b></i>
-                    <i><svg class="icon"><use href="#icon-file-check"></use></svg><b>소분류</b></i>
-                  </span>
-                </span>
-                <span class="app-card-footer"><span>Category · 대분류 · 중분류 · 소분류</span><svg class="icon"><use href="#icon-arrow"></use></svg></span>
-              </button>
-
-              <button class="app-card" type="button" data-qna-open data-motion-card="qna">
-                <span class="app-card-header">
-                  <span class="app-icon"><svg class="icon"><use href="#icon-message"></use></svg></span>
-                  <span><strong>Q&amp;A</strong><small>Quality desk</small></span>
-                  <i class="app-status is-attention">4건 대기</i>
-                </span>
-                <span class="app-description">공정·부서 담당자에게 질문하고<br />답변과 처리 상태를 함께 관리합니다.</span>
-                <span class="qna-illustration" aria-hidden="true" data-motion-visual>
-                  <span class="visual-glow"></span>
-                  <span class="conversation-route"><i></i></span>
-                  <span class="message-bubble first"><i class="mini-avatar">김</i><span><b>검사 주기 기준 문의</b><small>식각 공정 · 12분 전</small></span></span>
-                  <span class="message-track"><i></i><i></i><i></i><b class="message-signal"></b></span>
-                  <span class="message-bubble second"><i class="mini-avatar owner">박</i><span><b>담당자 확인 중</b><small>답변 예정 · 오늘</small></span></span>
-                </span>
-                <span class="app-card-footer"><span>질문 · 답변 · 상태 관리</span><svg class="icon"><use href="#icon-arrow"></use></svg></span>
-              </button>
-            </div>
-          </section>
-
-          <footer class="page-footer">
-            <span>Quality Hub · 단계별 실제 연동 진행 중</span>
-            <span>Desktop only · 1440px 이상 권장</span>
-          </footer>
           </div>
         </main>
       </div>

@@ -6229,6 +6229,126 @@ body:not(.report-manager) .report-admin-only { display: none !important; }
   font-size: 8px;
 }
 
+/* 품질 대시보드: dashboard_report의 Spotfire 원본 화면 */
+.dashboard-page-heading {
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.dashboard-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.dashboard-source-state {
+  display: inline-flex;
+  height: 40px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 13px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.dashboard-source-state i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #29976a;
+  box-shadow: 0 0 0 4px rgb(41 151 106 / 11%);
+}
+
+.dashboard-source-state.is-error i {
+  background: var(--danger);
+  box-shadow: 0 0 0 4px rgb(194 65 58 / 10%);
+}
+
+.dashboard-open-button {
+  display: inline-flex;
+  height: 40px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 15px;
+  border: 1px solid hsl(204 94% 45% / 24%);
+  border-radius: 8px;
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.dashboard-open-button:disabled,
+.refresh-button:disabled {
+  cursor: wait;
+  opacity: .56;
+}
+
+.dashboard-open-button .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.dashboard-spotfire-shell {
+  /* Report 뷰어 최대 폭 1710px의 110% */
+  width: min(calc(100vw - 40px), 1881px);
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+
+.dashboard-spotfire-card {
+  min-height: calc(100vh - 255px);
+}
+
+.dashboard-spotfire-frame,
+.dashboard-spotfire-placeholder {
+  min-height: calc(100vh - 304px);
+}
+
+.dashboard-spotfire-card[aria-busy="true"] .spotfire-placeholder-mark .icon {
+  animation: spin 700ms linear infinite;
+}
+
+.dashboard-retry-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 8px;
+  padding: 9px 13px;
+  border-radius: 8px;
+  background: var(--foreground);
+  color: white;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dashboard-retry-button[hidden] {
+  display: none;
+}
+
+.dashboard-retry-button .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.dashboard-viewer-note {
+  margin-bottom: 30px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-spotfire-card[aria-busy="true"] .spotfire-placeholder-mark .icon { animation: none; }
+}
+
+@media (max-width: 900px) {
+  .dashboard-page-heading { align-items: flex-start; flex-direction: column; }
+  .dashboard-actions { justify-content: flex-start; }
+}
+
 /* 통합 검색: 별도 팝업과 콘텐츠 연결 */
 .global-search-dialog {
   width: min(720px, calc(100vw - 48px));

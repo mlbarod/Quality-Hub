@@ -15,6 +15,7 @@
     "rag:document:delete": "node --env-file-if-exists=.env.rag scripts/rag-document-delete.mjs",
     "gpt-oss:chat": "node --env-file-if-exists=.env.gpt-oss scripts/gpt-oss-chat.mjs",
     "db:history:check": "node --env-file-if-exists=.env.db scripts/db-history-check.mjs",
+    "db:dashboard:check": "node --env-file-if-exists=.env.db scripts/db-dashboard-check.mjs",
     "db:reports:check": "node --env-file-if-exists=.env.db scripts/db-reports-check.mjs",
     "db:rules:check": "node --env-file-if-exists=.env.db scripts/db-rules-check.mjs",
     "db:change-category:check": "node --env-file-if-exists=.env.db scripts/db-change-category-check.mjs",

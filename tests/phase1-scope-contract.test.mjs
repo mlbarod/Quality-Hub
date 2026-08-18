@@ -87,8 +87,8 @@ test("확정한 공통 화면 상태와 역할별 문의 대상을 문서에 기
 test("현재 로컬 가상 데이터와 운영 검증 경계를 요구사항에 기록한다", () => {
   assert.match(requirements, /현재 브라우저의 로컬 저장소에만 보관/)
   assert.match(requirements, /품질 Agent는 사내 RAG·GPT-OSS와 대화 DB를 Backend 흐름과 기존 UI에 연결/)
-  assert.match(requirements, /Report 목록 조회·신규 등록·수정·실제 삭제는 `report_reg`에, Rule&SOP 목록 조회·수정·실제 삭제는 `rulesop`에 연결/)
-  assert.match(requirements, /SSO 코드와 DB 세션·권한 저장 구조는 구현했으나 실제 사내 IdP·DB 검증/)
+  assert.match(requirements, /대시보드 조회는 `dashboard_report`에, Report 목록 조회·신규 등록·수정·실제 삭제는 `report_reg`에, Rule&SOP 목록 조회·수정·실제 삭제는 `rulesop`에 연결/)
+  assert.match(requirements, /SSO 코드와 DB 세션·권한 저장 구조는 구현했으나 실제 사내 IdP·DB·Spotfire 인증/)
   assert.match(developmentPlan, /별도 설명 없이 찾고 전체 사용 흐름을 체험할 수 있으며/)
 })
 

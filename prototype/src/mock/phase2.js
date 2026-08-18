@@ -56,30 +56,6 @@ export const ROLE_POLICIES = {
   },
 }
 
-export const COMMON_STATE_OPTIONS = [
-  { value: "normal", label: "정상" },
-  { value: "loading", label: "로딩" },
-  { value: "empty", label: "데이터 없음" },
-  { value: "error", label: "조회 오류" },
-  { value: "stale", label: "오래된 데이터" },
-  { value: "denied", label: "권한 없음" },
-]
-
-export const DASHBOARD_PERIODS = {
-  7: {
-    compliance: "98.4%",
-    anomaly: "7건",
-    label: "최근 7일",
-    path: "M42 86 C90 82 112 78 142 79 S202 67.5 242 70 S302 58 342 60 S402 50 442 52 S502 39 542 42 S612 24 654 27",
-  },
-  30: {
-    compliance: "97.9%",
-    anomaly: "24건",
-    label: "최근 30일",
-    path: "M42 78 C82 69 112 87 142 75.5 S207 83 242 71.5 S305 54 342 66 S406 47 442 58 S505 37 542 46 S614 34 654 30.5",
-  },
-}
-
 export function getRolePolicy(role) {
   return ROLE_POLICIES[role] ?? ROLE_POLICIES.blocked
 }

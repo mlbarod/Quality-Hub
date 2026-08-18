@@ -5,8 +5,6 @@ import test from "node:test"
 import {
   canDeleteQuestion,
   canEditQna,
-  COMMON_STATE_OPTIONS,
-  DASHBOARD_PERIODS,
   getPermissionMessage,
   getRolePolicy,
   ROLE_OPTIONS,
@@ -38,18 +36,11 @@ test("Q&A 수정·삭제 정책이 역할, 작성자와 답변 존재 여부를 
   assert.equal(canDeleteQuestion("master", "마스터", answered), true)
 })
 
-test("공통 화면 상태와 역할 미리보기를 화면에서 체험할 수 있다", () => {
-  assert.deepEqual(COMMON_STATE_OPTIONS.map(({ value }) => value), ["normal", "loading", "empty", "error", "stale", "denied"])
+test("역할 미리보기와 접근 차단 정책을 화면에서 체험할 수 있다", () => {
   assert.match(html, /data-role-preview/)
-  assert.match(html, /data-common-state-preview/)
-  assert.match(html, /data-common-state-surface/)
   assert.match(html, /data-access-blocked/)
   assert.match(html, /<main class="access-blocked"[^>]*tabindex="-1"/)
   assert.match(script, /applyRole/)
-  assert.match(script, /applyCommonState/)
-  assert.match(script, /chartsSection\.hidden = state === "empty" \|\| state === "denied"/)
-  assert.match(script, /empty: "#icon-empty"/)
-  assert.match(script, /denied: "#icon-shield"/)
 })
 
 test("상단 사용자 버튼은 계정 정보 팝업을 열고 SSO 로그아웃을 팝업 안에 제공한다", () => {
@@ -70,10 +61,10 @@ test("상단 사용자 버튼은 계정 정보 팝업을 열고 SSO 로그아웃
   assert.match(styles, /\.header-profile-popover \{[\s\S]*width: 320px;/)
 })
 
-test("대시보드 예시 지표를 교체 가능한 목업 데이터로 제공한다", () => {
-  assert.deepEqual(Object.keys(DASHBOARD_PERIODS), ["7", "30"])
-  assert.equal(DASHBOARD_PERIODS[7].compliance, "98.4%")
-  assert.match(script, /const chartPeriods = DASHBOARD_PERIODS/)
+test("대시보드 예시 지표를 제거하고 실제 Spotfire 조회 상태를 제공한다", () => {
+  assert.doesNotMatch(html, /data-common-state-preview|data-period=/)
+  assert.match(html, /data-dashboard-spotfire-frame/)
+  assert.match(script, /const loadDashboard = /)
 })
 
 test("숨김 삭제·복구·변경 이력과 마지막 마스터 보호 흐름을 제공한다", () => {
