@@ -1810,7 +1810,7 @@ const renderChangeCategory = (category, imageSource) => {
     return;
   }
 
-  if (!(changeCategoryImage instanceof HTMLElement) || !renderCategoryImage(changeCategoryImage, imageSource)) {
+  if (!(changeCategoryImage instanceof HTMLElement) || !renderCategoryImage(changeCategoryImage, imageSource, { sourceWidth: category.imageWidth })) {
     throw new Error("저장된 Category 그림 형식이 올바르지 않습니다.");
   }
   const updatedAt = category.updatedAt ? new Date(category.updatedAt) : null;
@@ -1911,7 +1911,7 @@ changeCategoryPasteBox?.addEventListener("paste", async (event) => {
     changeCategoryPasteBox.replaceChildren(`원본 ${image.width}×${image.height}px · ${formatCategoryImageSize(file.size)} 그림을 붙여넣었습니다.`);
     changeCategoryPasteBox.classList.add("is-ready");
     changeCategoryPasteStatus?.replaceChildren("원본 파일과 해상도를 그대로 저장하며, 조회 팝업에서 화면 폭을 넘을 때만 축소합니다.");
-    renderCategoryImage(changeCategoryPreview, changeCategoryPreviewUrl);
+    renderCategoryImage(changeCategoryPreview, changeCategoryPreviewUrl, { sourceWidth: image.width });
     setChangeCategoryFormError();
   } catch (error) {
     changeCategoryDraftImage = null;

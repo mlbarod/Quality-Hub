@@ -4435,14 +4435,23 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
 .change-category-view-panel > header > button .icon { width: 19px; height: 19px; }
 
 .change-category-view-body {
-  max-height: calc(100vh - 150px);
   padding: 16px;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
   background: #f8fbfd;
 }
-.change-category-view-body .change-category-image-viewport { padding: 0; border: 0; background: white; }
-.change-category-view-body .change-category-image-viewport img { width: auto; max-width: 100%; height: auto; }
+.change-category-view-body .change-category-image-viewport {
+  width: 100%;
+  max-height: calc(100vh - 182px);
+  max-height: calc(100dvh - 182px);
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 0;
+  background: white;
+  scrollbar-gutter: stable;
+}
+.change-category-view-body .change-category-image-viewport:focus-visible { outline: 3px solid hsl(204 94% 45% / 28%); outline-offset: 2px; }
+.change-category-view-body .change-category-image-viewport img { max-width: 100%; height: auto; }
 
 .rule-detail-body {
   display: grid;

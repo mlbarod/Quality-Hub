@@ -28,9 +28,10 @@ describe("변승위 Category 그림 붙여넣기", () => {
 
   it("그림은 안전한 img 요소로 표시한다", () => {
     const container = document.createElement("div")
-    expect(renderCategoryImage(container, "blob:test-image")).toBe(true)
+    expect(renderCategoryImage(container, "blob:test-image", { sourceWidth: 960 })).toBe(true)
     expect(container.querySelector("img")?.alt).toBe("변승위 Category 분류표")
     expect(container.querySelector("img")?.getAttribute("src")).toBe("blob:test-image")
+    expect(container.querySelector("img")?.style.width).toBe("960px")
     expect(formatCategoryImageSize(1536)).toBe("2 KB")
   })
 })

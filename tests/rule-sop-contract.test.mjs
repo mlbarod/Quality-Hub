@@ -4,6 +4,7 @@ import test from "node:test"
 
 const html = await readFile(new URL("../prototype/index.html", import.meta.url), "utf8")
 const script = await readFile(new URL("../prototype/app.js", import.meta.url), "utf8")
+const styles = await readFile(new URL("../prototype/styles.css", import.meta.url), "utf8")
 const requirements = await readFile(new URL("../docs/QUALITY_PORTAL_REQUIREMENTS.md", import.meta.url), "utf8")
 
 test("관리 Rule 앱 명칭과 진입점을 Rule&SOP로 제공한다", () => {
@@ -20,6 +21,13 @@ test("변승위 Category분류 박스를 접근 가능한 그림 조회 팝업 �
   assert.doesNotMatch(html, /data-rule-category-toggle|data-rule-category-panel/)
   assert.match(script, /openChangeCategoryViewer/)
   assert.match(script, /changeCategoryViewDialog\.showModal\(\)/)
+})
+
+test("변승위 Category 그림은 원본 가로 크기를 유지하고 그림 영역 전체에서 세로 스크롤한다", () => {
+  assert.match(html, /data-change-category-image[^>]*tabindex="0"|tabindex="0"[^>]*data-change-category-image/)
+  assert.match(script, /renderCategoryImage\(changeCategoryImage, imageSource, \{ sourceWidth: category\.imageWidth \}\)/)
+  assert.match(styles, /\.change-category-view-body \.change-category-image-viewport \{[\s\S]*?overflow-x: hidden;[\s\S]*?overflow-y: auto;/)
+  assert.match(styles, /\.change-category-view-body \.change-category-image-viewport img \{ max-width: 100%; height: auto; \}/)
 })
 
 test("변승위 Category는 그림 한 장 붙여넣기와 미리보기 교체 흐름을 제공한다", () => {

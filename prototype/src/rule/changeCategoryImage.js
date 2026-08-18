@@ -77,12 +77,18 @@ export async function imageFileToPayload(file, {
   }
 }
 
-export function renderCategoryImage(container, source, { alt = "변승위 Category 분류표" } = {}) {
+export function renderCategoryImage(container, source, {
+  alt = "변승위 Category 분류표",
+  sourceWidth,
+} = {}) {
   if (!container || typeof container.replaceChildren !== "function" || !source) return false
   const image = document.createElement("img")
   image.src = source
   image.alt = alt
   image.decoding = "async"
+  if (Number.isInteger(sourceWidth) && sourceWidth > 0) {
+    image.style.width = `${sourceWidth}px`
+  }
   container.replaceChildren(image)
   return true
 }
