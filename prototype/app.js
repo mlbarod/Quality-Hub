@@ -18,7 +18,6 @@ const dashboardView = document.querySelector("[data-dashboard-view]");
 const toast = document.querySelector("[data-toast]");
 const refreshButton = document.querySelector("[data-refresh]");
 const skipLink = document.querySelector(".skip-link");
-const agentDrawer = document.querySelector("[data-agent-drawer]");
 const agentWorkspace = document.querySelector("[data-agent-workspace]");
 const reportWorkspace = document.querySelector("[data-report-workspace]");
 const reportCatalog = document.querySelector("[data-report-catalog]");
@@ -179,7 +178,7 @@ const focusAfterTransition = (target, delay = 280) => {
 const syncPrimaryWorkspaceAccessibility = () => {
   if (!(prototype instanceof HTMLElement) || !(dashboardWorkspace instanceof HTMLElement)) return;
   const isBlocked = currentRolePolicy.canAccess === false;
-  const isInactive = isBlocked || prototype.dataset.agentMode === "full" || prototype.dataset.reportMode !== "closed" || prototype.dataset.ruleMode === "open" || prototype.dataset.qnaMode === "open" || prototype.dataset.userMode === "open";
+  const isInactive = isBlocked || prototype.dataset.agentMode !== "closed" || prototype.dataset.reportMode !== "closed" || prototype.dataset.ruleMode === "open" || prototype.dataset.qnaMode === "open" || prototype.dataset.userMode === "open";
   dashboardWorkspace.inert = isInactive;
   dashboardWorkspace.setAttribute("aria-hidden", String(isInactive));
 };
@@ -214,7 +213,7 @@ const setDashboardMode = (mode, { announce = true, focus = true } = {}) => {
   url.hash = isDashboard ? "dashboard" : "home";
   window.history.replaceState({}, "", url);
 
-  const hasOpenWorkspace = prototype.dataset.agentMode === "full"
+  const hasOpenWorkspace = prototype.dataset.agentMode !== "closed"
     || prototype.dataset.reportMode !== "closed"
     || prototype.dataset.ruleMode === "open"
     || prototype.dataset.qnaMode === "open"
@@ -320,7 +319,7 @@ const setAgentMode = (mode, { announce = true, focus = true } = {}) => {
   initializedModes.agent = true;
 
   prototype.dataset.agentMode = mode;
-  document.body.classList.toggle("agent-full-active", mode === "full");
+  document.body.classList.toggle("agent-full-active", mode !== "closed");
   const url = new URL(window.location.href);
   if (mode === "drawer" || mode === "closed") {
     url.searchParams.delete("agent");
@@ -328,10 +327,9 @@ const setAgentMode = (mode, { announce = true, focus = true } = {}) => {
     url.searchParams.set("agent", mode);
   }
   window.history.replaceState({}, "", url);
-  agentDrawer?.setAttribute("aria-hidden", String(mode !== "drawer"));
-  agentWorkspace?.setAttribute("aria-hidden", String(mode !== "full"));
-  if (agentDrawer instanceof HTMLElement) agentDrawer.inert = mode !== "drawer";
-  if (agentWorkspace instanceof HTMLElement) agentWorkspace.inert = mode !== "full";
+  agentWorkspace?.setAttribute("aria-hidden", String(mode === "closed"));
+  agentWorkspace?.setAttribute("aria-modal", String(mode === "drawer"));
+  if (agentWorkspace instanceof HTMLElement) agentWorkspace.inert = mode === "closed";
   syncPrimaryWorkspaceAccessibility();
   document.querySelectorAll("[data-agent-open]").forEach((button) => {
     button.setAttribute("aria-expanded", String(mode !== "closed"));
@@ -344,7 +342,7 @@ const setAgentMode = (mode, { announce = true, focus = true } = {}) => {
     else if (prototype.dataset.ruleMode === "open") skipLink.setAttribute("href", "#rule-main");
     else if (reportMode === "catalog") skipLink.setAttribute("href", "#report-catalog-main");
     else if (reportMode === "viewer") skipLink.setAttribute("href", "#report-viewer-main");
-    else skipLink.setAttribute("href", mode === "full" ? "#agent-main" : "#main-content");
+    else skipLink.setAttribute("href", mode !== "closed" ? "#agent-main" : "#main-content");
   }
 
   if (prototype.dataset.userMode === "open") {
@@ -365,7 +363,7 @@ const setAgentMode = (mode, { announce = true, focus = true } = {}) => {
 
   if (focus) {
     if (mode === "full") focusAfterTransition(document.querySelector("#agent-main"));
-    else if (mode === "drawer") focusAfterTransition(document.querySelector("#agent-drawer-input"));
+    else if (mode === "drawer") focusAfterTransition(document.querySelector("#agent-full-input"));
     else {
       const visibleAgentOpener = [...document.querySelectorAll("[data-agent-open]")]
         .find((button) => button.getClientRects().length > 0 && !button.closest("[inert]"));
@@ -375,8 +373,8 @@ const setAgentMode = (mode, { announce = true, focus = true } = {}) => {
 
   if (!announce) return;
   if (mode === "full") showToast("품질 Agent 전용 작업 화면으로 확장했습니다.");
-  if (mode === "drawer") showToast("품질 Agent 패널을 열었습니다.");
-  if (mode === "closed") showToast("품질 Agent 패널을 닫았습니다.");
+  if (mode === "drawer") showToast("품질 Agent 팝업을 열었습니다.");
+  if (mode === "closed") showToast("품질 Agent를 닫았습니다.");
 };
 
 const reportModes = new Set(["closed", "catalog", "viewer"]);
@@ -1258,7 +1256,7 @@ document.querySelectorAll("[data-agent-close]").forEach((button) => {
 
 document.querySelectorAll("[data-agent-prompt]").forEach((button) => {
   button.addEventListener("click", () => {
-    const inputSelector = prototype?.dataset.agentMode === "full" ? "#agent-full-input" : "#agent-drawer-input";
+    const inputSelector = "#agent-full-input";
     const input = document.querySelector(inputSelector);
     if (!(input instanceof HTMLInputElement)) return;
     input.value = button.dataset.agentPrompt ?? "";

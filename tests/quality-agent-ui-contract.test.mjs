@@ -13,13 +13,17 @@ const [html, appSource, chatControllerSource, answerFormatterSource, serverSourc
   readFile(new URL("../docs/QUALITY_PORTAL_REQUIREMENTS.md", import.meta.url), "utf8"),
 ])
 
-test("기존 Agent 패널·전체 화면 전환 구조에 공유 대화 렌더링 지점을 유지한다", () => {
-  assert.match(html, /data-agent-drawer[^]*data-agent-drawer-thread/)
-  assert.match(html, /data-agent-workspace[^]*data-agent-full-thread/)
+test("중앙 Agent 팝업과 전체 화면이 같은 작업 공간과 대화 렌더링 지점을 사용한다", () => {
+  assert.match(html, /data-agent-backdrop|class="agent-backdrop"/)
+  assert.match(html, /role="dialog"[^>]*aria-modal="false"[^>]*data-agent-workspace[^]*data-agent-full-thread/)
   assert.match(html, /data-agent-history-list/)
   assert.doesNotMatch(html, /data-agent-context-sources|data-agent-sources-refresh/)
   assert.match(html, /data-agent-new/)
+  assert.match(html, /data-agent-expand[^]*data-agent-collapse[^]*data-agent-close/)
   assert.match(appSource, /const setAgentMode =/)
+  assert.match(appSource, /agentWorkspace\?\.setAttribute\("aria-hidden", String\(mode === "closed"\)\)/)
+  assert.match(appSource, /agentWorkspace\?\.setAttribute\("aria-modal", String\(mode === "drawer"\)\)/)
+  assert.match(appSource, /prototype\.dataset\.agentMode !== "closed"/)
   assert.match(appSource, /createAgentChatController/)
   assert.doesNotMatch(appSource, /실제 답변 생성은 사내 품질 Agent API 연동 후/)
 })

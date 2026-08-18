@@ -520,45 +520,8 @@
         </main>
       </div>
 
-      <aside class="agent-drawer" id="quality-agent-floating-panel" aria-label="품질 Agent 플로팅 대화 패널" aria-hidden="true" data-agent-drawer>
-        <header class="agent-panel-header">
-          <div class="agent-identity">
-            <span class="agent-logo" aria-hidden="true">✦</span>
-            <span><strong>품질 Agent</strong><small><i></i> 사내 LLM · Backend 연결</small></span>
-          </div>
-          <div class="agent-window-actions">
-            <button type="button" data-agent-expand aria-label="품질 Agent 전체 화면으로 확장">
-              <svg class="icon"><use href="#icon-expand"></use></svg>
-            </button>
-            <button type="button" data-agent-close aria-label="품질 Agent 패널 닫기">
-              <svg class="icon"><use href="#icon-close"></use></svg>
-            </button>
-          </div>
-        </header>
-
-        <div class="agent-drawer-content">
-          <section class="agent-welcome" aria-labelledby="agent-drawer-title">
-            <p class="agent-context-label">DASHBOARD COPILOT</p>
-            <h2 id="agent-drawer-title">품질 업무를 어떻게<br />도와드릴까요?</h2>
-            <div class="agent-suggestions" aria-label="추천 질문">
-              <button type="button" data-agent-prompt="이상 건수 원인을 요약해줘">이상 건수 원인 요약</button>
-              <button type="button" data-agent-prompt="관련 Rule을 찾아줘">관련 Rule 찾아줘</button>
-              <button type="button" data-agent-prompt="주간 Report 초안을 작성해줘">주간 Report 초안</button>
-            </div>
-          </section>
-
-          <section class="agent-thread" aria-label="품질 Agent 대화" aria-live="polite" data-agent-drawer-thread></section>
-        </div>
-
-        <form class="agent-composer agent-drawer-composer" data-agent-form>
-          <label for="agent-drawer-input">품질 Agent에게 질문</label>
-          <input id="agent-drawer-input" type="text" placeholder="품질 Agent에게 질문하세요" autocomplete="off" data-agent-input />
-          <button type="submit" aria-label="질문 보내기"><svg class="icon"><use href="#icon-send"></use></svg></button>
-          <small role="status" data-agent-form-status>대화 내용을 불러오고 있습니다.</small>
-        </form>
-      </aside>
-
-      <div class="agent-workspace" aria-hidden="true" data-agent-workspace>
+      <div class="agent-backdrop" aria-hidden="true" data-agent-close></div>
+      <div class="agent-workspace" id="quality-agent-floating-panel" role="dialog" aria-label="품질 Agent 작업 공간" aria-modal="false" aria-hidden="true" data-agent-workspace>
         <aside class="agent-history" aria-label="품질 Agent 대화 기록">
           <header><strong>대화 기록</strong><button type="button" data-agent-new><svg class="icon"><use href="#icon-plus"></use></svg>새 대화</button></header>
           <div data-agent-history-list aria-live="polite"></div>
@@ -570,7 +533,15 @@
               <span class="agent-logo" aria-hidden="true">✦</span>
               <span><strong>품질 Agent</strong><small><i></i> 사내 LLM · Backend 연결</small></span>
             </div>
-            <button class="agent-back-button" type="button" data-agent-collapse><svg class="icon"><use href="#icon-expand"></use></svg>패널로 돌아가기</button>
+            <div class="agent-window-actions agent-main-actions">
+              <button type="button" data-agent-expand aria-label="품질 Agent 전체 화면으로 확장">
+                <svg class="icon"><use href="#icon-expand"></use></svg>
+              </button>
+              <button class="agent-back-button" type="button" data-agent-collapse><svg class="icon"><use href="#icon-expand"></use></svg>팝업으로 돌아가기</button>
+              <button type="button" data-agent-close aria-label="품질 Agent 닫기">
+                <svg class="icon"><use href="#icon-close"></use></svg>
+              </button>
+            </div>
           </header>
 
           <section class="agent-starters" aria-labelledby="agent-main-title">

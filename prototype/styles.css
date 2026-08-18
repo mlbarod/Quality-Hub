@@ -2527,7 +2527,7 @@ kbd {
   font-size: 9px;
 }
 
-/* 품질 Agent: 기본 우측 패널과 확장 작업 화면 */
+/* 품질 Agent: 중앙 대형 팝업과 전체 작업 화면 */
 .agent-spark {
   display: grid;
   width: 18px;
@@ -3119,30 +3119,70 @@ kbd {
 
 .agent-workspace {
   position: fixed;
-  inset: 0 0 0 var(--sidebar-width);
+  inset: var(--header-height) auto 0 50%;
   z-index: 56;
   display: grid;
-  grid-template-columns: 220px minmax(520px, 1fr);
+  width: min(calc(var(--agent-drawer-width) * 3), calc(100vw - 96px));
+  height: min(860px, calc(100vh - var(--header-height) - 64px));
+  margin-block: auto;
+  grid-template-columns: 260px minmax(520px, 1fr);
   visibility: hidden;
   overflow: hidden;
-  border-top: 1px solid var(--border);
+  border: 1px solid var(--border);
+  border-radius: 25px;
   background: var(--surface);
+  box-shadow: 0 30px 90px rgb(31 77 105 / 26%);
   opacity: 0;
   pointer-events: none;
-  transform: translateY(10px);
+  transform: translate(-50%, 10px);
   transition: opacity 140ms ease, transform 160ms ease, visibility 160ms ease;
 }
 
 .prototype[data-layout="top"] .agent-workspace {
   top: var(--header-height);
-  left: 0;
+  left: 50%;
 }
 
+.prototype[data-agent-mode="drawer"] .agent-workspace,
 .prototype[data-agent-mode="full"] .agent-workspace {
   visibility: visible;
   opacity: 1;
   pointer-events: auto;
-  transform: translateY(0);
+  transform: translate(-50%, 0);
+}
+
+.prototype[data-agent-mode="full"] .agent-workspace {
+  inset: var(--header-height) 0 0;
+  width: auto;
+  height: auto;
+  margin: 0;
+  grid-template-columns: 220px minmax(520px, 1fr);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  transform: none;
+}
+
+.prototype[data-layout="top"][data-agent-mode="full"] .agent-workspace {
+  left: 0;
+}
+
+.agent-backdrop {
+  position: fixed;
+  inset: var(--header-height) 0 0;
+  z-index: 55;
+  visibility: hidden;
+  background: rgb(26 62 84 / 18%);
+  opacity: 0;
+  pointer-events: none;
+  backdrop-filter: blur(3px);
+  transition: opacity 140ms ease, visibility 140ms ease;
+}
+
+.prototype[data-agent-mode="drawer"] .agent-backdrop {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .agent-history,
@@ -3322,6 +3362,19 @@ kbd {
   width: 13px;
   height: 13px;
   transform: rotate(180deg);
+}
+
+.agent-main-actions .agent-back-button {
+  display: none;
+  width: auto;
+}
+
+.prototype[data-agent-mode="full"] .agent-main-actions [data-agent-expand] {
+  display: none;
+}
+
+.prototype[data-agent-mode="full"] .agent-main-actions .agent-back-button {
+  display: flex;
 }
 
 .agent-starters {
