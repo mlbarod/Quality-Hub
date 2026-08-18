@@ -13,13 +13,13 @@ test("관리 Rule 앱 명칭과 진입점을 Rule&SOP로 제공한다", () => {
   assert.doesNotMatch(html, />관리 Rule</)
 })
 
-test("변승위 Category분류를 접근 가능한 아코디언으로 제공한다", () => {
-  assert.match(
-    html,
-    /aria-expanded="false" aria-controls="change-category-panel" data-rule-category-toggle/,
-  )
-  assert.match(html, /id="change-category-panel"[^>]*hidden data-rule-category-panel/)
-  assert.match(script, /button\.setAttribute\("aria-expanded", String\(!isExpanded\)\)/)
+test("변승위 Category분류 박스를 접근 가능한 그림 조회 팝업 진입점으로 제공한다", () => {
+  assert.match(html, /class="rule-category-open"[^>]*aria-haspopup="dialog" data-change-category-view/)
+  assert.match(html, /class="change-category-view-dialog"[^>]*data-change-category-view-dialog/)
+  assert.match(html, /data-change-category-view-close/)
+  assert.doesNotMatch(html, /data-rule-category-toggle|data-rule-category-panel/)
+  assert.match(script, /openChangeCategoryViewer/)
+  assert.match(script, /changeCategoryViewDialog\.showModal\(\)/)
 })
 
 test("변승위 Category는 그림 한 장 붙여넣기와 미리보기 교체 흐름을 제공한다", () => {
@@ -28,7 +28,8 @@ test("변승위 Category는 그림 한 장 붙여넣기와 미리보기 교체 �
   assert.match(html, /PNG, JPEG 또는 WebP 그림/)
   assert.match(html, /1280×600 PNG로 자동 변환/)
   assert.doesNotMatch(html, /data-change-category-file|\.xlsx/)
-  assert.match(html, /class="rule-category-manager-only"[^>]*data-change-category-edit/)
+  assert.match(html, /class="rule-category-replace rule-category-manager-only"[^>]*data-change-category-edit[^>]*>[\s\S]*사진 교체/)
+  assert.match(html, /data-change-category-image/)
   assert.match(script, /getClipboardImageFile/)
   assert.match(script, /imageFileToPayload/)
   assert.match(script, /categoryImagePayloadToBlob/)

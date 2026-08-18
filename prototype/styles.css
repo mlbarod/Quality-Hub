@@ -3604,7 +3604,7 @@ kbd {
   }
 }
 
-/* Rule&SOP: Category 아코디언, 단계별 필터와 예시 문서 카드 */
+/* Rule&SOP: Category 조회 팝업 진입 박스, 단계별 필터와 문서 카드 */
 .rule-workspace {
   position: fixed;
   inset: 0 0 0 var(--sidebar-width);
@@ -3664,6 +3664,8 @@ kbd {
 }
 
 .rule-category-accordion {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   margin: 0 0 30px;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -3672,7 +3674,7 @@ kbd {
   box-shadow: var(--shadow-xs);
 }
 
-.rule-category-accordion > button {
+.rule-category-open {
   display: flex;
   width: 100%;
   min-height: 78px;
@@ -3685,8 +3687,7 @@ kbd {
   transition: background 220ms ease, color 220ms ease;
 }
 
-.rule-category-accordion > button:hover,
-.rule-category-accordion > button[aria-expanded="true"] {
+.rule-category-open:hover {
   background: linear-gradient(90deg, var(--primary-soft), #fff 38%);
 }
 
@@ -3708,29 +3709,28 @@ kbd {
   height: 19px;
 }
 
-.rule-category-accordion > button:hover .rule-category-accordion-icon,
-.rule-category-accordion > button[aria-expanded="true"] .rule-category-accordion-icon {
+.rule-category-open:hover .rule-category-accordion-icon {
   background: var(--primary);
   color: white;
   transform: rotate(-3deg) scale(1.04);
 }
 
-.rule-category-accordion > button > span:nth-child(2) {
+.rule-category-open > span:nth-child(2) {
   display: grid;
   gap: 2px;
 }
 
-.rule-category-accordion > button strong {
+.rule-category-open strong {
   font-size: 14px;
   font-weight: 680;
 }
 
-.rule-category-accordion > button small {
+.rule-category-open small {
   color: var(--muted-foreground);
   font-size: 9px;
 }
 
-.rule-category-accordion > button > i {
+.rule-category-open > i {
   margin-left: auto;
   padding: 4px 7px;
   border-radius: 999px;
@@ -3747,41 +3747,32 @@ kbd {
   height: 17px;
   margin-left: 7px;
   color: var(--muted-foreground);
-  transition: color 220ms ease, transform 280ms ease;
+  transition: color 220ms ease, transform 220ms ease;
 }
 
-.rule-category-accordion > button[aria-expanded="true"] .rule-category-chevron {
+.rule-category-open:hover .rule-category-chevron {
   color: var(--primary);
-  transform: rotate(-180deg);
+  transform: translateX(2px);
 }
 
-.rule-category-panel {
-  min-height: 94px;
+.rule-category-replace {
+  display: inline-flex;
+  min-height: 40px;
   align-items: center;
-  gap: 12px;
-  padding: 17px 21px;
-  border-top: 1px solid var(--border);
-  background: #f8fbfd;
+  align-self: center;
+  gap: 7px;
+  margin: 0 21px 0 8px;
+  padding: 0 13px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: white;
+  color: var(--primary-dark);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 680;
+  white-space: nowrap;
 }
 
-.rule-category-panel:not([hidden]) {
-  display: block;
-  animation: rule-panel-reveal 280ms cubic-bezier(.2, .72, .25, 1) both;
-}
-
-.change-category-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 14px;
-}
-
-.change-category-panel-header > span { display: grid; gap: 3px; }
-.change-category-panel-header strong { font-size: 15px; }
-.change-category-panel-header small { color: var(--muted-foreground); font-size: 12px; }
-.change-category-panel-header > div { display: flex; align-items: center; gap: 8px; }
-.change-category-panel-header button,
 .change-category-state > button {
   display: inline-flex;
   min-height: 40px;
@@ -3796,9 +3787,11 @@ kbd {
   font-size: 13px;
   font-weight: 680;
 }
-.change-category-panel-header button:hover,
-.change-category-state > button:hover { border-color: hsl(204 94% 45% / 34%); background: var(--primary-soft); }
-.change-category-panel-header button .icon { width: 16px; height: 16px; }
+.rule-category-open:focus-visible { outline: 3px solid hsl(204 94% 45% / 28%); outline-offset: -3px; }
+.rule-category-replace:focus-visible { outline: 3px solid hsl(204 94% 45% / 24%); outline-offset: 2px; }
+.change-category-state > button:hover,
+.rule-category-replace:hover { border-color: hsl(204 94% 45% / 34%); background: var(--primary-soft); }
+.rule-category-replace .icon { width: 16px; height: 16px; }
 body:not(.rule-manager) .rule-category-manager-only { display: none !important; }
 
 .change-category-state {
@@ -3827,11 +3820,6 @@ body:not(.rule-manager) .rule-category-manager-only { display: none !important; 
 }
 .change-category-image-viewport img { display: block; width: min(100%, 1280px); height: auto; border-radius: 7px; }
 
-@keyframes rule-panel-reveal {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
 .rule-category-empty-icon {
   display: grid;
   width: 38px;
@@ -3844,22 +3832,6 @@ body:not(.rule-manager) .rule-category-manager-only { display: none !important; 
 }
 
 .rule-category-empty-icon .icon { width: 17px; height: 17px; }
-
-.rule-category-panel > span:nth-child(2) {
-  display: grid;
-  gap: 2px;
-}
-
-.rule-category-panel strong { font-size: 10px; }
-.rule-category-panel small { color: var(--faint-foreground); font-size: 8px; }
-.rule-category-panel > i {
-  margin-left: auto;
-  color: var(--faint-foreground);
-  font-size: 7px;
-  font-style: normal;
-  font-weight: 720;
-  letter-spacing: .08em;
-}
 
 .rule-sop-browser {
   padding: 27px 28px 34px;
@@ -4366,6 +4338,7 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
 .rule-detail-dialog,
 .rule-editor-dialog,
 .rule-delete-dialog,
+.change-category-view-dialog,
 .change-category-dialog {
   max-width: none;
   padding: 0;
@@ -4379,11 +4352,13 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
 .rule-detail-dialog { width: min(820px, calc(100vw - 64px)); border-radius: 17px; }
 .rule-editor-dialog { width: min(900px, calc(100vw - 64px)); border-radius: 17px; }
 .rule-delete-dialog { width: min(440px, calc(100vw - 48px)); border-radius: 15px; }
+.change-category-view-dialog { width: min(1340px, calc(100vw - 48px)); border-radius: 17px; }
 .change-category-dialog { width: min(1180px, calc(100vw - 64px)); border-radius: 17px; }
 
 .rule-detail-dialog::backdrop,
 .rule-editor-dialog::backdrop,
 .rule-delete-dialog::backdrop,
+.change-category-view-dialog::backdrop,
 .change-category-dialog::backdrop {
   background: rgb(15 23 42 / 46%);
   backdrop-filter: blur(3px);
@@ -4392,11 +4367,13 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
 .rule-detail-dialog[open],
 .rule-editor-dialog[open],
 .rule-delete-dialog[open],
+.change-category-view-dialog[open],
 .change-category-dialog[open] { animation: global-search-in 180ms cubic-bezier(.2, .72, .25, 1) both; }
 
 .rule-detail-panel,
 .rule-editor-form,
-.rule-delete-panel {
+.rule-delete-panel,
+.change-category-view-panel {
   overflow: hidden;
   border: 1px solid hsl(204 30% 80% / 78%);
   border-radius: inherit;
@@ -4404,7 +4381,8 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
 }
 
 .rule-detail-panel > header,
-.rule-editor-form > header {
+.rule-editor-form > header,
+.change-category-view-panel > header {
   display: flex;
   align-items: center;
   gap: 14px;
@@ -4425,15 +4403,19 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
 
 .rule-dialog-mark .icon { width: 22px; height: 22px; }
 .rule-detail-panel > header > span:nth-child(2),
-.rule-editor-form > header > span:nth-child(2) { display: grid; min-width: 0; gap: 2px; }
+.rule-editor-form > header > span:nth-child(2),
+.change-category-view-panel > header > span:nth-child(2) { display: grid; min-width: 0; gap: 2px; }
 .rule-detail-panel > header small { color: var(--primary-dark); font-size: 11px; font-weight: 750; letter-spacing: .05em; }
 .rule-detail-panel > header strong,
-.rule-editor-form > header strong { overflow: hidden; font-size: 20px; text-overflow: ellipsis; white-space: nowrap; }
+.rule-editor-form > header strong,
+.change-category-view-panel > header strong { overflow: hidden; font-size: 20px; text-overflow: ellipsis; white-space: nowrap; }
 .rule-detail-panel > header em,
-.rule-editor-form > header small { color: var(--muted-foreground); font-size: 13px; font-style: normal; }
+.rule-editor-form > header small,
+.change-category-view-panel > header small { color: var(--muted-foreground); font-size: 13px; font-style: normal; }
 
 .rule-detail-panel > header > button,
-.rule-editor-form > header > button {
+.rule-editor-form > header > button,
+.change-category-view-panel > header > button {
   display: grid;
   width: 40px;
   height: 40px;
@@ -4446,9 +4428,21 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
 }
 
 .rule-detail-panel > header > button:hover,
-.rule-editor-form > header > button:hover { background: var(--surface-muted); color: var(--foreground); }
+.rule-editor-form > header > button:hover,
+.change-category-view-panel > header > button:hover { background: var(--surface-muted); color: var(--foreground); }
 .rule-detail-panel > header > button .icon,
-.rule-editor-form > header > button .icon { width: 19px; height: 19px; }
+.rule-editor-form > header > button .icon,
+.change-category-view-panel > header > button .icon { width: 19px; height: 19px; }
+
+.change-category-view-body {
+  max-height: calc(100vh - 150px);
+  padding: 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: #f8fbfd;
+}
+.change-category-view-body .change-category-image-viewport { padding: 0; border: 0; background: white; }
+.change-category-view-body .change-category-image-viewport img { width: auto; max-width: 100%; height: auto; }
 
 .rule-detail-body {
   display: grid;
@@ -6480,7 +6474,7 @@ body:not(.report-manager) .report-admin-only { display: none !important; }
 
 .top-nav-menu small,
 .app-card-header small,
-.rule-category-accordion > button small,
+.rule-category-open small,
 .rule-sop-heading > div > span,
 .report-category-section header p,
 .report-card-copy em,
@@ -6495,7 +6489,7 @@ body:not(.report-manager) .report-admin-only { display: none !important; }
 .agent-starters button small,
 .agent-context section > button small,
 .agent-context section > button em,
-.rule-category-panel small,
+.change-category-state small,
 .rule-filter-group legend small,
 .rule-empty-state span,
 .report-category-section header p,
@@ -6508,7 +6502,7 @@ body:not(.report-manager) .report-admin-only { display: none !important; }
 .agent-starters button small,
 .agent-context section > button small,
 .agent-context section > button em,
-.rule-category-panel small,
+.change-category-state small,
 .rule-filter-group legend small,
 .rule-document-card > small,
 .rule-empty-state span,
@@ -7275,14 +7269,14 @@ body,
 .agent-window-actions button,
 .agent-context > header button { width: 40px; height: 40px; }
 
-.rule-category-accordion > button strong { font-size: 17px; }
-.rule-category-accordion > button small,
+.rule-category-open strong { font-size: 17px; }
+.rule-category-open small,
 .rule-sop-heading > button { font-size: 14px; }
 .report-back-button,
 .report-help-button,
 .report-viewer-actions button { font-size: 16px; }
 .report-filter-tabs button { font-size: 14px; }
-.rule-category-accordion > button > i,
+.rule-category-open > i,
 .rule-filter-group legend > span,
 .rule-filter-group legend small,
 .report-filter-tabs button i { font-size: 12px; }
@@ -7290,10 +7284,9 @@ body,
 .rule-filter-select select { min-height: 40px; font-size: 14px; }
 .rule-sop-heading > button,
 .report-filter-tabs button { height: 40px; padding-right: 14px; padding-left: 14px; }
-.rule-category-panel strong,
+.change-category-state strong,
 .rule-results-heading > div > strong { font-size: 14px; }
-.rule-category-accordion > button > i,
-.rule-category-panel > i,
+.rule-category-open > i,
 .rule-results-heading > div > span,
 .rule-results-heading p,
 .rule-document-meta { font-size: 12px; }

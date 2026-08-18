@@ -591,26 +591,13 @@
             </section>
 
             <section class="rule-category-accordion" aria-labelledby="change-category-title">
-              <button type="button" aria-expanded="false" aria-controls="change-category-panel" data-rule-category-toggle>
+              <button class="rule-category-open" type="button" aria-haspopup="dialog" data-change-category-view>
                 <span class="rule-category-accordion-icon"><svg class="icon"><use href="#icon-hierarchy"></use></svg></span>
-                <span><strong id="change-category-title">변승위 Category분류</strong><small>변경 승인 관련 Category 항목을 펼쳐 확인합니다.</small></span>
+                <span><strong id="change-category-title">변승위 Category분류</strong><small>클릭하면 최신 Category 분류표를 큰 화면으로 확인합니다.</small></span>
                 <i data-change-category-badge>불러오는 중</i>
-                <svg class="icon rule-category-chevron"><use href="#icon-chevron-down"></use></svg>
+                <svg class="icon rule-category-chevron"><use href="#icon-arrow"></use></svg>
               </button>
-              <div id="change-category-panel" class="rule-category-panel" hidden data-rule-category-panel>
-                <div class="change-category-panel-header">
-                  <span><strong>변승위 Category 분류표</strong><small data-change-category-meta>최신 자료를 불러오고 있습니다.</small></span>
-                  <div>
-                    <button class="rule-category-manager-only" type="button" data-change-category-edit><svg class="icon"><use href="#icon-edit"></use></svg>그림 교체</button>
-                  </div>
-                </div>
-                <div class="change-category-state" role="status" data-change-category-state>
-                  <span class="rule-category-empty-icon"><svg class="icon"><use href="#icon-refresh"></use></svg></span>
-                  <span><strong>Category 자료를 불러오고 있습니다.</strong><small>잠시만 기다려 주세요.</small></span>
-                  <button type="button" hidden data-change-category-retry>다시 시도</button>
-                </div>
-                <div class="change-category-image-viewport" hidden data-change-category-image></div>
-              </div>
+              <button class="rule-category-replace rule-category-manager-only" type="button" data-change-category-edit><svg class="icon"><use href="#icon-edit"></use></svg>사진 교체</button>
             </section>
 
             <section class="rule-sop-browser" aria-labelledby="rule-sop-browser-title">
@@ -1000,6 +987,24 @@
         <p class="rule-editor-error" role="alert" hidden data-report-delete-error></p>
         <div><button type="button" data-report-delete-close>취소</button><button type="button" data-report-delete-confirm>삭제</button></div>
       </div>
+    </dialog>
+
+    <dialog class="change-category-view-dialog" aria-labelledby="change-category-view-title" aria-describedby="change-category-view-description" data-change-category-view-dialog>
+      <article class="change-category-view-panel">
+        <header>
+          <span class="rule-dialog-mark"><svg class="icon"><use href="#icon-hierarchy"></use></svg></span>
+          <span><strong id="change-category-view-title">변승위 Category 분류표</strong><small id="change-category-view-description" data-change-category-meta>최신 자료를 불러오고 있습니다.</small></span>
+          <button type="button" aria-label="변승위 Category 분류표 닫기" data-change-category-view-close><svg class="icon"><use href="#icon-close"></use></svg></button>
+        </header>
+        <div class="change-category-view-body">
+          <div class="change-category-state" role="status" data-change-category-state>
+            <span class="rule-category-empty-icon"><svg class="icon"><use href="#icon-refresh"></use></svg></span>
+            <span><strong>Category 자료를 불러오고 있습니다.</strong><small>잠시만 기다려 주세요.</small></span>
+            <button type="button" hidden data-change-category-retry>다시 시도</button>
+          </div>
+          <div class="change-category-image-viewport" hidden data-change-category-image></div>
+        </div>
+      </article>
     </dialog>
 
     <dialog class="change-category-dialog" aria-labelledby="change-category-dialog-title" aria-describedby="change-category-dialog-description" data-change-category-dialog>

@@ -81,6 +81,8 @@ const changeCategoryEdit = document.querySelector("[data-change-category-edit]")
 const changeCategoryState = document.querySelector("[data-change-category-state]");
 const changeCategoryRetry = document.querySelector("[data-change-category-retry]");
 const changeCategoryImage = document.querySelector("[data-change-category-image]");
+const changeCategoryView = document.querySelector("[data-change-category-view]");
+const changeCategoryViewDialog = document.querySelector("[data-change-category-view-dialog]");
 const changeCategoryDialog = document.querySelector("[data-change-category-dialog]");
 const changeCategoryForm = document.querySelector("[data-change-category-form]");
 const changeCategoryPasteBox = document.querySelector("[data-change-category-paste-box]");
@@ -144,6 +146,7 @@ let activeChangeCategory = null;
 let changeCategoryDraftImage = null;
 let changeCategoryImageUrl;
 let changeCategoryPreviewUrl;
+let changeCategoryViewReturnFocus;
 let changeCategoryReturnFocus;
 let qnaReturnFocus;
 let userReturnFocus;
@@ -1890,6 +1893,14 @@ const openChangeCategoryEditor = (returnFocus) => {
   window.requestAnimationFrame(() => changeCategoryPasteBox?.focus());
 };
 
+const openChangeCategoryViewer = (returnFocus) => {
+  if (!(changeCategoryViewDialog instanceof HTMLDialogElement) || changeCategoryViewDialog.open) return;
+  changeCategoryViewReturnFocus = returnFocus instanceof HTMLElement ? returnFocus : null;
+  changeCategoryViewDialog.showModal();
+  void loadChangeCategory();
+  window.requestAnimationFrame(() => changeCategoryViewDialog.querySelector("[data-change-category-view-close]")?.focus());
+};
+
 changeCategoryPasteBox?.addEventListener("paste", async (event) => {
   event.preventDefault();
   try {
@@ -1944,6 +1955,16 @@ changeCategoryForm?.addEventListener("submit", async (event) => {
 });
 
 changeCategoryEdit?.addEventListener("click", (event) => openChangeCategoryEditor(event.currentTarget));
+changeCategoryView?.addEventListener("click", (event) => openChangeCategoryViewer(event.currentTarget));
+document.querySelectorAll("[data-change-category-view-close]").forEach((button) => {
+  button.addEventListener("click", () => changeCategoryViewDialog?.close());
+});
+changeCategoryViewDialog?.addEventListener("click", (event) => {
+  if (event.target === changeCategoryViewDialog) changeCategoryViewDialog.close();
+});
+changeCategoryViewDialog?.addEventListener("close", () => {
+  if (changeCategoryViewReturnFocus instanceof HTMLElement && changeCategoryViewReturnFocus.isConnected) changeCategoryViewReturnFocus.focus();
+});
 document.querySelectorAll("[data-change-category-close]").forEach((button) => {
   button.addEventListener("click", () => changeCategoryDialog?.close());
 });
@@ -2167,17 +2188,6 @@ document.querySelector("[data-rule-filter-reset]")?.addEventListener("click", ()
   if (ruleSearch instanceof HTMLInputElement) ruleSearch.value = "";
   applyRuleFilters();
   showToast("Rule&SOP 검색과 분류 필터를 초기화했습니다.");
-});
-
-document.querySelector("[data-rule-category-toggle]")?.addEventListener("click", (event) => {
-  const button = event.currentTarget;
-  const panel = document.querySelector("[data-rule-category-panel]");
-  if (!(button instanceof HTMLButtonElement) || !(panel instanceof HTMLElement)) return;
-
-  const isExpanded = button.getAttribute("aria-expanded") === "true";
-  button.setAttribute("aria-expanded", String(!isExpanded));
-  panel.hidden = isExpanded;
-  if (!isExpanded) void loadChangeCategory();
 });
 
 const initialReportQuery = new URL(window.location.href).searchParams.get("report");
@@ -2500,7 +2510,7 @@ document.addEventListener("keydown", (event) => {
 
   if (event.key === "Escape") {
     if (globalSearch instanceof HTMLDialogElement && globalSearch.open) return;
-    if ([reportEditorDialog, reportDeleteDialog, ruleDetailDialog, ruleEditorDialog, ruleDeleteDialog, changeCategoryDialog].some((dialog) => dialog instanceof HTMLDialogElement && dialog.open)) return;
+    if ([reportEditorDialog, reportDeleteDialog, ruleDetailDialog, ruleEditorDialog, ruleDeleteDialog, changeCategoryViewDialog, changeCategoryDialog].some((dialog) => dialog instanceof HTMLDialogElement && dialog.open)) return;
     if (document.querySelector("[data-qna-modal]")) return;
     if (prototype?.dataset.qnaMode === "open") setQnaMode("closed");
     else if (prototype?.dataset.userMode === "open") setUserMode("closed");
