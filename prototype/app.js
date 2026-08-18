@@ -11,11 +11,12 @@ import { createAgentChatController } from "./src/agent/chatController.js";
 import { qnaRepository } from "./src/qna/repository.js";
 import { buildQnaSearchText, buildTitleSearchText, matchesSearchQuery } from "./src/search/globalSearch.js";
 import {
-  formatCategoryFileSize,
-  parseChangeCategoryClipboard,
-  renderChangeCategorySheet,
-  workbookFileToPayload,
-} from "./src/rule/changeCategorySheet.js";
+  categoryImagePayloadToBlob,
+  formatCategoryImageSize,
+  getClipboardImageFile,
+  imageFileToPayload,
+  renderCategoryImage,
+} from "./src/rule/changeCategoryImage.js";
 
 const prototype = document.querySelector(".prototype");
 const dashboardWorkspace = document.querySelector(".workspace");
@@ -76,18 +77,14 @@ const ruleDeleteError = document.querySelector("[data-rule-delete-error]");
 const ruleDeleteConfirm = document.querySelector("[data-rule-delete-confirm]");
 const changeCategoryBadge = document.querySelector("[data-change-category-badge]");
 const changeCategoryMeta = document.querySelector("[data-change-category-meta]");
-const changeCategoryDownload = document.querySelector("[data-change-category-download]");
-const changeCategoryFileName = document.querySelector("[data-change-category-file-name]");
 const changeCategoryEdit = document.querySelector("[data-change-category-edit]");
 const changeCategoryState = document.querySelector("[data-change-category-state]");
 const changeCategoryRetry = document.querySelector("[data-change-category-retry]");
-const changeCategorySheet = document.querySelector("[data-change-category-sheet]");
+const changeCategoryImage = document.querySelector("[data-change-category-image]");
 const changeCategoryDialog = document.querySelector("[data-change-category-dialog]");
 const changeCategoryForm = document.querySelector("[data-change-category-form]");
 const changeCategoryPasteBox = document.querySelector("[data-change-category-paste-box]");
 const changeCategoryPasteStatus = document.querySelector("[data-change-category-paste-status]");
-const changeCategoryFile = document.querySelector("[data-change-category-file]");
-const changeCategoryFileLabel = document.querySelector("[data-change-category-file-label]");
 const changeCategoryPreview = document.querySelector("[data-change-category-preview]");
 const changeCategoryError = document.querySelector("[data-change-category-error]");
 const changeCategorySubmit = document.querySelector("[data-change-category-submit]");
@@ -144,7 +141,9 @@ let activeRuleCard;
 let changeCategoryLoadPromise;
 let changeCategoryLoadState = "idle";
 let activeChangeCategory = null;
-let changeCategoryDraftSheet = null;
+let changeCategoryDraftImage = null;
+let changeCategoryImageUrl;
+let changeCategoryPreviewUrl;
 let changeCategoryReturnFocus;
 let qnaReturnFocus;
 let userReturnFocus;
@@ -1773,13 +1772,22 @@ const requestChangeCategoryApi = async (options = {}, path = "") => {
   return payload;
 };
 
+const requestChangeCategoryImage = async () => {
+  const response = await fetch("/api/rule-category/image", { headers: withIdentityHeader() });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.error?.message ?? "변승위 Category 그림을 불러오지 못했습니다.");
+  }
+  return response.blob();
+};
+
 const setChangeCategoryViewState = (state, message = "") => {
   changeCategoryLoadState = state;
   if (!(changeCategoryState instanceof HTMLElement)) return;
   const stateContent = {
     loading: ["#icon-refresh", "Category 자료를 불러오고 있습니다.", "잠시만 기다려 주세요."],
-    empty: ["#icon-grid", "등록된 Category 분류표가 없습니다.", "관리자가 Excel 표를 붙여넣어 등록할 수 있습니다."],
-    error: ["#icon-alert", "Category 분류표를 불러오지 못했습니다.", message || "DB 연결 상태를 확인한 뒤 다시 시도해 주세요."],
+    empty: ["#icon-grid", "등록된 Category 그림이 없습니다.", "관리자가 그림을 복사해 붙여넣어 등록할 수 있습니다."],
+    error: ["#icon-alert", "Category 그림을 불러오지 못했습니다.", message || "DB 연결 상태를 확인한 뒤 다시 시도해 주세요."],
   };
   const content = stateContent[state];
   changeCategoryState.hidden = !content;
@@ -1788,33 +1796,30 @@ const setChangeCategoryViewState = (state, message = "") => {
   changeCategoryState.querySelector("strong")?.replaceChildren(content[1]);
   changeCategoryState.querySelector("small")?.replaceChildren(content[2]);
   if (changeCategoryRetry instanceof HTMLButtonElement) changeCategoryRetry.hidden = state !== "error";
-  if (changeCategorySheet instanceof HTMLElement) changeCategorySheet.hidden = true;
+  if (changeCategoryImage instanceof HTMLElement) changeCategoryImage.hidden = true;
 };
 
-const renderChangeCategory = (category) => {
+const renderChangeCategory = (category, imageSource) => {
   activeChangeCategory = category;
   if (!category) {
     changeCategoryBadge?.replaceChildren("등록 자료 없음");
-    changeCategoryMeta?.replaceChildren("아직 등록된 분류표가 없습니다.");
-    if (changeCategoryDownload instanceof HTMLButtonElement) changeCategoryDownload.hidden = true;
+    changeCategoryMeta?.replaceChildren("아직 등록된 그림이 없습니다.");
     setChangeCategoryViewState("empty");
     return;
   }
 
-  if (!(changeCategorySheet instanceof HTMLElement) || !renderChangeCategorySheet(changeCategorySheet, category.sheet)) {
-    throw new Error("저장된 Category 표 형식이 올바르지 않습니다.");
+  if (!(changeCategoryImage instanceof HTMLElement) || !renderCategoryImage(changeCategoryImage, imageSource)) {
+    throw new Error("저장된 Category 그림 형식이 올바르지 않습니다.");
   }
   const updatedAt = category.updatedAt ? new Date(category.updatedAt) : null;
   const formattedUpdatedAt = updatedAt && !Number.isNaN(updatedAt.getTime())
     ? updatedAt.toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short" })
     : "업데이트 시각 미확인";
-  const fileSize = formatCategoryFileSize(category.fileSize);
+  const imageSize = formatCategoryImageSize(category.imageSize);
   changeCategoryBadge?.replaceChildren("최신 자료");
-  changeCategoryMeta?.replaceChildren(`최종 교체 ${formattedUpdatedAt}${category.fileName ? ` · 원본 ${category.fileName}${fileSize ? ` (${fileSize})` : ""}` : " · 원본 파일 없음"}`);
-  if (changeCategoryDownload instanceof HTMLButtonElement) changeCategoryDownload.hidden = !category.fileName;
-  changeCategoryFileName?.replaceChildren(category.fileName ? "원본 Excel 받기" : "원본 Excel");
+  changeCategoryMeta?.replaceChildren(`최종 교체 ${formattedUpdatedAt} · ${category.imageWidth}×${category.imageHeight}px${imageSize ? ` · ${imageSize}` : ""}`);
   if (changeCategoryState instanceof HTMLElement) changeCategoryState.hidden = true;
-  changeCategorySheet.hidden = false;
+  changeCategoryImage.hidden = false;
   changeCategoryLoadState = "ready";
 };
 
@@ -1825,16 +1830,22 @@ const loadChangeCategory = ({ force = false } = {}) => {
 
   setChangeCategoryViewState("loading");
   changeCategoryLoadPromise = requestChangeCategoryApi()
-    .then((payload) => {
-      if (!("category" in payload)) throw new Error("Category 분류표 응답 형식이 올바르지 않습니다.");
-      renderChangeCategory(payload.category);
+    .then(async (payload) => {
+      if (!("category" in payload)) throw new Error("Category 그림 응답 형식이 올바르지 않습니다.");
+      if (!payload.category) {
+        renderChangeCategory(null);
+        return null;
+      }
+      const imageBlob = await requestChangeCategoryImage();
+      if (changeCategoryImageUrl) URL.revokeObjectURL(changeCategoryImageUrl);
+      changeCategoryImageUrl = URL.createObjectURL(imageBlob);
+      renderChangeCategory(payload.category, changeCategoryImageUrl);
       return payload.category;
     })
     .catch((error) => {
       activeChangeCategory = null;
       changeCategoryBadge?.replaceChildren("조회 오류");
       changeCategoryMeta?.replaceChildren("최신 자료를 확인하지 못했습니다.");
-      if (changeCategoryDownload instanceof HTMLButtonElement) changeCategoryDownload.hidden = true;
       setChangeCategoryViewState("error", error instanceof Error ? error.message : "다시 시도해 주세요.");
       console.error("Change Category load failed", { name: error?.name, message: error?.message });
       return null;
@@ -1852,19 +1863,20 @@ const setChangeCategoryFormError = (message = "") => {
 };
 
 const resetChangeCategoryForm = () => {
-  changeCategoryDraftSheet = null;
+  changeCategoryDraftImage = null;
   if (changeCategoryForm instanceof HTMLFormElement) changeCategoryForm.reset();
+  if (changeCategoryPreviewUrl) URL.revokeObjectURL(changeCategoryPreviewUrl);
+  changeCategoryPreviewUrl = undefined;
   if (changeCategoryPasteBox instanceof HTMLElement) {
     const placeholder = document.createElement("span");
-    placeholder.textContent = "여기를 선택한 후 Excel 표를 붙여넣으세요.";
+    placeholder.textContent = "여기를 선택한 후 복사한 그림을 붙여넣으세요.";
     changeCategoryPasteBox.replaceChildren(placeholder);
     changeCategoryPasteBox.classList.remove("is-ready");
   }
-  changeCategoryPasteStatus?.replaceChildren("아직 붙여넣은 표가 없습니다.");
-  changeCategoryFileLabel?.replaceChildren("원본 .xlsx 파일 선택");
+  changeCategoryPasteStatus?.replaceChildren("아직 붙여넣은 그림이 없습니다.");
   if (changeCategoryPreview instanceof HTMLElement) {
     const placeholder = document.createElement("p");
-    placeholder.textContent = "Excel 표를 붙여넣으면 미리보기가 표시됩니다.";
+    placeholder.textContent = "그림을 붙여넣으면 미리보기가 표시됩니다.";
     changeCategoryPreview.replaceChildren(placeholder);
   }
   setChangeCategoryFormError();
@@ -1878,68 +1890,54 @@ const openChangeCategoryEditor = (returnFocus) => {
   window.requestAnimationFrame(() => changeCategoryPasteBox?.focus());
 };
 
-changeCategoryPasteBox?.addEventListener("paste", (event) => {
+changeCategoryPasteBox?.addEventListener("paste", async (event) => {
   event.preventDefault();
   try {
-    const sheet = parseChangeCategoryClipboard({
-      html: event.clipboardData?.getData("text/html") ?? "",
-      text: event.clipboardData?.getData("text/plain") ?? "",
-    });
-    const cellCount = sheet.rows.reduce((sum, row) => sum + row.cells.length, 0);
-    changeCategoryDraftSheet = sheet;
-    changeCategoryPasteBox.replaceChildren(`${sheet.rows.length}행 · ${cellCount}셀 표를 붙여넣었습니다.`);
+    const file = getClipboardImageFile(event.clipboardData);
+    const image = await imageFileToPayload(file);
+    const normalizedImage = categoryImagePayloadToBlob(image);
+    if (!normalizedImage) throw new TypeError("화면 크기로 변환된 그림을 미리보기에 표시할 수 없습니다.");
+    changeCategoryDraftImage = image;
+    if (changeCategoryPreviewUrl) URL.revokeObjectURL(changeCategoryPreviewUrl);
+    changeCategoryPreviewUrl = URL.createObjectURL(normalizedImage);
+    changeCategoryPasteBox.replaceChildren(`화면에 맞춰 ${image.width}×${image.height}px · ${formatCategoryImageSize(normalizedImage.size)}로 변환했습니다.`);
     changeCategoryPasteBox.classList.add("is-ready");
-    changeCategoryPasteStatus?.replaceChildren("서식과 병합 셀을 반영한 미리보기를 확인해 주세요.");
-    renderChangeCategorySheet(changeCategoryPreview, sheet);
+    changeCategoryPasteStatus?.replaceChildren("원본 비율은 유지되며 남는 공간은 흰색 여백으로 표시됩니다.");
+    renderCategoryImage(changeCategoryPreview, changeCategoryPreviewUrl);
     setChangeCategoryFormError();
   } catch (error) {
-    changeCategoryDraftSheet = null;
+    changeCategoryDraftImage = null;
     changeCategoryPasteBox.classList.remove("is-ready");
-    setChangeCategoryFormError(error instanceof Error ? error.message : "Excel 표를 붙여넣지 못했습니다.");
+    setChangeCategoryFormError(error instanceof Error ? error.message : "그림을 붙여넣지 못했습니다.");
   }
 });
 changeCategoryPasteBox?.addEventListener("beforeinput", (event) => event.preventDefault());
 
-changeCategoryFile?.addEventListener("change", () => {
-  const file = changeCategoryFile instanceof HTMLInputElement ? changeCategoryFile.files?.[0] : null;
-  if (!file) {
-    changeCategoryFileLabel?.replaceChildren("원본 .xlsx 파일 선택");
-    return;
-  }
-  if (!file.name.toLocaleLowerCase("en-US").endsWith(".xlsx") || file.size > 5 * 1024 * 1024) {
-    setChangeCategoryFormError("원본 파일은 5MB 이하의 .xlsx 형식만 선택할 수 있습니다.");
-    changeCategoryFile.value = "";
-    changeCategoryFileLabel?.replaceChildren("원본 .xlsx 파일 선택");
-    return;
-  }
-  changeCategoryFileLabel?.replaceChildren(`${file.name} · ${formatCategoryFileSize(file.size)}`);
-  setChangeCategoryFormError();
-});
-
 changeCategoryForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!canManageRuleDocuments) return;
-  if (!changeCategoryDraftSheet) {
-    setChangeCategoryFormError("먼저 PC Excel에서 복사한 표를 붙여넣어 주세요.");
+  if (!changeCategoryDraftImage) {
+    setChangeCategoryFormError("먼저 PC에서 복사한 그림을 붙여넣어 주세요.");
     changeCategoryPasteBox?.focus();
     return;
   }
   if (changeCategorySubmit instanceof HTMLButtonElement) changeCategorySubmit.disabled = true;
   try {
-    const selectedFile = changeCategoryFile instanceof HTMLInputElement ? changeCategoryFile.files?.[0] : null;
-    const file = selectedFile ? await workbookFileToPayload(selectedFile) : null;
     const payload = await requestChangeCategoryApi({
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sheet: changeCategoryDraftSheet, file }),
+      body: JSON.stringify({ image: changeCategoryDraftImage }),
     });
-    renderChangeCategory(payload.category);
+    const imageBlob = await requestChangeCategoryImage();
+    if (changeCategoryImageUrl) URL.revokeObjectURL(changeCategoryImageUrl);
+    changeCategoryImageUrl = URL.createObjectURL(imageBlob);
+    renderChangeCategory(payload.category, changeCategoryImageUrl);
     changeCategoryReturnFocus = changeCategoryEdit;
     changeCategoryDialog?.close();
-    recordHistory({ action: "교체", targetType: "변승위 Category", targetName: "Category 분류표", detail: selectedFile ? "표 서식 및 원본 Excel" : "표 서식" });
-    showToast("변승위 Category 분류표를 최신 자료로 교체했습니다.");
+    recordHistory({ action: "교체", targetType: "변승위 Category", targetName: "Category 그림", detail: "붙여넣은 그림" });
+    showToast("변승위 Category 그림을 최신 자료로 교체했습니다.");
   } catch (error) {
-    setChangeCategoryFormError(error instanceof Error ? error.message : "Category 분류표 저장에 실패했습니다.");
+    setChangeCategoryFormError(error instanceof Error ? error.message : "Category 그림 저장에 실패했습니다.");
   } finally {
     if (changeCategorySubmit instanceof HTMLButtonElement) changeCategorySubmit.disabled = false;
   }
@@ -1953,26 +1951,6 @@ changeCategoryDialog?.addEventListener("close", () => {
   if (changeCategoryReturnFocus instanceof HTMLElement && changeCategoryReturnFocus.isConnected) changeCategoryReturnFocus.focus();
 });
 changeCategoryRetry?.addEventListener("click", () => { void loadChangeCategory({ force: true }); });
-changeCategoryDownload?.addEventListener("click", async () => {
-  try {
-    const response = await fetch("/api/rule-category/source", { headers: withIdentityHeader() });
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      throw new Error(payload.error?.message ?? "원본 Excel 파일을 받지 못했습니다.");
-    }
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = activeChangeCategory?.fileName ?? "change-category.xlsx";
-    document.body.append(anchor);
-    anchor.click();
-    anchor.remove();
-    URL.revokeObjectURL(url);
-  } catch (error) {
-    showToast(error instanceof Error ? error.message : "원본 Excel 파일을 받지 못했습니다.");
-  }
-});
 
 document.querySelectorAll("[data-rule-open]").forEach((button) => {
   button.addEventListener("click", () => {

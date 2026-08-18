@@ -80,10 +80,11 @@
 - 결과에 콘텐츠 종류, 제목과 각 App에서 제공하는 요약 정보를 표시
 - 검색 결과는 별도 팝업에 표시하고 선택한 Report, Rule&SOP 또는 Q&A 콘텐츠로 이동
 - Rule&SOP 앱은 변승위 Category분류와 Rule&SOP의 두 영역으로 구성
-- 변승위 Category분류는 PC Excel에서 복사한 표를 붙여넣으면 셀 값·병합·행/열 크기와 주요 시각 서식을 안전한 구조화 데이터로 변환해 화면에 표시하며, 원본 `.xlsx` 파일은 선택적으로 함께 첨부할 수 있음
-- 변승위 Category분류는 품질 Agent·Report·Rule&SOP와 같은 DB에 별도 `quality_hub_change_category` 테이블로 저장하고, `singleton_id = 1`인 최신 자료 한 건만 유지해 새 저장이 기존 자료를 교체함
-- 구조화한 표는 `sheet_json`, 검색 가능한 텍스트는 `sheet_text`, 선택한 원본 파일과 메타데이터는 BLOB 및 파일 메타데이터 컬럼에 저장하며 원본 `.xlsx`는 5MB 이하로 제한
-- 모든 포털 사용자는 최신 Category 분류표와 첨부된 원본을 조회·다운로드할 수 있고, 마스터와 관리자만 표와 선택적 원본 파일을 교체할 수 있음
+- 변승위 Category분류는 PC에서 복사한 PNG·JPEG·WebP 그림 한 장을 붙여넣어 화면 미리보기를 확인한 뒤 최신 자료로 교체하며, 원본 비율과 전체 내용을 유지한 1280×600 PNG로 자동 변환하고 남는 영역은 흰색 여백으로 처리함. 원본과 변환 결과는 모두 10MB 이하로 제한
+- 변승위 Category 그림은 품질 Agent·Report·Rule&SOP와 같은 DB의 별도 `quality_hub_change_category` 테이블에 저장하고, `singleton_id = 1`인 최신 자료 한 건만 유지해 새 저장이 기존 그림을 교체함
+- 테이블에는 그림명·MIME 형식·용량·가로/세로 크기·BLOB, 최종 변경 사용자와 시각만 저장하고 Excel 표 JSON·검색 텍스트·원본 Excel 컬럼은 두지 않음
+- 그림 한 장이어도 App에서 교체한 내용을 여러 사용자와 서버 인스턴스가 공유하고 재배포 후에도 유지해야 하므로 영속 저장소가 필요함. 현재 읽기 전용 컨테이너와 별도 오브젝트 스토리지가 없는 운영 구조에서는 기존 DB의 singleton BLOB을 사용
+- 모든 포털 사용자는 최신 Category 그림을 조회할 수 있고, 마스터와 관리자만 그림을 교체할 수 있음
 - Rule&SOP는 실제 DB `rulesop`의 `main_category`, `sub_category`, `item`, `title`, `url`, `reg_user`, `reg_date`를 조회
 - `main_category`, `sub_category`, `item`을 각각 대분류·중분류·소분류 필터와 카드 설명에 사용하고 `title`을 카드 제목으로 표시
 - 문서 카드 선택 시 대분류·중분류·소분류와 원문 링크를 상세 팝업에 표시하고 조회 버튼으로 `url`을 새 창에서 열기

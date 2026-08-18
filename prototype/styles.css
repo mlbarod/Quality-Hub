@@ -3815,33 +3815,17 @@ body:not(.rule-manager) .rule-category-manager-only { display: none !important; 
 .change-category-state small { color: var(--muted-foreground); font-size: 12px; }
 .change-category-state > button { margin-left: auto; }
 
-.change-category-sheet-viewport {
-  max-height: 520px;
+.change-category-image-viewport {
+  display: grid;
+  place-items: center;
   padding: 14px;
-  overflow: auto;
+  overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 11px;
   background: #fff;
   overscroll-behavior: contain;
 }
-
-.change-category-table {
-  width: max-content;
-  min-width: 100%;
-  border-spacing: 0;
-  border-collapse: collapse;
-  background: white;
-  color: #172b3a;
-  font-size: 13px;
-}
-.change-category-table td {
-  min-width: 72px;
-  height: 28px;
-  padding: 5px 8px;
-  border: 1px solid #bccdd8;
-  vertical-align: middle;
-  white-space: pre-wrap;
-}
+.change-category-image-viewport img { display: block; width: min(100%, 1280px); height: auto; border-radius: 7px; }
 
 @keyframes rule-panel-reveal {
   from { opacity: 0; transform: translateY(-8px); }
@@ -4622,7 +4606,6 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
   overflow-y: auto;
 }
 .change-category-paste-section,
-.change-category-file-section,
 .change-category-preview-section {
   min-width: 0;
   padding: 16px;
@@ -4630,26 +4613,20 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
   border-radius: 11px;
   background: #f8fbfd;
 }
-.change-category-paste-section,
-.change-category-file-section { display: grid; align-content: start; gap: 12px; }
-.change-category-file-section { grid-column: 1; }
-.change-category-preview-section { grid-column: 2; grid-row: 1 / span 2; }
+.change-category-paste-section { display: grid; align-content: start; gap: 12px; }
+.change-category-preview-section { grid-column: 2; grid-row: 1; }
 .change-category-form-body > .rule-editor-error { grid-column: 1 / -1; }
 .change-category-paste-section > span,
-.change-category-file-section > span,
 .change-category-preview-section > div:first-child { display: grid; gap: 3px; }
 .change-category-paste-section strong,
-.change-category-file-section strong,
 .change-category-preview-section strong { font-size: 14px; }
-.change-category-paste-section strong i,
-.change-category-file-section strong i {
+.change-category-paste-section strong i {
   margin-left: 5px;
   color: var(--primary-dark);
   font-size: 11px;
   font-style: normal;
 }
 .change-category-paste-section small,
-.change-category-file-section small,
 .change-category-preview-section small { color: var(--muted-foreground); font-size: 12px; line-height: 1.5; }
 .change-category-paste-box {
   display: grid;
@@ -4661,31 +4638,15 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
   outline: 0;
   background: white;
   color: var(--muted-foreground);
-  cursor: text;
+  cursor: pointer;
   font-size: 13px;
   text-align: center;
 }
 .change-category-paste-box:focus { border-color: var(--primary); box-shadow: 0 0 0 4px hsl(204 94% 45% / 10%); }
 .change-category-paste-box.is-ready { border-style: solid; border-color: hsl(156 54% 40% / 45%); background: hsl(156 52% 97%); color: #176a50; }
 .change-category-paste-section > p { margin: 0; color: var(--muted-foreground); font-size: 12px; }
-.change-category-file-section > label {
-  display: flex;
-  min-height: 46px;
-  align-items: center;
-  gap: 9px;
-  padding: 0 13px;
-  border: 1px solid var(--border-strong);
-  border-radius: 9px;
-  background: white;
-  color: var(--primary-dark);
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 650;
-}
-.change-category-file-section > label:hover { background: var(--primary-soft); }
-.change-category-file-section .icon { width: 17px; height: 17px; }
-.change-category-preview-section > .change-category-sheet-viewport { max-height: 470px; margin-top: 12px; }
-.change-category-sheet-viewport.is-preview > p { margin: 80px 0; color: var(--muted-foreground); text-align: center; }
+.change-category-preview-section > .change-category-image-viewport { max-height: 470px; margin-top: 12px; }
+.change-category-image-viewport.is-preview > p { margin: 80px 0; color: var(--muted-foreground); text-align: center; }
 
 .rule-delete-panel { display: grid; justify-items: center; padding: 30px 28px 25px; text-align: center; }
 .rule-delete-mark { display: grid; width: 54px; height: 54px; margin-bottom: 14px; place-items: center; border-radius: 15px; background: #fff1f0; color: var(--danger); }

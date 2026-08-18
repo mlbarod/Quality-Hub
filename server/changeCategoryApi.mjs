@@ -1,8 +1,8 @@
 import { CHANGE_CATEGORY_LIMITS, createChangeCategoryRepository } from "./changeCategoryRepository.mjs"
 
 const API_PATH = "/api/rule-category"
-const DOWNLOAD_PATH = `${API_PATH}/source`
-const MAX_JSON_BODY_BYTES = 9 * 1024 * 1024
+const IMAGE_PATH = `${API_PATH}/image`
+const MAX_JSON_BODY_BYTES = 14 * 1024 * 1024
 
 function sendJson(res, statusCode, payload, extraHeaders = {}) {
   const body = JSON.stringify(payload)
@@ -59,25 +59,15 @@ function routeOf(req) {
   try {
     const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`)
     if (url.pathname === API_PATH) return "category"
-    if (url.pathname === DOWNLOAD_PATH) return "download"
+    if (url.pathname === IMAGE_PATH) return "image"
   } catch {
     return null
   }
   return null
 }
 
-function safeDownloadName(value) {
-  return String(value ?? "change-category.xlsx").replace(/[\r\n"\\/]/g, "_")
-}
-
-function asciiDownloadName(value) {
-  const fallback = value.replace(/[^\x20-\x7e]/g, "_")
-  return fallback || "change-category.xlsx"
-}
-
 function toApiError(error) {
   if (error instanceof ChangeCategoryApiRequestError) return error
-  if (error instanceof SyntaxError) return new ChangeCategoryApiRequestError("저장된 Category 표 형식을 확인할 수 없습니다.", { status: 500, code: "INVALID_STORED_SHEET" })
   if (error instanceof TypeError) return new ChangeCategoryApiRequestError(error.message, { status: 400, code: "INVALID_INPUT" })
   if (error && typeof error === "object" && ("sqlState" in error || "errno" in error || "fatal" in error)) {
     return new ChangeCategoryApiRequestError("변승위 Category DB 요청을 처리하지 못했습니다.", { status: 503, code: "DB_FAILED" })
@@ -113,23 +103,21 @@ export function createChangeCategoryApi({ repository, repositoryFactory = create
         }
         if (route === "category" && method === "PUT") {
           const body = await readJsonBody(req)
-          const category = await getRepository().replaceCategory({ ...body, userId })
+          const category = await getRepository().replaceCategory({ image: body.image, userId })
           sendJson(res, 200, { category })
           return true
         }
-        if (route === "download" && method === "GET") {
-          const file = await getRepository().getSourceFile()
-          if (!file?.data) throw new ChangeCategoryApiRequestError("등록된 원본 Excel 파일이 없습니다.", { status: 404, code: "SOURCE_FILE_NOT_FOUND" })
-          const name = safeDownloadName(file.name)
-          const fallbackName = asciiDownloadName(name)
+        if (route === "image" && method === "GET") {
+          const image = await getRepository().getImage()
+          if (!image?.data) throw new ChangeCategoryApiRequestError("등록된 Category 그림이 없습니다.", { status: 404, code: "IMAGE_NOT_FOUND" })
           res.writeHead(200, {
-            "Content-Type": file.type || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "Content-Length": file.data.length,
-            "Content-Disposition": `attachment; filename="${fallbackName}"; filename*=UTF-8''${encodeURIComponent(name)}`,
+            "Content-Type": image.type,
+            "Content-Length": image.data.length,
             "Cache-Control": "no-store",
+            "Content-Security-Policy": "default-src 'none'; sandbox",
             "X-Content-Type-Options": "nosniff",
           })
-          res.end(file.data)
+          res.end(image.data)
           return true
         }
         sendJson(res, 405, { error: { code: "METHOD_NOT_ALLOWED", message: "지원하지 않는 변승위 Category API 요청입니다." } }, {

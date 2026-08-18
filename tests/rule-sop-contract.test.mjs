@@ -22,18 +22,21 @@ test("변승위 Category분류를 접근 가능한 아코디언으로 제공한�
   assert.match(script, /button\.setAttribute\("aria-expanded", String\(!isExpanded\)\)/)
 })
 
-test("변승위 Category는 Excel 표 붙여넣기와 선택적 원본 파일 교체 흐름을 제공한다", () => {
+test("변승위 Category는 그림 한 장 붙여넣기와 미리보기 교체 흐름을 제공한다", () => {
   assert.match(html, /data-change-category-paste-box/)
-  assert.match(html, /accept="\.xlsx,application\/vnd\.openxmlformats-officedocument\.spreadsheetml\.sheet"/)
   assert.match(html, /data-change-category-preview/)
-  assert.match(html, /data-change-category-download/)
+  assert.match(html, /PNG, JPEG 또는 WebP 그림/)
+  assert.match(html, /1280×600 PNG로 자동 변환/)
+  assert.doesNotMatch(html, /data-change-category-file|\.xlsx/)
   assert.match(html, /class="rule-category-manager-only"[^>]*data-change-category-edit/)
-  assert.match(script, /parseChangeCategoryClipboard/)
-  assert.match(script, /workbookFileToPayload/)
+  assert.match(script, /getClipboardImageFile/)
+  assert.match(script, /imageFileToPayload/)
+  assert.match(script, /categoryImagePayloadToBlob/)
   assert.match(script, /fetch\(`\/api\/rule-category/)
   assert.match(script, /method: "PUT"/)
   assert.match(requirements, /별도 `quality_hub_change_category` 테이블/)
-  assert.match(requirements, /최신 자료 한 건만 유지/)
+  assert.match(requirements, /최신 자료 한 건만 유지해 새 저장이 기존 그림을 교체/)
+  assert.match(requirements, /읽기 전용 컨테이너와 별도 오브젝트 스토리지가 없는 운영 구조/)
 })
 
 test("rulesop의 대분류, 중분류, 소분류를 동적 필터와 카드 설명에 매핑한다", () => {
