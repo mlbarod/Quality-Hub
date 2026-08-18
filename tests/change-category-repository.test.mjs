@@ -34,7 +34,7 @@ test("지원하지 않는 형식, 잘못된 시그니처와 과대 그림을 거
   const oversized = Buffer.alloc(CHANGE_CATEGORY_LIMITS.maxImageBytes + 1)
   oversized.set(png)
   assert.throws(() => validateChangeCategoryInput({ image: { ...image, dataBase64: oversized.toString("base64") }, userId: "user" }), /10MB 이하/)
-  assert.throws(() => validateChangeCategoryInput({ image: { ...image, width: 1200, height: 800 }, userId: "user" }), /1280×600px로 변환/)
+  assert.throws(() => validateChangeCategoryInput({ image: { ...image, width: CHANGE_CATEGORY_LIMITS.maxImageDimension + 1 }, userId: "user" }), /그림 너비 값이 올바르지 않습니다/)
 })
 
 test("같은 DB의 별도 테이블에 최신 그림 한 건을 저장하는 DDL을 제공한다", () => {

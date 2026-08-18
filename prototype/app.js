@@ -11,7 +11,6 @@ import { createAgentChatController } from "./src/agent/chatController.js";
 import { qnaRepository } from "./src/qna/repository.js";
 import { buildQnaSearchText, buildTitleSearchText, matchesSearchQuery } from "./src/search/globalSearch.js";
 import {
-  categoryImagePayloadToBlob,
   formatCategoryImageSize,
   getClipboardImageFile,
   imageFileToPayload,
@@ -1906,14 +1905,12 @@ changeCategoryPasteBox?.addEventListener("paste", async (event) => {
   try {
     const file = getClipboardImageFile(event.clipboardData);
     const image = await imageFileToPayload(file);
-    const normalizedImage = categoryImagePayloadToBlob(image);
-    if (!normalizedImage) throw new TypeError("화면 크기로 변환된 그림을 미리보기에 표시할 수 없습니다.");
     changeCategoryDraftImage = image;
     if (changeCategoryPreviewUrl) URL.revokeObjectURL(changeCategoryPreviewUrl);
-    changeCategoryPreviewUrl = URL.createObjectURL(normalizedImage);
-    changeCategoryPasteBox.replaceChildren(`화면에 맞춰 ${image.width}×${image.height}px · ${formatCategoryImageSize(normalizedImage.size)}로 변환했습니다.`);
+    changeCategoryPreviewUrl = URL.createObjectURL(file);
+    changeCategoryPasteBox.replaceChildren(`원본 ${image.width}×${image.height}px · ${formatCategoryImageSize(file.size)} 그림을 붙여넣었습니다.`);
     changeCategoryPasteBox.classList.add("is-ready");
-    changeCategoryPasteStatus?.replaceChildren("원본 비율은 유지되며 남는 공간은 흰색 여백으로 표시됩니다.");
+    changeCategoryPasteStatus?.replaceChildren("원본 파일과 해상도를 그대로 저장하며, 조회 팝업에서 화면 폭을 넘을 때만 축소합니다.");
     renderCategoryImage(changeCategoryPreview, changeCategoryPreviewUrl);
     setChangeCategoryFormError();
   } catch (error) {

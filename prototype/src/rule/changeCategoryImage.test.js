@@ -3,8 +3,6 @@
 import { describe, expect, it } from "vitest"
 
 import {
-  calculateContainedImageLayout,
-  categoryImagePayloadToBlob,
   formatCategoryImageSize,
   getClipboardImageFile,
   imageFileToPayload,
@@ -19,18 +17,13 @@ describe("변승위 Category 그림 붙여넣기", () => {
     expect(() => getClipboardImageFile({ items: [] })).toThrow("복사한 그림을 찾지 못했습니다")
   })
 
-  it("원본 비율을 유지하며 1280×600 표시 영역 중앙에 맞춘다", () => {
-    expect(calculateContainedImageLayout(1920, 1080)).toEqual({ x: 107, y: 0, width: 1067, height: 600 })
-    expect(calculateContainedImageLayout(800, 1200)).toEqual({ x: 440, y: 0, width: 400, height: 600 })
-  })
-
-  it("원본을 1280×600 PNG로 정규화해 저장 payload를 만든다", async () => {
+  it("원본 파일 형식과 해상도를 그대로 유지해 저장 payload를 만든다", async () => {
     const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
     const file = new File([bytes], "category.png", { type: "image/png" })
-    const payload = await imageFileToPayload(file, { normalizeImage: async () => new Blob([bytes], { type: "image/png" }) })
-    expect(payload).toEqual({ name: "change-category.png", type: "image/png", width: 1280, height: 600, dataBase64: "iVBORw0KGgo=" })
-    expect(categoryImagePayloadToBlob(payload)).toBeInstanceOf(Blob)
-    await expect(imageFileToPayload(new File(["wrong"], "wrong.png", { type: "image/png" }), { normalizeImage: async () => new Blob([bytes], { type: "image/png" }) })).rejects.toThrow("파일 형식이 일치하지 않습니다")
+    const payload = await imageFileToPayload(file, { getDimensions: async () => ({ width: 960, height: 1440 }) })
+    expect(payload).toEqual({ name: "category.png", type: "image/png", width: 960, height: 1440, dataBase64: "iVBORw0KGgo=" })
+    await expect(imageFileToPayload(new File(["wrong"], "wrong.png", { type: "image/png" }), { getDimensions: async () => ({ width: 1, height: 1 }) })).rejects.toThrow("파일 형식이 일치하지 않습니다")
+    await expect(imageFileToPayload(file, { getDimensions: async () => ({ width: 20_001, height: 100 }) })).rejects.toThrow("20,000px 이하")
   })
 
   it("그림은 안전한 img 요소로 표시한다", () => {

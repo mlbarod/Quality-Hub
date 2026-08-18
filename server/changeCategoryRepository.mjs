@@ -7,8 +7,6 @@ export const CHANGE_CATEGORY_LIMITS = Object.freeze({
   maxImageNameLength: 255,
   maxImageDimension: 20_000,
   maxUserIdLength: 100,
-  targetImageWidth: 1280,
-  targetImageHeight: 600,
 })
 
 const IMAGE_TYPES = Object.freeze({
@@ -48,9 +46,6 @@ function decodeImage(image) {
   if (!imageType.matches(data)) throw new TypeError("그림 내용과 파일 형식이 일치하지 않습니다.")
   const width = normalizeDimension(image.width, "그림 너비")
   const height = normalizeDimension(image.height, "그림 높이")
-  if (width !== CHANGE_CATEGORY_LIMITS.targetImageWidth || height !== CHANGE_CATEGORY_LIMITS.targetImageHeight) {
-    throw new TypeError(`그림은 ${CHANGE_CATEGORY_LIMITS.targetImageWidth}×${CHANGE_CATEGORY_LIMITS.targetImageHeight}px로 변환해야 합니다.`)
-  }
   return {
     name: imageType.extensions.some((extension) => name.toLocaleLowerCase("en-US").endsWith(extension)) ? name : `${name}${imageType.fallbackExtension}`,
     type,
