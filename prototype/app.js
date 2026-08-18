@@ -10,6 +10,12 @@ import { createLocalRepository, LOCAL_DATA_EVENT } from "./src/data/localReposit
 import { createAgentChatController } from "./src/agent/chatController.js";
 import { qnaRepository } from "./src/qna/repository.js";
 import { buildQnaSearchText, buildTitleSearchText, matchesSearchQuery } from "./src/search/globalSearch.js";
+import {
+  formatCategoryFileSize,
+  parseChangeCategoryClipboard,
+  renderChangeCategorySheet,
+  workbookFileToPayload,
+} from "./src/rule/changeCategorySheet.js";
 
 const prototype = document.querySelector(".prototype");
 const dashboardWorkspace = document.querySelector(".workspace");
@@ -47,6 +53,7 @@ const reportSpotfireFrame = document.querySelector("[data-report-spotfire-frame]
 const reportSpotfirePlaceholder = document.querySelector("[data-report-spotfire-placeholder]");
 const ruleWorkspace = document.querySelector("[data-rule-workspace]");
 const rulePage = document.querySelector("[data-rule-page]");
+const ruleSearch = document.querySelector("[data-rule-search]");
 const ruleCardGrid = document.querySelector("[data-rule-card-grid]");
 const ruleCardTemplate = document.querySelector("[data-rule-card-template]");
 const ruleEmptyState = document.querySelector("[data-rule-empty]");
@@ -67,6 +74,23 @@ const ruleDeleteDialog = document.querySelector("[data-rule-delete-dialog]");
 const ruleDeleteName = document.querySelector("[data-rule-delete-name]");
 const ruleDeleteError = document.querySelector("[data-rule-delete-error]");
 const ruleDeleteConfirm = document.querySelector("[data-rule-delete-confirm]");
+const changeCategoryBadge = document.querySelector("[data-change-category-badge]");
+const changeCategoryMeta = document.querySelector("[data-change-category-meta]");
+const changeCategoryDownload = document.querySelector("[data-change-category-download]");
+const changeCategoryFileName = document.querySelector("[data-change-category-file-name]");
+const changeCategoryEdit = document.querySelector("[data-change-category-edit]");
+const changeCategoryState = document.querySelector("[data-change-category-state]");
+const changeCategoryRetry = document.querySelector("[data-change-category-retry]");
+const changeCategorySheet = document.querySelector("[data-change-category-sheet]");
+const changeCategoryDialog = document.querySelector("[data-change-category-dialog]");
+const changeCategoryForm = document.querySelector("[data-change-category-form]");
+const changeCategoryPasteBox = document.querySelector("[data-change-category-paste-box]");
+const changeCategoryPasteStatus = document.querySelector("[data-change-category-paste-status]");
+const changeCategoryFile = document.querySelector("[data-change-category-file]");
+const changeCategoryFileLabel = document.querySelector("[data-change-category-file-label]");
+const changeCategoryPreview = document.querySelector("[data-change-category-preview]");
+const changeCategoryError = document.querySelector("[data-change-category-error]");
+const changeCategorySubmit = document.querySelector("[data-change-category-submit]");
 const qnaWorkspace = document.querySelector("[data-qna-workspace]");
 const userWorkspace = document.querySelector("[data-user-workspace]");
 const userPage = document.querySelector("[data-user-page]");
@@ -117,6 +141,11 @@ let ruleDialogReturnFocus;
 let ruleEditorReturnFocus;
 let ruleDeleteReturnFocus;
 let activeRuleCard;
+let changeCategoryLoadPromise;
+let changeCategoryLoadState = "idle";
+let activeChangeCategory = null;
+let changeCategoryDraftSheet = null;
+let changeCategoryReturnFocus;
 let qnaReturnFocus;
 let userReturnFocus;
 let accessAddReturnFocus;
@@ -1598,10 +1627,13 @@ const playRuleCardArrangement = () => {
 
 const applyRuleFilters = ({ animate = true } = {}) => {
   updateRuleFilterOptions();
+  const searchQuery = ruleSearch instanceof HTMLInputElement ? ruleSearch.value.trim() : "";
   let visibleCardCount = 0;
 
   getRuleCards().forEach((card) => {
-    const isVisible = card.dataset.softDeleted !== "true" && Object.keys(ruleFilterState).every((scope) => matchesRuleScope(card, scope));
+    const matchesClassification = Object.keys(ruleFilterState).every((scope) => matchesRuleScope(card, scope));
+    const matchesTitle = matchesSearchQuery(buildTitleSearchText(card.dataset.ruleTitle), searchQuery);
+    const isVisible = card.dataset.softDeleted !== "true" && matchesClassification && matchesTitle;
     card.hidden = !isVisible;
     if (isVisible) visibleCardCount += 1;
   });
@@ -1609,10 +1641,13 @@ const applyRuleFilters = ({ animate = true } = {}) => {
   const activeFilterLabels = Object.entries(ruleFilterState)
     .filter(([, value]) => value !== "all")
     .map(([, value]) => value);
+  if (searchQuery) activeFilterLabels.push(`“${searchQuery}” 검색`);
 
   document.querySelector("[data-rule-result-count]")?.replaceChildren(String(visibleCardCount));
   document.querySelector("[data-rule-filter-summary]")?.replaceChildren(activeFilterLabels.join(" · ") || "전체 분류");
-  if (ruleLoadState === "ready") setRuleCatalogState(visibleCardCount > 0 ? "ready" : "search");
+  if (ruleLoadState === "ready" || ruleLoadState === "search") {
+    setRuleCatalogState(visibleCardCount > 0 ? "ready" : "search");
+  }
   if (ruleCardGrid instanceof HTMLElement) ruleCardGrid.hidden = visibleCardCount === 0;
 
   if (animate) playRuleCardArrangement();
@@ -1625,7 +1660,7 @@ const setRuleCatalogState = (state) => {
     loading: ["#icon-refresh", "Rule&SOP를 불러오고 있습니다.", "rulesop에서 최신 목록을 조회하고 있습니다."],
     empty: ["#icon-book", "등록된 문서가 없습니다.", "rulesop에 문서가 등록되면 이곳에 표시됩니다."],
     error: ["#icon-alert", "Rule&SOP 조회 오류가 발생했습니다.", "DB 연결 상태를 확인한 뒤 다시 시도해 주세요."],
-    search: ["#icon-search", "조건에 맞는 문서가 없습니다.", "다른 분류를 선택하거나 필터를 초기화하세요."],
+    search: ["#icon-search", "조건에 맞는 문서가 없습니다.", "다른 문서 제목을 입력하거나 분류 필터를 변경해 보세요."],
   };
   const content = stateContent[state];
   ruleEmptyState.dataset.ruleState = state;
@@ -1728,11 +1763,223 @@ const loadRuleCatalog = ({ force = false } = {}) => {
   return ruleLoadPromise;
 };
 
+const requestChangeCategoryApi = async (options = {}, path = "") => {
+  const response = await fetch(`/api/rule-category${path}`, {
+    ...options,
+    headers: withIdentityHeader(options.headers),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error?.message ?? "변승위 Category 요청을 처리하지 못했습니다.");
+  return payload;
+};
+
+const setChangeCategoryViewState = (state, message = "") => {
+  changeCategoryLoadState = state;
+  if (!(changeCategoryState instanceof HTMLElement)) return;
+  const stateContent = {
+    loading: ["#icon-refresh", "Category 자료를 불러오고 있습니다.", "잠시만 기다려 주세요."],
+    empty: ["#icon-grid", "등록된 Category 분류표가 없습니다.", "관리자가 Excel 표를 붙여넣어 등록할 수 있습니다."],
+    error: ["#icon-alert", "Category 분류표를 불러오지 못했습니다.", message || "DB 연결 상태를 확인한 뒤 다시 시도해 주세요."],
+  };
+  const content = stateContent[state];
+  changeCategoryState.hidden = !content;
+  if (!content) return;
+  changeCategoryState.querySelector("use")?.setAttribute("href", content[0]);
+  changeCategoryState.querySelector("strong")?.replaceChildren(content[1]);
+  changeCategoryState.querySelector("small")?.replaceChildren(content[2]);
+  if (changeCategoryRetry instanceof HTMLButtonElement) changeCategoryRetry.hidden = state !== "error";
+  if (changeCategorySheet instanceof HTMLElement) changeCategorySheet.hidden = true;
+};
+
+const renderChangeCategory = (category) => {
+  activeChangeCategory = category;
+  if (!category) {
+    changeCategoryBadge?.replaceChildren("등록 자료 없음");
+    changeCategoryMeta?.replaceChildren("아직 등록된 분류표가 없습니다.");
+    if (changeCategoryDownload instanceof HTMLButtonElement) changeCategoryDownload.hidden = true;
+    setChangeCategoryViewState("empty");
+    return;
+  }
+
+  if (!(changeCategorySheet instanceof HTMLElement) || !renderChangeCategorySheet(changeCategorySheet, category.sheet)) {
+    throw new Error("저장된 Category 표 형식이 올바르지 않습니다.");
+  }
+  const updatedAt = category.updatedAt ? new Date(category.updatedAt) : null;
+  const formattedUpdatedAt = updatedAt && !Number.isNaN(updatedAt.getTime())
+    ? updatedAt.toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short" })
+    : "업데이트 시각 미확인";
+  const fileSize = formatCategoryFileSize(category.fileSize);
+  changeCategoryBadge?.replaceChildren("최신 자료");
+  changeCategoryMeta?.replaceChildren(`최종 교체 ${formattedUpdatedAt}${category.fileName ? ` · 원본 ${category.fileName}${fileSize ? ` (${fileSize})` : ""}` : " · 원본 파일 없음"}`);
+  if (changeCategoryDownload instanceof HTMLButtonElement) changeCategoryDownload.hidden = !category.fileName;
+  changeCategoryFileName?.replaceChildren(category.fileName ? "원본 Excel 받기" : "원본 Excel");
+  if (changeCategoryState instanceof HTMLElement) changeCategoryState.hidden = true;
+  changeCategorySheet.hidden = false;
+  changeCategoryLoadState = "ready";
+};
+
+const loadChangeCategory = ({ force = false } = {}) => {
+  if (changeCategoryLoadPromise && !force) return changeCategoryLoadPromise;
+  if (changeCategoryLoadPromise && force) return changeCategoryLoadPromise.then(() => loadChangeCategory({ force: true }));
+  if (!force && (changeCategoryLoadState === "ready" || changeCategoryLoadState === "empty")) return Promise.resolve(activeChangeCategory);
+
+  setChangeCategoryViewState("loading");
+  changeCategoryLoadPromise = requestChangeCategoryApi()
+    .then((payload) => {
+      if (!("category" in payload)) throw new Error("Category 분류표 응답 형식이 올바르지 않습니다.");
+      renderChangeCategory(payload.category);
+      return payload.category;
+    })
+    .catch((error) => {
+      activeChangeCategory = null;
+      changeCategoryBadge?.replaceChildren("조회 오류");
+      changeCategoryMeta?.replaceChildren("최신 자료를 확인하지 못했습니다.");
+      if (changeCategoryDownload instanceof HTMLButtonElement) changeCategoryDownload.hidden = true;
+      setChangeCategoryViewState("error", error instanceof Error ? error.message : "다시 시도해 주세요.");
+      console.error("Change Category load failed", { name: error?.name, message: error?.message });
+      return null;
+    })
+    .finally(() => {
+      changeCategoryLoadPromise = undefined;
+    });
+  return changeCategoryLoadPromise;
+};
+
+const setChangeCategoryFormError = (message = "") => {
+  if (!(changeCategoryError instanceof HTMLElement)) return;
+  changeCategoryError.textContent = message;
+  changeCategoryError.hidden = !message;
+};
+
+const resetChangeCategoryForm = () => {
+  changeCategoryDraftSheet = null;
+  if (changeCategoryForm instanceof HTMLFormElement) changeCategoryForm.reset();
+  if (changeCategoryPasteBox instanceof HTMLElement) {
+    const placeholder = document.createElement("span");
+    placeholder.textContent = "여기를 선택한 후 Excel 표를 붙여넣으세요.";
+    changeCategoryPasteBox.replaceChildren(placeholder);
+    changeCategoryPasteBox.classList.remove("is-ready");
+  }
+  changeCategoryPasteStatus?.replaceChildren("아직 붙여넣은 표가 없습니다.");
+  changeCategoryFileLabel?.replaceChildren("원본 .xlsx 파일 선택");
+  if (changeCategoryPreview instanceof HTMLElement) {
+    const placeholder = document.createElement("p");
+    placeholder.textContent = "Excel 표를 붙여넣으면 미리보기가 표시됩니다.";
+    changeCategoryPreview.replaceChildren(placeholder);
+  }
+  setChangeCategoryFormError();
+};
+
+const openChangeCategoryEditor = (returnFocus) => {
+  if (!canManageRuleDocuments || !(changeCategoryDialog instanceof HTMLDialogElement)) return;
+  changeCategoryReturnFocus = returnFocus;
+  resetChangeCategoryForm();
+  changeCategoryDialog.showModal();
+  window.requestAnimationFrame(() => changeCategoryPasteBox?.focus());
+};
+
+changeCategoryPasteBox?.addEventListener("paste", (event) => {
+  event.preventDefault();
+  try {
+    const sheet = parseChangeCategoryClipboard({
+      html: event.clipboardData?.getData("text/html") ?? "",
+      text: event.clipboardData?.getData("text/plain") ?? "",
+    });
+    const cellCount = sheet.rows.reduce((sum, row) => sum + row.cells.length, 0);
+    changeCategoryDraftSheet = sheet;
+    changeCategoryPasteBox.replaceChildren(`${sheet.rows.length}행 · ${cellCount}셀 표를 붙여넣었습니다.`);
+    changeCategoryPasteBox.classList.add("is-ready");
+    changeCategoryPasteStatus?.replaceChildren("서식과 병합 셀을 반영한 미리보기를 확인해 주세요.");
+    renderChangeCategorySheet(changeCategoryPreview, sheet);
+    setChangeCategoryFormError();
+  } catch (error) {
+    changeCategoryDraftSheet = null;
+    changeCategoryPasteBox.classList.remove("is-ready");
+    setChangeCategoryFormError(error instanceof Error ? error.message : "Excel 표를 붙여넣지 못했습니다.");
+  }
+});
+changeCategoryPasteBox?.addEventListener("beforeinput", (event) => event.preventDefault());
+
+changeCategoryFile?.addEventListener("change", () => {
+  const file = changeCategoryFile instanceof HTMLInputElement ? changeCategoryFile.files?.[0] : null;
+  if (!file) {
+    changeCategoryFileLabel?.replaceChildren("원본 .xlsx 파일 선택");
+    return;
+  }
+  if (!file.name.toLocaleLowerCase("en-US").endsWith(".xlsx") || file.size > 5 * 1024 * 1024) {
+    setChangeCategoryFormError("원본 파일은 5MB 이하의 .xlsx 형식만 선택할 수 있습니다.");
+    changeCategoryFile.value = "";
+    changeCategoryFileLabel?.replaceChildren("원본 .xlsx 파일 선택");
+    return;
+  }
+  changeCategoryFileLabel?.replaceChildren(`${file.name} · ${formatCategoryFileSize(file.size)}`);
+  setChangeCategoryFormError();
+});
+
+changeCategoryForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!canManageRuleDocuments) return;
+  if (!changeCategoryDraftSheet) {
+    setChangeCategoryFormError("먼저 PC Excel에서 복사한 표를 붙여넣어 주세요.");
+    changeCategoryPasteBox?.focus();
+    return;
+  }
+  if (changeCategorySubmit instanceof HTMLButtonElement) changeCategorySubmit.disabled = true;
+  try {
+    const selectedFile = changeCategoryFile instanceof HTMLInputElement ? changeCategoryFile.files?.[0] : null;
+    const file = selectedFile ? await workbookFileToPayload(selectedFile) : null;
+    const payload = await requestChangeCategoryApi({
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sheet: changeCategoryDraftSheet, file }),
+    });
+    renderChangeCategory(payload.category);
+    changeCategoryReturnFocus = changeCategoryEdit;
+    changeCategoryDialog?.close();
+    recordHistory({ action: "교체", targetType: "변승위 Category", targetName: "Category 분류표", detail: selectedFile ? "표 서식 및 원본 Excel" : "표 서식" });
+    showToast("변승위 Category 분류표를 최신 자료로 교체했습니다.");
+  } catch (error) {
+    setChangeCategoryFormError(error instanceof Error ? error.message : "Category 분류표 저장에 실패했습니다.");
+  } finally {
+    if (changeCategorySubmit instanceof HTMLButtonElement) changeCategorySubmit.disabled = false;
+  }
+});
+
+changeCategoryEdit?.addEventListener("click", (event) => openChangeCategoryEditor(event.currentTarget));
+document.querySelectorAll("[data-change-category-close]").forEach((button) => {
+  button.addEventListener("click", () => changeCategoryDialog?.close());
+});
+changeCategoryDialog?.addEventListener("close", () => {
+  if (changeCategoryReturnFocus instanceof HTMLElement && changeCategoryReturnFocus.isConnected) changeCategoryReturnFocus.focus();
+});
+changeCategoryRetry?.addEventListener("click", () => { void loadChangeCategory({ force: true }); });
+changeCategoryDownload?.addEventListener("click", async () => {
+  try {
+    const response = await fetch("/api/rule-category/source", { headers: withIdentityHeader() });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.error?.message ?? "원본 Excel 파일을 받지 못했습니다.");
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = activeChangeCategory?.fileName ?? "change-category.xlsx";
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : "원본 Excel 파일을 받지 못했습니다.");
+  }
+});
+
 document.querySelectorAll("[data-rule-open]").forEach((button) => {
   button.addEventListener("click", () => {
     ruleReturnFocus = button;
     setRuleMode("open");
     void loadRuleCatalog();
+    void loadChangeCategory();
   });
 });
 
@@ -1933,12 +2180,15 @@ document.querySelectorAll("select[data-rule-filter]").forEach((select) => {
   });
 });
 
+ruleSearch?.addEventListener("input", () => applyRuleFilters());
+
 document.querySelector("[data-rule-filter-reset]")?.addEventListener("click", () => {
   Object.keys(ruleFilterState).forEach((scope) => {
     ruleFilterState[scope] = "all";
   });
+  if (ruleSearch instanceof HTMLInputElement) ruleSearch.value = "";
   applyRuleFilters();
-  showToast("Rule&SOP 분류 필터를 초기화했습니다.");
+  showToast("Rule&SOP 검색과 분류 필터를 초기화했습니다.");
 });
 
 document.querySelector("[data-rule-category-toggle]")?.addEventListener("click", (event) => {
@@ -1949,6 +2199,7 @@ document.querySelector("[data-rule-category-toggle]")?.addEventListener("click",
   const isExpanded = button.getAttribute("aria-expanded") === "true";
   button.setAttribute("aria-expanded", String(!isExpanded));
   panel.hidden = isExpanded;
+  if (!isExpanded) void loadChangeCategory();
 });
 
 const initialReportQuery = new URL(window.location.href).searchParams.get("report");
@@ -1959,6 +2210,7 @@ if (initialReportQuery === "catalog" || initialReportQuery === "viewer") {
 }
 
 void loadRuleCatalog();
+void loadChangeCategory();
 const initialRuleQuery = new URL(window.location.href).searchParams.get("rule");
 setRuleMode(initialRuleQuery === "open" ? "open" : "closed", { announce: false, focus: false, restoreAgent: false });
 
@@ -2270,7 +2522,7 @@ document.addEventListener("keydown", (event) => {
 
   if (event.key === "Escape") {
     if (globalSearch instanceof HTMLDialogElement && globalSearch.open) return;
-    if ([reportEditorDialog, reportDeleteDialog, ruleDetailDialog, ruleEditorDialog, ruleDeleteDialog].some((dialog) => dialog instanceof HTMLDialogElement && dialog.open)) return;
+    if ([reportEditorDialog, reportDeleteDialog, ruleDetailDialog, ruleEditorDialog, ruleDeleteDialog, changeCategoryDialog].some((dialog) => dialog instanceof HTMLDialogElement && dialog.open)) return;
     if (document.querySelector("[data-qna-modal]")) return;
     if (prototype?.dataset.qnaMode === "open") setQnaMode("closed");
     else if (prototype?.dataset.userMode === "open") setUserMode("closed");
@@ -2432,6 +2684,7 @@ const applyRole = (role, { announce = true, user = null } = {}) => {
   canManageRuleDocuments = currentRolePolicy.canManageContent;
   document.body.classList.toggle("report-manager", canManageReports);
   document.body.classList.toggle("rule-manager", canManageRuleDocuments);
+  if (!canManageRuleDocuments && changeCategoryDialog instanceof HTMLDialogElement && changeCategoryDialog.open) changeCategoryDialog.close();
   document.body.classList.toggle("master-view", currentRolePolicy.canManagePermissions);
   if (rolePreview instanceof HTMLSelectElement) rolePreview.value = role;
 

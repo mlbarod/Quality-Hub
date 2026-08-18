@@ -188,6 +188,8 @@ test("서버 권한 경계는 미인증, 차단 사용자와 일반 사용자의
   assert.deepEqual(authorizePrincipal({ role: "blocked" }, request({ url: "/api/reports" })), { allowed: false, status: 403 })
   assert.deepEqual(authorizePrincipal({ role: "general" }, request({ method: "POST", url: "/api/rules" })), { allowed: false, status: 403 })
   assert.deepEqual(authorizePrincipal({ role: "general" }, request({ method: "GET", url: "/api/rules" })), { allowed: true })
+  assert.deepEqual(authorizePrincipal({ role: "general" }, request({ method: "PUT", url: "/api/rule-category" })), { allowed: false, status: 403 })
+  assert.deepEqual(authorizePrincipal({ role: "general" }, request({ method: "GET", url: "/api/rule-category/source" })), { allowed: true })
 })
 
 test("세션 저장 키는 원문 쿠키가 아닌 HMAC 값이다", () => {

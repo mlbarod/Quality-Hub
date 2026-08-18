@@ -458,7 +458,8 @@ export function authorizePrincipal(principal, req) {
   if (!principal) return { allowed: false, status: 401 }
   if (principal.role === "blocked") return { allowed: false, status: 403 }
   const mutatesManagedContent = (route.pathname === "/api/reports" || route.pathname.startsWith("/api/reports/")
-    || route.pathname === "/api/rules" || route.pathname.startsWith("/api/rules/"))
+    || route.pathname === "/api/rules" || route.pathname.startsWith("/api/rules/")
+    || route.pathname === "/api/rule-category" || route.pathname.startsWith("/api/rule-category/"))
     && !["GET", "HEAD"].includes(req.method ?? "GET")
   if (mutatesManagedContent && principal.role === "general") return { allowed: false, status: 403 }
   return { allowed: true }

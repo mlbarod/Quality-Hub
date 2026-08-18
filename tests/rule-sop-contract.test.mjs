@@ -22,6 +22,20 @@ test("변승위 Category분류를 접근 가능한 아코디언으로 제공한�
   assert.match(script, /button\.setAttribute\("aria-expanded", String\(!isExpanded\)\)/)
 })
 
+test("변승위 Category는 Excel 표 붙여넣기와 선택적 원본 파일 교체 흐름을 제공한다", () => {
+  assert.match(html, /data-change-category-paste-box/)
+  assert.match(html, /accept="\.xlsx,application\/vnd\.openxmlformats-officedocument\.spreadsheetml\.sheet"/)
+  assert.match(html, /data-change-category-preview/)
+  assert.match(html, /data-change-category-download/)
+  assert.match(html, /class="rule-category-manager-only"[^>]*data-change-category-edit/)
+  assert.match(script, /parseChangeCategoryClipboard/)
+  assert.match(script, /workbookFileToPayload/)
+  assert.match(script, /fetch\(`\/api\/rule-category/)
+  assert.match(script, /method: "PUT"/)
+  assert.match(requirements, /별도 `quality_hub_change_category` 테이블/)
+  assert.match(requirements, /최신 자료 한 건만 유지/)
+})
+
 test("rulesop의 대분류, 중분류, 소분류를 동적 필터와 카드 설명에 매핑한다", () => {
   assert.match(html, /<select data-rule-filter="major" aria-label="대분류 필터">/)
   assert.match(html, /<select data-rule-filter="middle" aria-label="중분류 필터">/)
@@ -47,12 +61,22 @@ test("필터 결과 수, 요약과 목록 재배치 상태를 갱신한다", () 
   assert.match(script, /prefers-reduced-motion: reduce/)
 })
 
+test("Rule&SOP 제목 검색을 분류 필터와 함께 적용하고 초기화한다", () => {
+  assert.match(html, /<input type="search" placeholder="Rule&amp;SOP 문서 제목 검색" data-rule-search/)
+  assert.match(script, /matchesSearchQuery\(buildTitleSearchText\(card\.dataset\.ruleTitle\), searchQuery\)/)
+  assert.match(script, /ruleSearch\?\.addEventListener\("input", \(\) => applyRuleFilters\(\)\)/)
+  assert.match(script, /if \(ruleSearch instanceof HTMLInputElement\) ruleSearch\.value = ""/)
+  assert.match(script, /activeFilterLabels\.push\(`“\$\{searchQuery\}” 검색`\)/)
+  assert.match(script, /ruleLoadState === "ready" \|\| ruleLoadState === "search"/)
+})
+
 test("Rule&SOP 목록을 실제 API에서 읽고 오류 재시도를 제공한다", () => {
   assert.match(script, /fetch\(`\/api\/rules/)
   assert.match(script, /x-quality-hub-user-id/)
   assert.match(script, /Array\.isArray\(payload\.documents\)/)
   assert.match(html, /data-rule-retry/)
-  assert.match(html, /rulesop 최신 목록/)
+  assert.match(script, /rulesop에서 최신 목록을 조회하고 있습니다/)
+  assert.doesNotMatch(html, /실제 DB 연결|rule-mock-notice/)
   assert.doesNotMatch(html, /예시 Rule 문서|v0\.1 MOCK|신규 문서 등록/)
 })
 

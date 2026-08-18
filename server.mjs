@@ -6,6 +6,7 @@ import { fileURLToPath, URL } from "node:url"
 
 import { createAgentChatApi } from "./server/agentChatApi.mjs"
 import { authorizePrincipal, createAuthApi, sendAuthorizationFailure } from "./server/authApi.mjs"
+import { createChangeCategoryApi } from "./server/changeCategoryApi.mjs"
 import { loadOidcConfig } from "./server/oidcService.mjs"
 import { createReportApi } from "./server/reportApi.mjs"
 import { createRuleSopApi } from "./server/ruleSopApi.mjs"
@@ -298,6 +299,7 @@ function serveStatic(req, res, staticDir, { principal = null, authEnabled = fals
 export function createQualityHubServer({
   staticDir = builtStaticDir,
   agentApi = createAgentChatApi(),
+  changeCategoryApi = createChangeCategoryApi(),
   reportApi = createReportApi(),
   ruleSopApi = createRuleSopApi(),
   environment = process.env,
@@ -345,6 +347,7 @@ export function createQualityHubServer({
         if (url.pathname.startsWith("/api/auth/") && await authApi.handle(req, res)) return
       }
       if (await agentApi.handle(req, res)) return
+      if (await changeCategoryApi.handle(req, res)) return
       if (await reportApi.handle(req, res)) return
       if (await ruleSopApi.handle(req, res)) return
       serveStatic(req, res, staticDir, { principal, authEnabled: authApi.enabled })
@@ -360,6 +363,7 @@ export function createQualityHubServer({
   server.maxHeadersCount = 100
   server.once("close", () => {
     void agentApi.close()
+    void changeCategoryApi.close()
     void reportApi.close()
     void ruleSopApi.close()
     void authApi.close()
@@ -391,6 +395,7 @@ function reportServerError(error, host, port) {
 async function startSourceServer({ host, port }) {
   const { createServer: createViteServer } = await import("vite")
   const agentApi = createAgentChatApi()
+  const changeCategoryApi = createChangeCategoryApi()
   const reportApi = createReportApi()
   const ruleSopApi = createRuleSopApi()
   const authApi = createAuthApi()
@@ -428,6 +433,7 @@ async function startSourceServer({ host, port }) {
         if (url.pathname.startsWith("/api/auth/") && await authApi.handle(req, res)) return
       }
       if (await agentApi.handle(req, res)) return
+      if (await changeCategoryApi.handle(req, res)) return
       if (await reportApi.handle(req, res)) return
       if (await ruleSopApi.handle(req, res)) return
       if (authApi.enabled && principal && (url.pathname === "/" || url.pathname === "/index.html") && (req.method === "GET" || req.method === "HEAD")) {
@@ -450,6 +456,7 @@ async function startSourceServer({ host, port }) {
   })
   httpServer.once("close", () => {
     void agentApi.close()
+    void changeCategoryApi.close()
     void reportApi.close()
     void ruleSopApi.close()
     void authApi.close()
