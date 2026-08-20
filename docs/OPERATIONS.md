@@ -19,22 +19,26 @@ Quality Hub는 Docker Compose의 단일 Node 컨테이너로 운영한다. 컨�
 
 ## 운영 설정
 
-저장소를 운영 서버의 전용 배포 경로에 두고 다음 파일을 만든다.
+저장소를 운영 서버의 전용 배포 경로에 두고 환경 소유자가 별도로 관리하는 다음 필수 환경파일 원본을 배치한다.
 
 ```bash
-cp .env.compose.example .env.compose
-cp .env.rag.example .env.rag
-cp .env.gpt-oss.example .env.gpt-oss
-cp .env.db.example .env.db
-chmod 600 .env.compose .env.rag .env.gpt-oss .env.db
+test -f .env.db
+test -f .env.rag
+test -f .env.gpt-oss
+test -f .env.sso
+test -f prototype/.env.local
 ```
 
-- `.env.compose`: 이미지 태그, 호스트 바인딩 주소·포트와 Q&A 표시 라인
+- `.env.compose`: 이미지 태그와 호스트 바인딩 주소·포트
 - `.env.rag`: RAG API 주소와 Credential
 - `.env.gpt-oss`: GPT-OSS API 주소와 Credential
 - `.env.db`: MariaDB/MySQL 접속정보
+- `.env.sso`: SSO와 세션 설정
+- `prototype/.env.local`: Vite 빌드에 포함되는 Q&A 라인 표시값
 
-비밀정보 파일은 Git에 추가하거나 Docker 이미지에 복사하지 않는다. `VITE_QNA_LINE_CATEGORIES`는 빌드 시 브라우저 코드에 포함되는 표시값이므로 비밀정보를 넣지 않는다.
+이 다섯 필수 환경파일은 Git에 추가하지 않는다. 개발·빌드·배포 작업은 파일 내용을 생성·수정·덮어쓰지 않고 승인된 원본을 그대로 사용한다. Compose는 루트 환경파일을 컨테이너 실행 환경으로 전달하고, C-DEP용 `docker/Dockerfile-prod`는 C-DEP가 빌드 작업공간에 제공한 원본을 지정 경로로 복사한다. 따라서 C-DEP 이미지와 Artifactory 접근 권한은 비밀정보 취급 기준으로 제한한다. `prototype/.env.local`의 `VITE_` 값은 브라우저 번들에 포함되므로 비밀번호나 인증정보를 넣지 않는다.
+
+`.env.compose`는 위 다섯 필수 환경파일과 별도로 배포 명령에 사용하는 파일이다. 최초 준비와 값 변경은 환경 소유자의 승인된 절차로만 수행하고 애플리케이션 작업에서 수정하지 않는다.
 
 ## 배포
 

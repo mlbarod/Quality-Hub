@@ -6,8 +6,6 @@ services:
     build:
       context: .
       target: runtime
-      args:
-        VITE_QNA_LINE_CATEGORIES: ${VITE_QNA_LINE_CATEGORIES:-}
     env_file:
       - .env.rag
       - .env.gpt-oss

@@ -9,7 +9,7 @@ Quality Hub 서버가 AD FS OpenID Connect 요청을 직접 처리한다. 인증
 ## 운영 전 준비
 
 1. 코드 기준 복구점은 로컬 브랜치 `backup/pre-sso-20260814-120653f`이다.
-2. `.env.sso.example`을 `.env.sso`로 복사하고 실제 값은 배포 서버에서만 입력한다.
+2. 환경 소유자가 별도로 관리하는 승인된 `.env.sso` 원본을 배포 경로에 배치한다. 개발·빌드·배포 작업은 파일 내용을 생성·수정·덮어쓰지 않는다.
 3. 개발 또는 운영 IdP 인증서를 `certs/sso/`에 놓고 `SSO_CERTIFICATE_PATH`에 컨테이너 경로를 입력한다.
 4. DBA가 `db/migrations/001_sso_auth.sql`을 검토하고 대상 DB에 수동 적용한다. 애플리케이션은 테이블을 자동 생성하지 않는다.
 5. IdP 등록 Redirect URI와 `SSO_REDIRECT_URI`를 완전히 동일하게 설정한다. 값은 `https://<웹서비스 주소>/auth/callback` 형식이다.

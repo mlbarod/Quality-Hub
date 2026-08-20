@@ -30,14 +30,18 @@ test("운영 이미지는 다단계 빌드와 비루트 런타임을 사용한�
   assert.match(dockerfile, /COPY --chown=node:node --from=build \/app\/dist \.\/dist/)
   assert.match(dockerfile, /USER node/)
   assert.match(dockerfile, /HEALTHCHECK[\s\S]*\/healthz/)
+  assert.match(dockerfile, /COPY prototype\/\.env\.local \.\/prototype\/\.env\.local/)
+  assert.doesNotMatch(dockerfile, /ARG VITE_QNA_LINE_CATEGORIES|ENV VITE_QNA_LINE_CATEGORIES/)
   assert.doesNotMatch(dockerfile, /COPY \. \./)
 })
 
-test("C-DEP 이미지는 개발용 env 파일 없이 Vite 공개 설정을 빌드 인자로 받는다", () => {
-  assert.match(cdepDockerfile, /ARG VITE_QNA_LINE_CATEGORIES=""/)
-  assert.match(cdepDockerfile, /ENV VITE_QNA_LINE_CATEGORIES=\$\{VITE_QNA_LINE_CATEGORIES\}/)
-  assert.doesNotMatch(cdepDockerfile, /COPY prototype\/\.env\.local/)
+test("C-DEP 이미지는 필수 환경파일을 변경하지 않고 지정 경로에 복사한다", () => {
+  assert.doesNotMatch(cdepDockerfile, /ARG VITE_QNA_LINE_CATEGORIES|ENV VITE_QNA_LINE_CATEGORIES/)
   assert.match(cdepDockerfile, /COPY prototype \.\/prototype/)
+  assert.match(cdepDockerfile, /COPY prototype\/\.env\.local \.\/prototype\/\.env\.local/)
+  for (const fileName of ["db", "rag", "gpt-oss", "sso"]) {
+    assert.match(cdepDockerfile, new RegExp(`COPY[^\\n]*\\.env\\.${fileName} \\.\\/`))
+  }
 })
 
 test("Compose는 앱을 loopback에 제한하고 읽기 전용으로 실행한다", () => {
@@ -47,13 +51,19 @@ test("Compose는 앱을 loopback에 제한하고 읽기 전용으로 실행한�
   assert.match(compose, /no-new-privileges:true/)
   assert.match(compose, /cap_drop:\s*\n\s*- ALL/)
   assert.match(compose, /- \.env\.rag\s*\n\s*- \.env\.gpt-oss\s*\n\s*- \.env\.db/)
+  assert.doesNotMatch(compose, /VITE_QNA_LINE_CATEGORIES/)
 })
 
-test("운영 비밀정보와 빌드 컨텍스트 경계를 유지한다", () => {
+test("필수 운영 환경파일은 Git에서 제외하고 Docker 빌드 컨텍스트에 포함한다", () => {
   assert.match(dockerignore, /^\.env\*$/m)
-  assert.match(dockerignore, /^prototype\/\.env\.local$/m)
+  for (const fileName of ["db", "rag", "gpt-oss", "sso"]) {
+    assert.match(dockerignore, new RegExp(`^!\\.env\\.${fileName}$`, "m"))
+    assert.match(gitignore, new RegExp(`^\\.env\\.${fileName}$`, "m"))
+  }
+  assert.match(dockerignore, /^!prototype\/\.env\.local$/m)
+  assert.match(gitignore, /^prototype\/\.env\.local$/m)
   assert.match(gitignore, /^\.env\.compose$/m)
-  assert.match(composeEnvExample, /VITE_QNA_LINE_CATEGORIES=/)
+  assert.doesNotMatch(composeEnvExample, /VITE_QNA_LINE_CATEGORIES=/)
   assert.doesNotMatch(composeEnvExample, /PASSWORD=|CREDENTIAL_KEY=|PASS_KEY=/)
 })
 
@@ -63,6 +73,8 @@ test("운영 절차와 미완료 범위를 문서화한다", () => {
   assert.match(operations, /브라우저의 로컬 저장소/)
   assert.match(operations, /실제 사내 로그인과 운영 DB 적용/)
   assert.match(operations, /docker compose --env-file \.env\.compose up -d/)
+  assert.match(operations, /필수 환경파일/)
+  assert.match(operations, /파일 내용을 생성·수정·덮어쓰지 않고/)
   assert.match(operations, /\{"status":"ok"\}/)
   assert.match(operations, /\/readyz/)
   assert.match(requirements, /1차 시범 운영 예외/)

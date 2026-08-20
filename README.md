@@ -63,6 +63,8 @@ HOST=127.0.0.1 npm run dev
 
 운영은 Docker Compose로 빌드된 화면과 Backend API를 함께 실행합니다. 컨테이너 포트는 기본적으로 운영 서버의 `127.0.0.1`에만 연결하고, 기존 사내 리버스 프록시에서 HTTPS와 허용 IP를 처리합니다.
 
+`.env.db`, `.env.rag`, `.env.gpt-oss`, `.env.sso`, `prototype/.env.local`은 환경 소유자가 Git 밖에서 관리하는 필수 환경파일입니다. 개발·빌드·배포 작업은 이 파일의 내용을 생성·수정·덮어쓰지 않고 승인된 원본을 그대로 사용합니다.
+
 ```bash
 cp .env.compose.example .env.compose
 docker compose --env-file .env.compose config --quiet
@@ -77,21 +79,17 @@ curl -fsS http://127.0.0.1:4173/healthz
 
 ## Q&A 라인 카테고리 설정
 
-Q&A 작성 화면의 라인 목록은 코드에 저장하지 않고 `prototype/.env.local`에서 읽습니다. 아래 환경변수에 실제 라인 이름을 쉼표로 구분해 입력한 뒤 개발 서버를 다시 시작합니다.
+Q&A 작성 화면의 라인 목록은 코드에 저장하지 않고 필수 원본인 `prototype/.env.local`에서 읽습니다. 개발 서버와 Docker 빌드는 아래 환경변수가 이미 설정된 승인 원본을 그대로 사용합니다.
 
 ```dotenv
 VITE_QNA_LINE_CATEGORIES=첫번째라인,두번째라인
 ```
 
-`prototype/.env.local`은 Git에서 제외됩니다. `VITE_` 환경변수 값은 브라우저 화면에 제공되는 값이므로 라인 표시값 외의 비밀번호나 인증정보는 입력하지 않습니다. 공유용 형식은 `prototype/.env.example`에서 확인할 수 있습니다.
+`prototype/.env.local`은 Git에서 제외됩니다. 코드·빌드·배포 작업은 내용을 변경하지 않습니다. `VITE_` 환경변수 값은 브라우저 화면에 제공되는 값이므로 승인 원본에는 라인 표시값 외의 비밀번호나 인증정보를 넣지 않습니다. 공유용 형식은 `prototype/.env.example`에서 확인할 수 있습니다.
 
 ## RAG API Client 확인
 
-루트의 `.env.rag.example`을 `.env.rag`으로 복사하고 문서 검색·인덱스 조회·문서 추가·문서 삭제 URL과 사내에서 발급받은 공통 설정을 입력합니다. `.env.rag`은 Git에서 제외됩니다.
-
-```bash
-cp .env.rag.example .env.rag
-```
+루트의 필수 원본 `.env.rag`에는 문서 검색·인덱스 조회·문서 추가·문서 삭제 URL과 사내에서 발급받은 공통 설정이 들어 있습니다. 파일은 Git에서 제외되며 코드·검증 작업에서 내용을 변경하지 않습니다. 형식은 `.env.rag.example`에서 확인합니다.
 
 각 API는 다음 명령으로 독립 호출합니다.
 
@@ -106,10 +104,9 @@ npm run rag:document:delete -- "0000ABCD"
 
 ## GPT-OSS Chat Completions Client 확인
 
-루트의 `.env.gpt-oss.example`을 `.env.gpt-oss`으로 복사하고 사내 API 설정을 입력합니다. `GPT_OSS_API_URL`에는 DS API HUB URL 끝에 `/v1`을 추가한 전체 base URL을 사용합니다. 실제 인증에 사용하는 credential은 `GPT_OSS_CREDENTIAL_KEY`에 입력하며 `.env.gpt-oss`은 Git에서 제외됩니다.
+루트의 필수 원본 `.env.gpt-oss`에는 사내 API 설정이 들어 있습니다. `GPT_OSS_API_URL`은 DS API HUB URL 끝에 `/v1`을 추가한 전체 base URL이고 실제 인증 credential은 `GPT_OSS_CREDENTIAL_KEY` 형식입니다. 파일은 Git에서 제외되며 코드·검증 작업에서 내용을 변경하지 않습니다. 형식은 `.env.gpt-oss.example`에서 확인합니다.
 
 ```bash
-cp .env.gpt-oss.example .env.gpt-oss
 npm run gpt-oss:chat -- "You are a helpful assistant." "How are you?"
 ```
 
@@ -117,10 +114,9 @@ npm run gpt-oss:chat -- "You are a helpful assistant." "How are you?"
 
 ## LLM 대화 History DB 확인
 
-루트의 `.env.db.example`을 `.env.db`로 복사하고 이미 생성된 MariaDB/MySQL의 접속정보를 입력합니다. `.env.db`는 Git에서 제외되며, 확인 명령은 테이블을 생성하거나 변경하지 않습니다.
+루트의 필수 원본 `.env.db`에는 이미 생성된 MariaDB/MySQL 접속정보가 들어 있습니다. 파일은 Git에서 제외되며 코드·검증 작업에서 내용을 변경하지 않습니다. 형식은 `.env.db.example`에서 확인하고, 아래 확인 명령은 테이블을 생성하거나 변경하지 않습니다.
 
 ```bash
-cp .env.db.example .env.db
 npm run db:history:check
 ```
 
@@ -134,7 +130,7 @@ npm run db:history:check -- "quality.hub.db.check"
 
 ## Backend Chat 통합 확인
 
-`.env.rag`, `.env.gpt-oss`, `.env.db`에 앞서 독립 검증한 실제 사내 설정을 입력한 뒤 user ID와 질문을 전달합니다. conversation ID를 생략하면 질문 제목으로 새 conversation을 만들며, 전달하면 해당 사용자가 소유한 기존 conversation의 최근 완료 History를 사용합니다.
+독립 검증을 마친 필수 원본 `.env.rag`, `.env.gpt-oss`, `.env.db`를 변경하지 않고 사용해 user ID와 질문을 전달합니다. conversation ID를 생략하면 질문 제목으로 새 conversation을 만들며, 전달하면 해당 사용자가 소유한 기존 conversation의 최근 완료 History를 사용합니다.
 
 ```bash
 npm run backend:chat:check -- "quality.kim" "질문 내용"
@@ -147,6 +143,6 @@ npm run backend:chat:check -- "quality.kim" "후속 질문" "기존-conversation
 
 ## Quality Agent UI 통합 확인
 
-루트의 `.env.rag`, `.env.gpt-oss`, `.env.db`를 입력하고 `npm run dev`로 실행하면 우측 패널과 전체 화면이 같은 Backend conversation을 사용합니다. 서버는 실행한 작업 디렉터리와 관계없이 프로젝트 루트의 세 환경파일을 직접 읽습니다. 환경파일을 변경한 경우 실행 중인 서버를 종료하고 다시 시작해야 합니다. 실제 SSO 전까지 상단 역할 미리보기의 `user_id`를 테스트 식별값으로 전달합니다. Agent API가 실패하면 서버 콘솔의 `Quality Agent API failure` 로그에서 실패 단계와 DB 오류 코드를 확인할 수 있으며 접속정보와 SQL 원문은 기록하지 않습니다.
+필수 원본 `.env.rag`, `.env.gpt-oss`, `.env.db`가 있는 상태에서 `npm run dev`로 실행하면 우측 패널과 전체 화면이 같은 Backend conversation을 사용합니다. 서버는 실행한 작업 디렉터리와 관계없이 프로젝트 루트의 세 환경파일을 직접 읽습니다. 실제 SSO 전까지 상단 역할 미리보기의 `user_id`를 테스트 식별값으로 전달합니다. Agent API가 실패하면 서버 콘솔의 `Quality Agent API failure` 로그에서 실패 단계와 DB 오류 코드를 확인할 수 있으며 접속정보와 SQL 원문은 기록하지 않습니다.
 
 브라우저에서 품질 Agent를 열어 새 대화 생성, 질문 전송, 읽기 쉽게 정제된 답변 표시, 전체 화면 확장, 대화 선택·삭제를 확인합니다. `<br>` 줄바꿈, Markdown 강조·목록·표는 안전한 DOM 요소로 변환하며 RAG 출처 정보는 사용자 화면에 표시하지 않습니다. 선택한 conversation ID는 브라우저에만 보관하고 실제 message와 conversation은 DB에서 다시 불러오므로 새로고침 후에도 History가 복원됩니다. Streaming은 적용하지 않았습니다.
