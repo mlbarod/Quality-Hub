@@ -2,8 +2,9 @@ import assert from "node:assert/strict"
 import { readFile } from "node:fs/promises"
 import test from "node:test"
 
-const [dockerfile, dockerignore, compose, composeEnvExample, gitignore, packageJson, readme, operations, requirements, developmentPlan] = await Promise.all([
+const [dockerfile, cdepDockerfile, dockerignore, compose, composeEnvExample, gitignore, packageJson, readme, operations, requirements, developmentPlan] = await Promise.all([
   readFile(new URL("../Dockerfile", import.meta.url), "utf8"),
+  readFile(new URL("../docker/Dockerfile-prod", import.meta.url), "utf8"),
   readFile(new URL("../.dockerignore", import.meta.url), "utf8"),
   readFile(new URL("../compose.yaml", import.meta.url), "utf8"),
   readFile(new URL("../.env.compose.example", import.meta.url), "utf8"),
@@ -30,6 +31,13 @@ test("운영 이미지는 다단계 빌드와 비루트 런타임을 사용한�
   assert.match(dockerfile, /USER node/)
   assert.match(dockerfile, /HEALTHCHECK[\s\S]*\/healthz/)
   assert.doesNotMatch(dockerfile, /COPY \. \./)
+})
+
+test("C-DEP 이미지는 개발용 env 파일 없이 Vite 공개 설정을 빌드 인자로 받는다", () => {
+  assert.match(cdepDockerfile, /ARG VITE_QNA_LINE_CATEGORIES=""/)
+  assert.match(cdepDockerfile, /ENV VITE_QNA_LINE_CATEGORIES=\$\{VITE_QNA_LINE_CATEGORIES\}/)
+  assert.doesNotMatch(cdepDockerfile, /COPY prototype\/\.env\.local/)
+  assert.match(cdepDockerfile, /COPY prototype \.\/prototype/)
 })
 
 test("Compose는 앱을 loopback에 제한하고 읽기 전용으로 실행한다", () => {

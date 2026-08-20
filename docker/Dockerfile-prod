@@ -7,11 +7,10 @@ RUN npm ci
 
 FROM dependencies AS build
 
-# ARG VITE_QNA_LINE_CATEGORIES=""
-# ENV VITE_QNA_LINE_CATEGORIES=${VITE_QNA_LINE_CATEGORIES}
+ARG VITE_QNA_LINE_CATEGORIES=""
+ENV VITE_QNA_LINE_CATEGORIES=${VITE_QNA_LINE_CATEGORIES}
 
 COPY prototype ./prototype
-COPY prototype/.env.local ./prototype/.env.local
 COPY vite.config.mjs jsconfig.json components.json ./
 RUN npm run build
 
