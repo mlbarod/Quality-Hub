@@ -61,6 +61,12 @@ test("상단 사용자 버튼은 계정 정보 팝업을 열고 SSO 로그아웃
   assert.match(styles, /\.header-profile-popover \{[\s\S]*width: 320px;/)
 })
 
+test("SSO 세션 만료 시 업무 API가 공통 재로그인 흐름을 사용한다", () => {
+  assert.match(script, /createSessionAwareFetch/)
+  assert.match(script, /const apiFetch = createSessionAwareFetch\(\{ isSsoMode \}\)/)
+  assert.match(script, /createAgentChatController\(\{[\s\S]*fetchImpl: apiFetch/)
+})
+
 test("대시보드 예시 지표를 제거하고 실제 Spotfire 조회 상태를 제공한다", () => {
   assert.doesNotMatch(html, /data-common-state-preview|data-period=/)
   assert.match(html, /data-dashboard-spotfire-frame/)

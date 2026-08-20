@@ -5,6 +5,7 @@ import {
 } from "./src/mock/phase2.js";
 import { createLocalRepository, LOCAL_DATA_EVENT } from "./src/data/localRepository.js";
 import { createAgentChatController } from "./src/agent/chatController.js";
+import { createSessionAwareFetch } from "./src/auth/sessionClient.js";
 import { qnaRepository } from "./src/qna/repository.js";
 import { buildQnaSearchText, buildTitleSearchText, matchesSearchQuery } from "./src/search/globalSearch.js";
 import {
@@ -161,6 +162,7 @@ let suppressGlobalSearchFocusRestore = false;
 let currentRole = prototype?.dataset.currentRole ?? "master";
 let currentRolePolicy = getRolePolicy(currentRole);
 const isSsoMode = prototype?.dataset.authMode === "sso";
+const apiFetch = createSessionAwareFetch({ isSsoMode });
 let currentAuthenticatedUser = null;
 let agentChatInitialized = false;
 let editingAccessRow = null;
@@ -251,7 +253,7 @@ const loadDashboard = ({ force = false } = {}) => {
 
   setDashboardState("loading");
   if (force && dashboardSpotfireFrame instanceof HTMLIFrameElement) dashboardSpotfireFrame.removeAttribute("src");
-  dashboardLoadPromise = fetch("/api/dashboard", { headers: withIdentityHeader({ Accept: "application/json" }) })
+  dashboardLoadPromise = apiFetch("/api/dashboard", { headers: withIdentityHeader({ Accept: "application/json" }) })
     .then(async (response) => {
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error?.message ?? "대시보드 DB 요청을 처리하지 못했습니다.");
@@ -681,7 +683,7 @@ const renderReportCatalog = (reports) => {
 
 const requestReportApi = async (options = {}, reportId = "") => {
   const path = reportId ? `/api/reports/${encodeURIComponent(reportId)}` : "/api/reports";
-  const response = await fetch(path, {
+  const response = await apiFetch(path, {
     ...options,
     headers: withIdentityHeader(options.headers),
   });
@@ -1080,7 +1082,7 @@ const getAccessRows = ({ includeDeleted = false } = {}) => [...document.querySel
   .filter((row) => includeDeleted || row.dataset.softDeleted !== "true");
 
 const requestAuthAdminApi = async (path, options = {}) => {
-  const response = await fetch(path, {
+  const response = await apiFetch(path, {
     ...options,
     headers: { Accept: "application/json", ...options.headers },
   });
@@ -1368,6 +1370,7 @@ accessAddForm?.addEventListener("submit", async (event) => {
 updateAccessCounts();
 
 const agentChatController = createAgentChatController({
+  fetchImpl: apiFetch,
   getUserId: () => getCurrentUser().userId,
   showToast,
 });
@@ -1832,7 +1835,7 @@ const renderRuleCatalog = (documents) => {
 };
 
 const requestRuleApi = async (options = {}, documentId = "") => {
-  const response = await fetch(`/api/rules${documentId ? `/${encodeURIComponent(documentId)}` : ""}`, {
+  const response = await apiFetch(`/api/rules${documentId ? `/${encodeURIComponent(documentId)}` : ""}`, {
     ...options,
     headers: withIdentityHeader(options.headers),
   });
@@ -1865,7 +1868,7 @@ const loadRuleCatalog = ({ force = false } = {}) => {
 };
 
 const requestChangeCategoryApi = async (options = {}, path = "") => {
-  const response = await fetch(`/api/rule-category${path}`, {
+  const response = await apiFetch(`/api/rule-category${path}`, {
     ...options,
     headers: withIdentityHeader(options.headers),
   });
@@ -1875,7 +1878,7 @@ const requestChangeCategoryApi = async (options = {}, path = "") => {
 };
 
 const requestChangeCategoryImage = async () => {
-  const response = await fetch("/api/rule-category/image", { headers: withIdentityHeader() });
+  const response = await apiFetch("/api/rule-category/image", { headers: withIdentityHeader() });
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
     throw new Error(payload.error?.message ?? "변승위 Category 그림을 불러오지 못했습니다.");

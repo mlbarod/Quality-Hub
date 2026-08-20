@@ -11,7 +11,7 @@ test("대시보드는 dashboard_report URL을 Spotfire 원본 iframe에 직접 �
   assert.match(html, /data-dashboard-spotfire-frame/)
   assert.match(html, /Spotfire에서 제공하는 대시보드 원본 화면을 그대로 표시합니다\./)
   assert.doesNotMatch(html, /UI 검토용 예시 데이터/)
-  assert.match(script, /fetch\("\/api\/dashboard"/)
+  assert.match(script, /apiFetch\("\/api\/dashboard"/)
   assert.match(script, /const nextUrl = payload\.dashboard\?\.url/)
   assert.match(script, /dashboardSpotfireFrame\.src = nextUrl/)
   assert.match(script, /window\.open\(dashboardUrl, "_blank", "noopener,noreferrer"\)/)

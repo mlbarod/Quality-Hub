@@ -41,7 +41,7 @@ test("변승위 Category는 그림 한 장 붙여넣기와 미리보기 교체 �
   assert.match(script, /getClipboardImageFile/)
   assert.match(script, /imageFileToPayload/)
   assert.doesNotMatch(script, /categoryImagePayloadToBlob|normalizedImage/)
-  assert.match(script, /fetch\(`\/api\/rule-category/)
+  assert.match(script, /apiFetch\(`\/api\/rule-category/)
   assert.match(script, /method: "PUT"/)
   assert.match(requirements, /별도 `quality_hub_change_category` 테이블/)
   assert.match(requirements, /최신 자료 한 건만 유지해 새 저장이 기존 그림을 교체/)
@@ -83,7 +83,7 @@ test("Rule&SOP 제목 검색을 분류 필터와 함께 적용하고 초기화�
 })
 
 test("Rule&SOP 목록을 실제 API에서 읽고 오류 재시도를 제공한다", () => {
-  assert.match(script, /fetch\(`\/api\/rules/)
+  assert.match(script, /apiFetch\(`\/api\/rules/)
   assert.match(script, /x-quality-hub-user-id/)
   assert.match(script, /Array\.isArray\(payload\.documents\)/)
   assert.match(html, /data-rule-retry/)

@@ -40,6 +40,15 @@ docker compose -f compose.yaml -f compose.sso.yaml up -d --build --force-recreat
 
 `/healthz`는 프로세스 생존 여부, `/readyz`는 설정 입력 여부만 확인한다. 둘 다 실제 사내 로그인 성공을 증명하지 않는다.
 
+로드밸런서나 모니터링이 로그인 주소를 확인해야 한다면 `HEAD /auth/login`을 사용할 수 있다. 이 요청은 `204`만 반환하며 로그인 트랜잭션이나 correlation 쿠키를 만들지 않는다. 일반 생존·준비 상태 확인은 계속 `/healthz`, `/readyz`를 우선한다.
+
+## 세션 만료와 재로그인
+
+- `SSO_SESSION_IDLE_SECONDS` 기본값은 1,800초이며 인증된 API 요청마다 연장된다.
+- 실제 세션 종료 시각은 유휴 만료, `SSO_SESSION_ABSOLUTE_SECONDS`, AD FS ID 토큰 만료 중 가장 이른 시각이다.
+- 세션 만료 뒤 API의 `401`은 DB 장애가 아니다. 화면은 현재 경로를 `returnTo`로 보존해 `/auth/login`으로 이동하고, 재인증 뒤 원래 화면으로 돌아온다.
+- 세션 시간을 늘리기 전에 사내 보안 정책과 IdP 토큰 수명을 확인한다. 프론트 오류를 피하려고 토큰 만료 검증을 완화하지 않는다.
+
 ## 즉시 롤백
 
 가장 빠른 애플리케이션 롤백은 `.env.sso`의 `SSO_ENABLED=false`로 변경하고 기존 SSO 오버레이 명령으로 컨테이너를 다시 만드는 것이다. 이때 기존 목업 역할 전환과 기존 API 동작이 복구된다.

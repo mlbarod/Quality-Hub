@@ -45,6 +45,14 @@ function redirect(res, location, cookies = []) {
   res.end()
 }
 
+function sendNoContent(res, extraHeaders = {}) {
+  res.writeHead(204, {
+    "Cache-Control": "no-store",
+    ...extraHeaders,
+  })
+  res.end()
+}
+
 function parseCookies(req) {
   const cookieHeader = Array.isArray(req.headers.cookie) ? req.headers.cookie[0] : req.headers.cookie
   const cookies = new Map()
@@ -315,7 +323,11 @@ export function createAuthApi({
       if (!route) return false
       try {
         if (route.pathname === "/auth/login") {
-          if (req.method !== "GET") throw new AuthRequestError("GET 요청만 허용됩니다.", 405, "METHOD_NOT_ALLOWED")
+          if (req.method === "HEAD") {
+            sendNoContent(res, { Allow: "GET, HEAD" })
+            return true
+          }
+          if (req.method !== "GET") throw new AuthRequestError("GET 또는 HEAD 요청만 허용됩니다.", 405, "METHOD_NOT_ALLOWED")
           const login = createOidcLoginRequest(config, { returnTo: normalizeReturnTo(route.url.searchParams.get("returnTo") ?? "/") })
           const timestamp = now().getTime()
           await (await readyRepository()).createLoginTransaction({

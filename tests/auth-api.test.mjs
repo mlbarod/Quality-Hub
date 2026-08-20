@@ -149,6 +149,26 @@ test("운영 correlation 쿠키는 callback 전용 경로와 호환되는 보안
   assert.doesNotMatch(correlationCookie, /^__Host-/)
 })
 
+test("로그인 HEAD 점검은 DB 트랜잭션과 오류 로그 없이 성공한다", async () => {
+  const repository = createRepository()
+  const records = []
+  const api = createAuthApi({
+    config: config(),
+    repository,
+    publicKey,
+    now: () => fixedNow,
+    logger: { error(message, value) { records.push({ message, value }) } },
+  })
+  const headResponse = response()
+
+  assert.equal(await api.handle(request({ method: "HEAD", url: "/auth/login" }), headResponse), true)
+  assert.equal(headResponse.statusCode, 204)
+  assert.equal(headResponse.headers.Allow, "GET, HEAD")
+  assert.equal(headResponse.body, "")
+  assert.equal(repository.transactions.size, 0)
+  assert.deepEqual(records, [])
+})
+
 test("Claim 확인 모드는 키 자료형만 기록하고 세션을 만들지 않는다", async () => {
   const repository = createRepository()
   const records = []

@@ -52,7 +52,7 @@ test("Rule&SOP DB 조회와 Q&A 로컬 저장이 동적 통합 검색에 연결�
   const qna = await readFile(new URL("../prototype/src/qna/QnaApp.jsx", import.meta.url), "utf8")
   const styles = await readFile(new URL("../prototype/styles.css", import.meta.url), "utf8")
 
-  assert.match(app, /fetch\(`\/api\/rules/)
+  assert.match(app, /apiFetch\(`\/api\/rules/)
   assert.match(app, /renderRuleCatalog/)
   assert.doesNotMatch(app, /key: "rules"/)
   assert.match(app, /syncGlobalSearchResults/)
