@@ -55,8 +55,8 @@ test("통합 검색 대상과 역할 공통 결과 계약을 요구사항에 기
   assert.match(requirements, /마스터·관리자·일반유저 사이에는 통합 검색 결과 차등을 두지 않음/)
 })
 
-test("통합 검색을 열 때 현재 저장 데이터에서 결과를 다시 구성한다", () => {
-  assert.match(app, /if \(globalSearchInput instanceof HTMLInputElement\) globalSearchInput\.value = "";\s+syncGlobalSearchResults\(\);\s+globalSearch\.showModal\(\);/)
+test("통합 검색을 열 때 Q&A DB 스냅샷으로 결과를 갱신한다", () => {
+  assert.match(app, /syncGlobalSearchResults\(\);\s+void qnaRepository\.getSnapshot\(\)\.catch\(\(\) => \{\}\)\.then\(syncGlobalSearchResults\);\s+globalSearch\.showModal\(\);/)
 })
 
 test("검색에서 제외한 결과 버튼은 grid 표시 규칙보다 우선해 숨긴다", () => {

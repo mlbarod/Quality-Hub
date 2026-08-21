@@ -2376,9 +2376,9 @@ function syncGlobalSearchResults() {
     .map((post) => createGlobalSearchResult({
       target: "qna",
       id: post.id,
-      type: `Q&A · ${post.type}`,
+      type: `Q&A · ${post.category}`,
       title: post.title,
-      description: `${post.id} · ${post.department} · ${qnaStatusLabels[post.status] ?? post.status}`,
+      description: `${post.id} · ${post.author} · ${qnaStatusLabels[post.status] ?? post.status}`,
       searchText: buildQnaSearchText(post),
       icon: "#icon-message",
     }));
@@ -2417,6 +2417,7 @@ const openGlobalSearch = (opener) => {
   globalSearchReturnFocus = opener instanceof HTMLElement ? opener : null;
   if (globalSearchInput instanceof HTMLInputElement) globalSearchInput.value = "";
   syncGlobalSearchResults();
+  void qnaRepository.getSnapshot().catch(() => {}).then(syncGlobalSearchResults);
   globalSearch.showModal();
   window.requestAnimationFrame(() => globalSearchInput?.focus());
 };
@@ -2665,6 +2666,7 @@ const applyRole = (role, { announce = true, user = null } = {}) => {
   currentRolePolicy = getRolePolicy(role);
   if (user) currentAuthenticatedUser = user;
   const roleOption = getCurrentUser();
+  window.__qualityHubCurrentUser = roleOption;
   prototype.dataset.currentRole = role;
   prototype.dataset.canManageReports = String(currentRolePolicy.canManageContent);
   prototype.dataset.canManageRules = String(currentRolePolicy.canManageContent);
@@ -2711,6 +2713,7 @@ const applyRole = (role, { announce = true, user = null } = {}) => {
 
   syncPrimaryWorkspaceAccessibility();
   window.dispatchEvent(new CustomEvent("qualityhub:role-change", { detail: { role, policy: currentRolePolicy, user: roleOption } }));
+  if (currentRolePolicy.canAccess) void qnaRepository.getSnapshot().catch(() => {});
   if (announce) showToast(isSsoMode ? `${roleOption.label} 권한이 적용되었습니다.` : `${roleOption.label} 역할 화면으로 전환했습니다. (목업)`);
 };
 

@@ -9,6 +9,7 @@ import { authorizePrincipal, createAuthApi, sendAuthorizationFailure } from "./s
 import { createChangeCategoryApi } from "./server/changeCategoryApi.mjs"
 import { createDashboardApi } from "./server/dashboardApi.mjs"
 import { loadOidcConfig } from "./server/oidcService.mjs"
+import { createQnaApi } from "./server/qnaApi.mjs"
 import { createReportApi } from "./server/reportApi.mjs"
 import { createRuleSopApi } from "./server/ruleSopApi.mjs"
 
@@ -302,6 +303,7 @@ export function createQualityHubServer({
   agentApi = createAgentChatApi(),
   changeCategoryApi = createChangeCategoryApi(),
   dashboardApi = createDashboardApi(),
+  qnaApi = createQnaApi(),
   reportApi = createReportApi(),
   ruleSopApi = createRuleSopApi(),
   environment = process.env,
@@ -345,12 +347,17 @@ export function createQualityHubServer({
           }
           return
         }
-        if (principal) req.headers["x-quality-hub-user-id"] = principal.userId
+        if (principal) {
+          req.headers["x-quality-hub-user-id"] = principal.userId
+          req.headers["x-quality-hub-user-name"] = encodeURIComponent(principal.displayName)
+          req.headers["x-quality-hub-role"] = principal.role
+        }
         if (url.pathname.startsWith("/api/auth/") && await authApi.handle(req, res)) return
       }
       if (await agentApi.handle(req, res)) return
       if (await changeCategoryApi.handle(req, res)) return
       if (await dashboardApi.handle(req, res)) return
+      if (await qnaApi.handle(req, res)) return
       if (await reportApi.handle(req, res)) return
       if (await ruleSopApi.handle(req, res)) return
       serveStatic(req, res, staticDir, { principal, authEnabled: authApi.enabled })
@@ -368,6 +375,7 @@ export function createQualityHubServer({
     void agentApi.close()
     void changeCategoryApi.close()
     void dashboardApi.close()
+    void qnaApi.close()
     void reportApi.close()
     void ruleSopApi.close()
     void authApi.close()
@@ -401,6 +409,7 @@ async function startSourceServer({ host, port }) {
   const agentApi = createAgentChatApi()
   const changeCategoryApi = createChangeCategoryApi()
   const dashboardApi = createDashboardApi()
+  const qnaApi = createQnaApi()
   const reportApi = createReportApi()
   const ruleSopApi = createRuleSopApi()
   const authApi = createAuthApi()
@@ -434,12 +443,17 @@ async function startSourceServer({ host, port }) {
           } else sendText(res, authorization.status, "Forbidden")
           return
         }
-        if (principal) req.headers["x-quality-hub-user-id"] = principal.userId
+        if (principal) {
+          req.headers["x-quality-hub-user-id"] = principal.userId
+          req.headers["x-quality-hub-user-name"] = encodeURIComponent(principal.displayName)
+          req.headers["x-quality-hub-role"] = principal.role
+        }
         if (url.pathname.startsWith("/api/auth/") && await authApi.handle(req, res)) return
       }
       if (await agentApi.handle(req, res)) return
       if (await changeCategoryApi.handle(req, res)) return
       if (await dashboardApi.handle(req, res)) return
+      if (await qnaApi.handle(req, res)) return
       if (await reportApi.handle(req, res)) return
       if (await ruleSopApi.handle(req, res)) return
       if (authApi.enabled && principal && (url.pathname === "/" || url.pathname === "/index.html") && (req.method === "GET" || req.method === "HEAD")) {
@@ -464,6 +478,7 @@ async function startSourceServer({ host, port }) {
     void agentApi.close()
     void changeCategoryApi.close()
     void dashboardApi.close()
+    void qnaApi.close()
     void reportApi.close()
     void ruleSopApi.close()
     void authApi.close()

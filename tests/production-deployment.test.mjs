@@ -70,8 +70,8 @@ test("필수 운영 환경파일은 Git에서 제외하고 Docker 빌드 컨텍�
 test("운영 절차와 미완료 범위를 문서화한다", () => {
   assert.match(readme, /\[운영 배포 가이드\]\(docs\/OPERATIONS\.md\)/)
   assert.match(operations, /시범 운영/)
-  assert.match(operations, /브라우저의 로컬 저장소/)
-  assert.match(operations, /실제 사내 로그인과 운영 DB 적용/)
+  assert.match(operations, /Q&A 질문·답변·태그·알림·변경 이력은 Backend API와 DB 테이블에 저장/)
+  assert.match(operations, /실제 사내 로그인과 운영 DB CRUD/)
   assert.match(operations, /docker compose --env-file \.env\.compose up -d/)
   assert.match(operations, /필수 환경파일/)
   assert.match(operations, /파일 내용을 생성·수정·덮어쓰지 않고/)

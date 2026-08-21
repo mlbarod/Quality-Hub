@@ -14,7 +14,7 @@
 
 ## 현재 상태
 
-현재 B 상단 메뉴형 화면, DB 기반 Report·Rule&SOP와 브라우저 로컬 Q&A·알림을 제공합니다. 품질 Agent는 사내 RAG·GPT-OSS와 MariaDB/MySQL 대화 History를 Backend API로 연결했습니다. AD FS OpenID Connect 인증과 DB 세션·역할 권한 코드는 구현했지만 실제 사내망 로그인과 운영 DB 적용은 아직 검증하지 않았습니다. 최신 단계·판정과 남은 검증은 [개발 계획](docs/DEVELOPMENT_PLAN.md)을 단일 기준으로 확인합니다. 모바일·태블릿 화면은 개발 범위에서 제외합니다.
+현재 B 상단 메뉴형 화면과 DB 기반 Report·Rule&SOP·Q&A·알림을 제공합니다. 품질 Agent는 사내 RAG·GPT-OSS와 MariaDB/MySQL 대화 History를 Backend API로 연결했습니다. AD FS OpenID Connect 인증과 DB 세션·역할 권한 코드는 구현했지만 실제 사내망 로그인과 운영 DB CRUD는 아직 검증하지 않았습니다. 최신 단계·판정과 남은 검증은 [개발 계획](docs/DEVELOPMENT_PLAN.md)을 단일 기준으로 확인합니다. 모바일·태블릿 화면은 개발 범위에서 제외합니다.
 
 ## 프로젝트 문서
 
@@ -73,7 +73,7 @@ docker compose --env-file .env.compose up -d
 curl -fsS http://127.0.0.1:4173/healthz
 ```
 
-비밀정보 준비, 리버스 프록시, 업데이트와 롤백 절차는 [운영 배포 가이드](docs/OPERATIONS.md)를 따릅니다. SSO 적용은 [사내 SSO 적용 및 롤백 안내](docs/SSO_OPERATIONS.md)를 함께 확인합니다. 일부 기능이 브라우저 로컬 데이터에 머물고 실제 사내 SSO가 미검증인 시범 운영이므로 공개 준비 완료를 의미하지 않습니다.
+비밀정보 준비, 리버스 프록시, 업데이트와 롤백 절차는 [운영 배포 가이드](docs/OPERATIONS.md)를 따릅니다. SSO 적용은 [사내 SSO 적용 및 롤백 안내](docs/SSO_OPERATIONS.md)를 함께 확인합니다. 실제 사내 SSO와 운영 DB CRUD가 미검증인 시범 운영이므로 공개 준비 완료를 의미하지 않습니다.
 
 목업의 모든 수치와 상태는 실제 데이터가 아닌 UI 검토용 예시입니다.
 

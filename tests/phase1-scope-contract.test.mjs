@@ -84,8 +84,9 @@ test("확정한 공통 화면 상태와 역할별 문의 대상을 문서에 기
   assert.match(requirements, /권한이 없으면 일반유저는 관리자, 관리자는 마스터에게 문의/)
 })
 
-test("현재 로컬 가상 데이터와 운영 검증 경계를 요구사항에 기록한다", () => {
-  assert.match(requirements, /현재 브라우저의 로컬 저장소에만 보관/)
+test("현재 DB 연동과 운영 검증 경계를 요구사항에 기록한다", () => {
+  assert.match(requirements, /Q&A 질문·답변·태그·알림·변경 이력은 `quality_hub_qna_\*` 5개 테이블을 사용하는 Backend API에 연결/)
+  assert.match(requirements, /첨부파일은 저장소와 운영 정책이 확정되지 않아 Q&A 작성 범위에서 제외/)
   assert.match(requirements, /품질 Agent는 사내 RAG·GPT-OSS와 대화 DB를 Backend 흐름과 기존 UI에 연결/)
   assert.match(requirements, /대시보드 조회는 `dashboard_report`에, Report 목록 조회·신규 등록·수정·실제 삭제는 `report_reg`에, Rule&SOP 목록 조회·수정·실제 삭제는 `rulesop`에 연결/)
   assert.match(requirements, /SSO 코드와 DB 세션·권한 저장 구조는 구현했으나 실제 사내 IdP·DB·Spotfire 인증/)

@@ -106,14 +106,16 @@ describe("Q&A 프로토타입", () => {
     window.removeEventListener("qualityhub:qna-close", closeHandler)
   })
 
-  test("가상 첨부파일을 클릭하면 실제 저장소 연동 전임을 안내한다", async () => {
+  test("DB 스키마에서 보류한 첨부파일 입력과 목업 파일을 표시하지 않는다", async () => {
     const user = userEvent.setup()
     render(<QnaApp />)
 
     await user.click(screen.getByRole("button", { name: /식각 Rate 관리 기준 변경 시 적용 시점을 확인하고 싶습니다/ }))
-    await user.click(screen.getByRole("button", { name: /이상률_관리기준_v2\.4\.pdf/ }))
+    expect(screen.queryByRole("button", { name: /이상률_관리기준_v2\.4\.pdf/ })).not.toBeInTheDocument()
 
-    expect(screen.getByRole("status")).toHaveTextContent("가상 첨부파일입니다. 실제 파일 저장소 연동 후 열 수 있습니다.")
+    await user.click(screen.getByRole("button", { name: "질문 목록" }))
+    await user.click(screen.getByRole("button", { name: "질문 작성" }))
+    expect(screen.queryByLabelText("첨부파일 선택")).not.toBeInTheDocument()
   })
 
   test("삭제한 질문은 삭제 목록에서 확인하고 복구한다", async () => {

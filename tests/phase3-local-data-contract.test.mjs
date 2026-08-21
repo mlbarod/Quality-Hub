@@ -47,9 +47,10 @@ test("손상되거나 규격이 다른 로컬 데이터는 안전하게 가상 �
   assert.throws(() => repository.write({ documents: [], revisions: null }), /Invalid local test data/)
 })
 
-test("Rule&SOP DB 조회와 Q&A 로컬 저장이 동적 통합 검색에 연결된다", async () => {
+test("Rule&SOP와 Q&A DB 조회가 동적 통합 검색에 연결된다", async () => {
   const app = await readFile(new URL("../prototype/app.js", import.meta.url), "utf8")
   const qna = await readFile(new URL("../prototype/src/qna/QnaApp.jsx", import.meta.url), "utf8")
+  const qnaRepository = await readFile(new URL("../prototype/src/qna/repository.js", import.meta.url), "utf8")
   const styles = await readFile(new URL("../prototype/styles.css", import.meta.url), "utf8")
 
   assert.match(app, /apiFetch\(`\/api\/rules/)
@@ -57,12 +58,12 @@ test("Rule&SOP DB 조회와 Q&A 로컬 저장이 동적 통합 검색에 연결�
   assert.doesNotMatch(app, /key: "rules"/)
   assert.match(app, /syncGlobalSearchResults/)
   assert.match(app, /qnaRepository\.read\(\)/)
-  assert.match(qna, /qnaRepository\.write\(\{ posts, notifications, history: historyEntries \}\)/)
-  assert.match(qna, /createNotification/)
-  assert.match(qna, /이 브라우저의 로컬 저장소에만 보관됩니다/)
-  assert.match(qna, /text-\[12px\][^\n]*가상 테스트 데이터입니다/)
-  assert.match(qna, /text-\[12px\][^\n]*등록 내용은 가상 데이터/)
-  assert.match(qna, /text-\[12px\][^\n]*이 브라우저의 가상 데이터에서 변경한/)
+  assert.match(app, /qnaRepository\.getSnapshot\(\)/)
+  assert.match(qnaRepository, /"\/api\/qna"/)
+  assert.match(qna, /qnaRepository\.createQuestion/)
+  assert.match(qna, /qnaRepository\.createMessage/)
+  assert.match(qna, /Quality Hub DB에 저장됩니다/)
+  assert.doesNotMatch(qna, /이 브라우저의 로컬 저장소에만 보관됩니다/)
   assert.match(qna, /form="qna-write-form" className="h-\[41px\]"/)
   assert.match(styles, /\.app-status \{[^}]*font-size: 12px;/s)
   assert.match(styles, /\.rule-filter-select select:focus-visible \{[^}]*box-shadow:/s)
