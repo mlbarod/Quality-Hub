@@ -109,6 +109,28 @@ class QnaJsonMigrationTest(unittest.TestCase):
         self.assertEqual(repairs[0]["embedded_image_count"], 1)
         self.assertEqual(repairs[0]["table_count"], 1)
 
+    def test_uses_legacy_data_src_and_skips_img_without_a_source(self):
+        png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+        raw_html = (
+            "<p>본문</p><img alt='소스 없음'>"
+            f"<img data-src='data:image/x-png;base64,{png}'>"
+        )
+
+        sanitized = MIGRATION.sanitize_legacy_html(raw_html)
+
+        self.assertEqual(sanitized.count("<img"), 1)
+        self.assertIn(f'<img src="data:image/png;base64,{png}">', sanitized)
+
+        source = {MIGRATION.ROOT_KEY: [valid_record(id="12345678901234567", req_comment=raw_html)]}
+        migration_report = {
+            "status": "completed",
+            "id_mapping": [{"legacy_id": "12345678901234567", "question_id": 101}],
+        }
+        repairs = REPAIR.prepare_repairs(source, migration_report)
+
+        self.assertEqual(repairs[0]["image_count"], 1)
+        self.assertEqual(repairs[0]["skipped_image_count"], 1)
+
     def test_waiting_with_message_becomes_active(self):
         questions, report = self.transform([valid_record(status2="waiting")])
 

@@ -202,19 +202,22 @@ class _SafeLegacyHtmlParser(HTMLParser):
         seen: set[str] = set()
         for raw_name, raw_value in attrs:
             name = raw_name.lower()
-            if tag == "img" and name == "img_src":
+            if tag == "img" and name in {"img_src", "data-src", "data-original", "data-mce-src"}:
                 name = "src"
             if name not in allowed or name in seen or raw_value is None:
                 continue
             value = str(raw_value).strip()
-            if tag == "img" and name == "src" and re.match(
-                r"^data:image/(?:png|jpeg|gif|webp);base64,",
+            data_image = re.fullmatch(
+                r"data:image/(png|x-png|jpeg|jpg|gif|webp);base64,(.*)",
                 value,
-                flags=re.IGNORECASE,
-            ):
-                prefix, payload = value.split(",", 1)
+                flags=re.IGNORECASE | re.DOTALL,
+            ) if tag == "img" and name == "src" else None
+            if data_image:
+                mime = data_image.group(1).lower()
+                mime = "png" if mime == "x-png" else "jpeg" if mime == "jpg" else mime
+                payload = data_image.group(2)
                 payload = re.sub(r"\s+", "", payload)
-                value = f"{prefix},{payload}"
+                value = f"data:image/{mime};base64,{payload}"
             if not self._safe_url(tag, name, value):
                 continue
             if name in {"height", "width", "colspan", "rowspan", "span"} and not re.fullmatch(r"\d{1,4}", value):
@@ -234,7 +237,10 @@ class _SafeLegacyHtmlParser(HTMLParser):
             return
         if self.skip_depth or tag not in ALLOWED_LEGACY_HTML_TAGS:
             return
-        self.parts.append(f"<{tag}{self._attributes(tag, attrs)}>")
+        serialized_attrs = self._attributes(tag, attrs)
+        if tag == "img" and ' src="' not in serialized_attrs:
+            return
+        self.parts.append(f"<{tag}{serialized_attrs}>")
         if tag not in VOID_LEGACY_HTML_TAGS:
             self.open_tags.append(tag)
 
@@ -242,7 +248,10 @@ class _SafeLegacyHtmlParser(HTMLParser):
         tag = tag.lower()
         if self.skip_depth or tag in DANGEROUS_LEGACY_HTML_TAGS or tag not in ALLOWED_LEGACY_HTML_TAGS:
             return
-        self.parts.append(f"<{tag}{self._attributes(tag, attrs)}>")
+        serialized_attrs = self._attributes(tag, attrs)
+        if tag == "img" and ' src="' not in serialized_attrs:
+            return
+        self.parts.append(f"<{tag}{serialized_attrs}>")
 
     def handle_endtag(self, tag: str) -> None:
         tag = tag.lower()

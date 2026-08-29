@@ -170,8 +170,8 @@ def prepare_repairs(source_payload: Any, migration_payload: Any) -> list[dict[st
         repaired_image_count = count_tag(repaired_html, "img")
         raw_table_count = count_tag(raw_html, "table")
         repaired_table_count = count_tag(repaired_html, "table")
-        if raw_image_count != repaired_image_count:
-            raise RepairError(f"그림 태그 복원 개수가 일치하지 않습니다: {legacy_id}")
+        if repaired_image_count > raw_image_count:
+            raise RepairError(f"그림 태그 복원 개수가 원본보다 많습니다: {legacy_id}")
         if raw_table_count != repaired_table_count:
             raise RepairError(f"표 태그 복원 개수가 일치하지 않습니다: {legacy_id}")
         sources = image_sources(repaired_html)
@@ -186,9 +186,14 @@ def prepare_repairs(source_payload: Any, migration_payload: Any) -> list[dict[st
             "body_text": repaired_text,
             "expected_old_html": migration.safe_html_from_text(migration.legacy_plain_text(raw_html)),
             "image_count": repaired_image_count,
+            "skipped_image_count": raw_image_count - repaired_image_count,
             "embedded_image_count": sum(source.lower().startswith("data:image/") for source in sources),
             "table_count": repaired_table_count,
         })
+    if sum(repair["image_count"] + repair["skipped_image_count"] for repair in repairs) > 0 and not sum(
+        repair["image_count"] for repair in repairs
+    ):
+        raise RepairError("원본의 모든 그림 태그에 사용할 수 있는 src가 없습니다")
     return repairs
 
 
@@ -217,6 +222,7 @@ def run() -> None:
         "skipped_questions": 0,
         "image_count": 0,
         "embedded_image_count": 0,
+        "skipped_image_count": 0,
         "table_count": 0,
         "backup_file": None,
         "failure": None,
@@ -293,6 +299,7 @@ def run() -> None:
                 report["updated_questions"] += 1
                 report["image_count"] += repair["image_count"]
                 report["embedded_image_count"] += repair["embedded_image_count"]
+                report["skipped_image_count"] += repair["skipped_image_count"]
                 report["table_count"] += repair["table_count"]
             connection.commit()
             report["status"] = "completed"
@@ -302,6 +309,7 @@ def run() -> None:
         print("HTML 본문 복구 완료")
         print(f"  갱신 질문: {report['updated_questions']:,}건")
         print(f"  Base64 그림: {report['embedded_image_count']:,}개")
+        print(f"  src가 없어 제외한 그림 태그: {report['skipped_image_count']:,}개")
         print(f"  표: {report['table_count']:,}개")
         print(f"  결과 보고서: {repair_report_path}")
     except RepairError as error:
