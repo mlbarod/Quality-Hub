@@ -67,7 +67,7 @@ test("마스터가 유저 ID와 소속부서 기준의 관리자·일반 접근 
 test("확정한 역할별 콘텐츠와 Q&A 권한을 요구사항에 기록한다", () => {
   assert.match(requirements, /관리 대상 콘텐츠: Report, Rule&SOP, 변승위 Category/)
   assert.match(requirements, /\| 관리 대상 콘텐츠 \| 전체 조회·등록·수정·삭제 \| 전체 조회·등록·수정·삭제 \| 전체 조회 \|/)
-  assert.match(requirements, /\| Rule&SOP \| 전체 조회·수정·삭제 \| 전체 조회·수정·삭제 \| 전체 조회 \|/)
+  assert.match(requirements, /\| Rule&SOP \| 전체 조회·등록·수정·삭제 \| 전체 조회·등록·수정·삭제 \| 전체 조회 \|/)
   assert.match(requirements, /\| Q&A 답변·댓글 \| 전체 작성·수정·삭제 \| 전체 작성, 본인 작성분 수정·삭제 \| 전체 작성, 본인 작성분 수정·삭제 \|/)
   assert.match(requirements, /답변이 등록된 질문은 작성자가 수정할 수 있지만 삭제할 수 없으며, 마스터만 삭제 가능/)
   assert.match(requirements, /이전 상태를 포함해 자유롭게 변경 가능/)
@@ -88,7 +88,7 @@ test("현재 DB 연동과 운영 검증 경계를 요구사항에 기록한다",
   assert.match(requirements, /Q&A 질문·답변·태그·알림·변경 이력은 `quality_hub_qna_\*` 5개 테이블을 사용하는 Backend API에 연결/)
   assert.match(requirements, /첨부파일은 저장소와 운영 정책이 확정되지 않아 Q&A 작성 범위에서 제외/)
   assert.match(requirements, /품질 Agent는 사내 RAG·GPT-OSS와 대화 DB를 Backend 흐름과 기존 UI에 연결/)
-  assert.match(requirements, /대시보드 조회는 `dashboard_report`에, Report 목록 조회·신규 등록·수정·실제 삭제는 `report_reg`에, Rule&SOP 목록 조회·수정·실제 삭제는 `rulesop`에 연결/)
+  assert.match(requirements, /대시보드 조회는 `dashboard_report`에, Report 목록 조회·신규 등록·수정·실제 삭제는 `report_reg`에, Rule&SOP 목록 조회·신규 등록·수정·실제 삭제는 `rulesop`에 연결/)
   assert.match(requirements, /SSO 코드와 DB 세션·권한 저장 구조는 구현했으나 실제 사내 IdP·DB·Spotfire 인증/)
   assert.match(developmentPlan, /별도 설명 없이 찾고 전체 사용 흐름을 체험할 수 있으며/)
 })

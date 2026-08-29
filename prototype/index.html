@@ -256,12 +256,6 @@
               <p class="system-status"><span aria-hidden="true"></span> QUALITY SYSTEM ACTIVE</p>
               <h1 id="command-hero-title">Quality<br /><span>Intelligence.</span></h1>
               <p class="command-hero-description">흩어진 품질 현황과 업무 지식을 하나로 연결합니다.<br />필요한 앱을 선택해 바로 업무를 시작하세요.</p>
-
-              <dl class="hero-meta" aria-label="Quality Hub 현재 상태">
-                <div><dt>DATA</dt><dd>UI 검토용 예시</dd></div>
-                <div><dt>ROLE</dt><dd data-current-role-label>마스터</dd></div>
-                <div><dt>UPDATED</dt><dd data-last-updated>방금 전</dd></div>
-              </dl>
             </div>
 
             <div class="app-orbit" aria-labelledby="quick-apps-title">
@@ -518,6 +512,13 @@
               </div>
 
               <div class="rule-card-grid" data-rule-card-grid aria-live="polite"></div>
+
+              <button class="rule-document-create-card rule-admin-only" type="button" data-rule-create-open>
+                <span class="rule-create-icon" aria-hidden="true"><svg class="icon"><use href="#icon-plus"></use></svg></span>
+                <strong>신규 Rule&amp;SOP 문서 등록</strong>
+                <small>DB 테이블의 대분류·중분류·소분류·제목·URL 컬럼에 대응하는 문서를 등록합니다.</small>
+                <em>관리자 전용</em>
+              </button>
 
               <template data-rule-card-template>
                 <button class="rule-document-card" type="button" data-rule-card>
@@ -938,8 +939,8 @@
       <form class="rule-editor-form" data-rule-editor-form novalidate>
         <header role="presentation">
           <span class="rule-dialog-mark"><svg class="icon"><use href="#icon-edit"></use></svg></span>
-          <span><strong id="rule-editor-title">Rule&amp;SOP 문서 수정</strong><small id="rule-editor-description">rulesop의 분류, 제목과 URL을 수정합니다.</small></span>
-          <button type="button" aria-label="Rule&SOP 수정 닫기" data-rule-editor-close><svg class="icon"><use href="#icon-close"></use></svg></button>
+          <span><strong id="rule-editor-title" data-rule-editor-heading>Rule&amp;SOP 문서 수정</strong><small id="rule-editor-description" data-rule-editor-description>rulesop의 분류, 제목과 URL을 수정합니다.</small></span>
+          <button type="button" aria-label="Rule&SOP 등록·수정 닫기" data-rule-editor-close><svg class="icon"><use href="#icon-close"></use></svg></button>
         </header>
         <div class="rule-editor-body">
           <label>제목<input type="text" required maxlength="200" placeholder="문서 제목" data-rule-editor-title-input /><small>rulesop.title 값으로 저장합니다.</small></label>
@@ -951,7 +952,7 @@
           <label class="rule-editor-url">문서 URL<input type="url" required maxlength="500" placeholder="https://..." data-rule-editor-url /><small>조회 버튼에서 열 rulesop.url 값입니다.</small></label>
           <p class="rule-editor-error" role="alert" hidden data-rule-editor-error></p>
         </div>
-        <footer><button type="button" class="rule-editor-cancel" data-rule-editor-close>취소</button><button type="submit" class="rule-editor-submit"><svg class="icon"><use href="#icon-edit"></use></svg>수정 완료</button></footer>
+        <footer><button type="button" class="rule-editor-cancel" data-rule-editor-close>취소</button><button type="submit" class="rule-editor-submit"><svg class="icon"><use href="#icon-edit" data-rule-editor-submit-icon></use></svg><span data-rule-editor-submit-label>수정 완료</span></button></footer>
       </form>
     </dialog>
 

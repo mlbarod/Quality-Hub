@@ -45,6 +45,13 @@ export function validateRuleSopFields({ mainCategory, subCategory, item, title, 
   }
 }
 
+export function validateRuleSopInput({ mainCategory, subCategory, item, title, url, userId }) {
+  return {
+    ...validateRuleSopFields({ mainCategory, subCategory, item, title, url }),
+    userId: requireText(userId, "userId", 50),
+  }
+}
+
 function normalizeRuleSopReference(reference) {
   if (!reference || typeof reference !== "object") {
     throw new TypeError("수정하거나 삭제할 Rule&SOP 문서 정보가 없습니다.")
@@ -107,6 +114,36 @@ export function createRuleSopRepository({ pool = createRuleSopPool() } = {}) {
           reg_date DESC
       `)
       return rows
+    },
+
+    async createDocument(input) {
+      const document = validateRuleSopInput(input)
+      await pool.execute(`
+        INSERT INTO rulesop (
+          main_category,
+          sub_category,
+          item,
+          title,
+          url,
+          reg_user,
+          reg_date
+        ) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `, [
+        document.mainCategory,
+        document.subCategory,
+        document.item,
+        document.title,
+        document.url,
+        document.userId,
+      ])
+
+      return {
+        mainCategory: document.mainCategory,
+        subCategory: document.subCategory,
+        item: document.item,
+        title: document.title,
+        url: document.url,
+      }
     },
 
     async updateDocument(reference, input) {

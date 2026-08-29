@@ -64,11 +64,11 @@ test("Rule&SOP API는 사용자 식별값과 경로별 허용 메서드를 검�
   assert.equal(JSON.parse(unauthenticated.body).error.code, "USER_ID_REQUIRED")
 
   const unsupported = await callApi(repository, {
-    method: "POST",
+    method: "PUT",
     headers: { "x-quality-hub-user-id": "quality.kim" },
   })
   assert.equal(unsupported.statusCode, 405)
-  assert.equal(unsupported.headers.allow, "GET")
+  assert.equal(unsupported.headers.allow, "GET, POST")
 
   const unsupportedDocument = await callApi(repository, {
     method: "POST",
@@ -77,6 +77,38 @@ test("Rule&SOP API는 사용자 식별값과 경로별 허용 메서드를 검�
   })
   assert.equal(unsupportedDocument.statusCode, 405)
   assert.equal(unsupportedDocument.headers.allow, "PATCH, DELETE")
+})
+
+test("Rule&SOP API는 현재 사용자를 포함해 신규 문서를 등록한다", async () => {
+  let receivedInput
+  const repository = {
+    async createDocument(input) {
+      receivedInput = input
+      return {
+        mainCategory: input.mainCategory,
+        subCategory: input.subCategory,
+        item: input.item,
+        title: input.title,
+        url: input.url,
+      }
+    },
+  }
+  const body = {
+    mainCategory: "대분류",
+    subCategory: "중분류",
+    item: "소분류",
+    title: "신규 문서",
+    url: "https://quality.internal/rules/new",
+  }
+  const response = await callApi(repository, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-quality-hub-user-id": "quality.kim" },
+    body,
+  })
+
+  assert.equal(response.statusCode, 201)
+  assert.deepEqual(receivedInput, { ...body, userId: "quality.kim" })
+  assert.deepEqual(JSON.parse(response.body), { document: body })
 })
 
 test("Rule&SOP API는 조회 때 발급한 사용자별 임시 ID로 수정한다", async () => {

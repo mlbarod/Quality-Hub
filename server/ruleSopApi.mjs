@@ -171,6 +171,13 @@ export function createRuleSopApi({
           return true
         }
 
+        if (method === "POST" && route.documentId === null) {
+          const body = await readJsonBody(req)
+          const document = await getRepository().createDocument({ ...body, userId })
+          sendJson(res, 201, { document })
+          return true
+        }
+
         if (method === "PATCH" && route.documentId !== null) {
           const reference = requireDocumentReference(route.documentId, userId)
           const body = await readJsonBody(req)
@@ -190,7 +197,7 @@ export function createRuleSopApi({
 
         sendJson(res, 405, {
           error: { code: "METHOD_NOT_ALLOWED", message: "지원하지 않는 Rule&SOP API 요청입니다." },
-        }, { Allow: route.documentId === null ? "GET" : "PATCH, DELETE" })
+        }, { Allow: route.documentId === null ? "GET, POST" : "PATCH, DELETE" })
         return true
       } catch (error) {
         const apiError = toApiError(error)

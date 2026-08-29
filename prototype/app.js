@@ -71,12 +71,16 @@ const ruleRetry = document.querySelector("[data-rule-retry]");
 const ruleDetailDialog = document.querySelector("[data-rule-detail-dialog]");
 const ruleEditorDialog = document.querySelector("[data-rule-editor-dialog]");
 const ruleEditorForm = document.querySelector("[data-rule-editor-form]");
+const ruleEditorHeading = document.querySelector("[data-rule-editor-heading]");
+const ruleEditorDescription = document.querySelector("[data-rule-editor-description]");
 const ruleEditorTitle = document.querySelector("[data-rule-editor-title-input]");
 const ruleEditorMajor = document.querySelector("[data-rule-editor-major]");
 const ruleEditorMiddle = document.querySelector("[data-rule-editor-middle]");
 const ruleEditorMinor = document.querySelector("[data-rule-editor-minor]");
 const ruleEditorUrl = document.querySelector("[data-rule-editor-url]");
 const ruleEditorError = document.querySelector("[data-rule-editor-error]");
+const ruleEditorSubmitLabel = document.querySelector("[data-rule-editor-submit-label]");
+const ruleEditorSubmitIcon = document.querySelector("[data-rule-editor-submit-icon]");
 const ruleDeleteDialog = document.querySelector("[data-rule-delete-dialog]");
 const ruleDeleteName = document.querySelector("[data-rule-delete-name]");
 const ruleDeleteError = document.querySelector("[data-rule-delete-error]");
@@ -143,6 +147,7 @@ let ruleLoadState = "idle";
 let ruleReturnFocus;
 let ruleDialogReturnFocus;
 let ruleEditorReturnFocus;
+let ruleEditorMode = "edit";
 let ruleDeleteReturnFocus;
 let activeRuleCard;
 let changeCategoryLoadPromise;
@@ -2109,27 +2114,39 @@ const closeRuleEditor = () => {
   if (ruleEditorDialog instanceof HTMLDialogElement && ruleEditorDialog.open) ruleEditorDialog.close();
 };
 
-const openRuleEditor = (card, returnFocus = card) => {
-  if (!canManageRuleDocuments || !(card instanceof HTMLElement) || !(ruleEditorDialog instanceof HTMLDialogElement) || !(ruleEditorForm instanceof HTMLFormElement)) return;
-  activeRuleCard = card;
-  ruleEditorReturnFocus = returnFocus;
+const openRuleEditor = (mode, card = null, returnFocus = null) => {
+  if (!canManageRuleDocuments || !(ruleEditorDialog instanceof HTMLDialogElement) || !(ruleEditorForm instanceof HTMLFormElement)) return;
+  ruleEditorMode = mode === "edit" ? "edit" : "create";
+  if (ruleEditorMode === "edit" && !(card instanceof HTMLElement)) return;
+  activeRuleCard = ruleEditorMode === "edit" ? card : null;
+  ruleEditorReturnFocus = returnFocus ?? card ?? document.querySelector("[data-rule-create-open]");
   ruleEditorForm.reset();
   if (ruleEditorError instanceof HTMLElement) ruleEditorError.hidden = true;
-  if (ruleEditorTitle instanceof HTMLInputElement) ruleEditorTitle.value = card.dataset.ruleTitle ?? "";
-  if (ruleEditorMajor instanceof HTMLInputElement) ruleEditorMajor.value = card.dataset.ruleMajor ?? "";
-  if (ruleEditorMiddle instanceof HTMLInputElement) ruleEditorMiddle.value = card.dataset.ruleMiddle ?? "";
-  if (ruleEditorMinor instanceof HTMLInputElement) ruleEditorMinor.value = card.dataset.ruleMinor ?? "";
-  if (ruleEditorUrl instanceof HTMLInputElement) ruleEditorUrl.value = card.dataset.ruleUrl ?? "";
+  ruleEditorHeading?.replaceChildren(ruleEditorMode === "edit" ? "Rule&SOP 문서 수정" : "Rule&SOP 문서 신규 등록");
+  ruleEditorDescription?.replaceChildren(ruleEditorMode === "edit" ? "rulesop의 분류, 제목과 URL을 수정합니다." : "rulesop의 분류, 제목과 URL을 새 문서로 등록합니다.");
+  ruleEditorSubmitLabel?.replaceChildren(ruleEditorMode === "edit" ? "수정 완료" : "신규 등록");
+  ruleEditorSubmitIcon?.setAttribute("href", ruleEditorMode === "edit" ? "#icon-edit" : "#icon-plus");
+  if (ruleEditorMode === "edit" && card instanceof HTMLElement) {
+    if (ruleEditorTitle instanceof HTMLInputElement) ruleEditorTitle.value = card.dataset.ruleTitle ?? "";
+    if (ruleEditorMajor instanceof HTMLInputElement) ruleEditorMajor.value = card.dataset.ruleMajor ?? "";
+    if (ruleEditorMiddle instanceof HTMLInputElement) ruleEditorMiddle.value = card.dataset.ruleMiddle ?? "";
+    if (ruleEditorMinor instanceof HTMLInputElement) ruleEditorMinor.value = card.dataset.ruleMinor ?? "";
+    if (ruleEditorUrl instanceof HTMLInputElement) ruleEditorUrl.value = card.dataset.ruleUrl ?? "";
+  }
   ruleEditorDialog.showModal();
   window.requestAnimationFrame(() => ruleEditorTitle?.focus());
 };
+
+document.querySelector("[data-rule-create-open]")?.addEventListener("click", (event) => {
+  openRuleEditor("create", null, event.currentTarget);
+});
 
 document.querySelector("[data-rule-edit-open]")?.addEventListener("click", () => {
   if (!(activeRuleCard instanceof HTMLElement)) return;
   const card = activeRuleCard;
   ruleDialogReturnFocus = null;
   ruleDetailDialog?.close();
-  window.requestAnimationFrame(() => openRuleEditor(card, card));
+  window.requestAnimationFrame(() => openRuleEditor("edit", card, card));
 });
 
 document.querySelectorAll("[data-rule-editor-close]").forEach((button) => {
@@ -2152,8 +2169,9 @@ ruleEditorForm?.addEventListener("submit", async (event) => {
     return;
   }
 
+  const isEdit = ruleEditorMode === "edit";
   const documentId = activeRuleCard?.dataset.ruleId ?? "";
-  if (!documentId) {
+  if (isEdit && !documentId) {
     if (ruleEditorError instanceof HTMLElement) {
       ruleEditorError.textContent = "수정할 문서를 찾지 못했습니다. 목록을 새로고침해 주세요.";
       ruleEditorError.hidden = false;
@@ -2165,7 +2183,7 @@ ruleEditorForm?.addEventListener("submit", async (event) => {
   if (submitButton instanceof HTMLButtonElement) submitButton.disabled = true;
   try {
     const payload = await requestRuleApi({
-      method: "PATCH",
+      method: isEdit ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         mainCategory: ruleEditorMajor.value.trim(),
@@ -2174,7 +2192,7 @@ ruleEditorForm?.addEventListener("submit", async (event) => {
         title: ruleEditorTitle.value.trim(),
         url: ruleEditorUrl.value.trim(),
       }),
-    }, documentId);
+    }, isEdit ? documentId : "");
     await loadRuleCatalog({ force: true });
     const card = getRuleCards().find((item) => (
       item.dataset.ruleTitle === payload.document?.title
@@ -2188,11 +2206,11 @@ ruleEditorForm?.addEventListener("submit", async (event) => {
     ruleEditorReturnFocus = activeRuleCard;
     closeRuleEditor();
     if (activeRuleCard instanceof HTMLElement) openRuleDetail(activeRuleCard, activeRuleCard);
-    recordHistory({ action: "수정", targetType: "Rule&SOP", targetName: title, detail: "rulesop" });
-    showToast(`Rule&SOP 문서를 수정했습니다: ${title}`);
+    recordHistory({ action: isEdit ? "수정" : "등록", targetType: "Rule&SOP", targetName: title, detail: "rulesop" });
+    showToast(`Rule&SOP 문서를 ${isEdit ? "수정" : "등록"}했습니다: ${title}`);
   } catch (error) {
     if (ruleEditorError instanceof HTMLElement) {
-      ruleEditorError.textContent = error instanceof Error ? error.message : "Rule&SOP 문서 수정에 실패했습니다.";
+      ruleEditorError.textContent = error instanceof Error ? error.message : `Rule&SOP 문서 ${isEdit ? "수정" : "등록"}에 실패했습니다.`;
       ruleEditorError.hidden = false;
     }
   } finally {

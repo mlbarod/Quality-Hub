@@ -63,6 +63,12 @@ test("초기 홈에서 그래프를 숨기고 대시보드 버튼으로 별도 �
   assert.match(script, /querySelectorAll\("\[data-dashboard-open\]"\)/)
 })
 
+test("초기 홈의 Quality Intelligence 아래 불필요한 상태 메타데이터를 표시하지 않는다", () => {
+  const heroCopy = html.match(/<div class="command-hero-copy">([\s\S]*?)<\/div>/)?.[1] ?? ""
+  assert.doesNotMatch(heroCopy, /<dt>DATA<\/dt>|<dt>ROLE<\/dt>|<dt>UPDATED<\/dt>/)
+  assert.doesNotMatch(html, /class="hero-meta"/)
+})
+
 test("Report 카테고리와 개수는 report_reg 조회 결과로 갱신한다", () => {
   assert.match(html, /data-report-category-count>0<\/strong>/)
   assert.match(html, /class="report-summary-card" role="group" aria-label="등록된 Report 요약"/)

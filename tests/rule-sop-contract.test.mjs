@@ -28,6 +28,7 @@ test("변승위 Category 그림은 원본 가로 크기를 유지하고 그림 �
   assert.match(script, /renderCategoryImage\(changeCategoryImage, imageSource, \{ sourceWidth: category\.imageWidth \}\)/)
   assert.match(styles, /\.change-category-view-body \.change-category-image-viewport \{[\s\S]*?overflow-x: hidden;[\s\S]*?overflow-y: auto;/)
   assert.match(styles, /\.change-category-view-body \.change-category-image-viewport img \{ max-width: 100%; height: auto; \}/)
+  assert.match(styles, /\.change-category-view-dialog \{ width: min\(1600px, calc\(100vw - 32px\)\);/)
 })
 
 test("변승위 Category는 그림 한 장 붙여넣기와 미리보기 교체 흐름을 제공한다", () => {
@@ -105,19 +106,21 @@ test("카드를 누르면 분류와 원문 링크 팝업을 열고 개정 이력
   assert.doesNotMatch(script, /ruleRevisionHistory|revisions\.unshift/)
 })
 
-test("관리자는 상세 팝업에서 Rule&SOP를 수정하거나 실제 삭제한다", () => {
+test("관리자는 Rule&SOP를 신규 등록하고 상세 팝업에서 수정하거나 실제 삭제한다", () => {
+  assert.match(html, /class="rule-document-create-card rule-admin-only"[^>]*data-rule-create-open/)
+  assert.match(html, /신규 Rule&amp;SOP 문서 등록/)
   assert.match(html, /data-rule-edit-open[^>]*>[\s\S]*수정/)
   assert.match(html, /data-rule-delete-open[^>]*>[\s\S]*삭제/)
   assert.match(html, /data-rule-editor-dialog/)
   assert.match(html, /data-rule-delete-dialog/)
   assert.match(html, /rulesop 데이터가 즉시 삭제되며 복구할 수 없습니다/)
-  assert.match(script, /method: "PATCH"/)
+  assert.match(script, /method: isEdit \? "PATCH" : "POST"/)
   assert.match(script, /method: "DELETE"/)
   assert.match(script, /canManageRuleDocuments/)
   assert.doesNotMatch(html, /data-rule-revision-input|개정 내용|숨김 버튼|>숨김</)
 })
 
-test("Rule&SOP 수정 폼은 다섯 표시 컬럼만 편집하고 개정 코멘트를 받지 않는다", () => {
+test("Rule&SOP 등록·수정 공용 폼은 다섯 표시 컬럼만 편집하고 개정 코멘트를 받지 않는다", () => {
   assert.match(html, /data-rule-editor-title-input/)
   assert.match(html, /data-rule-editor-major/)
   assert.match(html, /data-rule-editor-middle/)
@@ -127,6 +130,8 @@ test("Rule&SOP 수정 폼은 다섯 표시 컬럼만 편집하고 개정 코멘�
   assert.match(script, /mainCategory: ruleEditorMajor\.value\.trim\(\)/)
   assert.match(script, /subCategory: ruleEditorMiddle\.value\.trim\(\)/)
   assert.match(script, /item: ruleEditorMinor\.value\.trim\(\)/)
+  assert.match(script, /openRuleEditor\("create", null, event\.currentTarget\)/)
+  assert.match(script, /Rule&SOP 문서 신규 등록/)
 })
 
 test("현재 요구사항에 rulesop 컬럼과 표시 계약을 기록한다", () => {
@@ -136,4 +141,5 @@ test("현재 요구사항에 rulesop 컬럼과 표시 계약을 기록한다", (
   assert.match(requirements, /상세 팝업에 표시하고 조회 버튼으로 `url`을 새 창에서 열기/)
   assert.match(requirements, /MOCK 문구, 상세 팝업의 개정 이력/)
   assert.match(requirements, /실제 삭제/)
+  assert.match(requirements, /`reg_user`와 `reg_date`를 현재 사용자 ID와 DB 현재 시각으로 기록/)
 })

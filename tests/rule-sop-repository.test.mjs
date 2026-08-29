@@ -5,6 +5,7 @@ import {
   createRuleSopRepository,
   RuleSopNotFoundError,
   validateRuleSopFields,
+  validateRuleSopInput,
 } from "../server/ruleSopRepository.mjs"
 
 test("rulesop의 일곱 컬럼을 Rule&SOP 화면 계약으로 조회한다", async () => {
@@ -34,6 +35,46 @@ test("rulesop의 일곱 컬럼을 Rule&SOP 화면 계약으로 조회한다", as
   assert.match(calls[0].sql, /reg_user AS regUser/)
   assert.match(calls[0].sql, /reg_date AS regDate/)
   assert.match(calls[0].sql, /ORDER BY[\s\S]*main_category ASC[\s\S]*sub_category ASC[\s\S]*item ASC/)
+})
+
+test("신규 Rule&SOP 문서는 등록 사용자와 DB 현재 시각을 함께 기록한다", async () => {
+  const calls = []
+  const repository = createRuleSopRepository({
+    pool: {
+      async execute(sql, parameters) {
+        calls.push({ sql, parameters })
+        return [{ affectedRows: 1 }]
+      },
+    },
+  })
+
+  const document = await repository.createDocument({
+    mainCategory: " 품질 기준 ",
+    subCategory: " 검사 ",
+    item: " 샘플링 ",
+    title: " 샘플링 검사 표준 ",
+    url: " https://quality.internal/rules/sampling ",
+    userId: " quality.kim ",
+  })
+
+  assert.deepEqual(document, {
+    mainCategory: "품질 기준",
+    subCategory: "검사",
+    item: "샘플링",
+    title: "샘플링 검사 표준",
+    url: "https://quality.internal/rules/sampling",
+  })
+  assert.match(calls[0].sql, /INSERT INTO rulesop/)
+  assert.match(calls[0].sql, /reg_user,[\s\S]*reg_date/)
+  assert.match(calls[0].sql, /CURRENT_TIMESTAMP/)
+  assert.deepEqual(calls[0].parameters, [
+    "품질 기준",
+    "검사",
+    "샘플링",
+    "샘플링 검사 표준",
+    "https://quality.internal/rules/sampling",
+    "quality.kim",
+  ])
 })
 
 test("rulesop 수정은 원본 일곱 컬럼이 일치하는 한 행만 변경한다", async () => {
@@ -127,4 +168,5 @@ test("rulesop 변경 대상이 없으면 충돌 오류를 반환하고 입력값
   assert.throws(() => validateRuleSopFields({ ...reference, title: "" }), /title 값을 입력/)
   assert.throws(() => validateRuleSopFields({ ...reference, url: "javascript:alert(1)" }), /http 또는 https/)
   assert.throws(() => validateRuleSopFields({ ...reference, mainCategory: "가".repeat(51) }), /50자 이하/)
+  assert.throws(() => validateRuleSopInput({ ...reference, userId: "a".repeat(51) }), /50자 이하/)
 })
