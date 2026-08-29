@@ -50,7 +50,7 @@ class QnaJsonMigrationTest(unittest.TestCase):
 
         self.assertEqual(report.errors, [])
         self.assertEqual(len(questions), 1)
-        self.assertEqual(questions[0].question_id, 17)
+        self.assertEqual(questions[0].legacy_id, "17")
         self.assertEqual(questions[0].body_text, "질문 본문 다음 줄")
         self.assertEqual(questions[0].status, "completed")
         self.assertEqual([message.source_field for message in questions[0].messages], ["ans_comment", "add_comment"])
@@ -80,12 +80,18 @@ class QnaJsonMigrationTest(unittest.TestCase):
         self.assertEqual(report.warning_counts["category_defaulted"], 1)
         self.assertEqual(report.warning_counts["author_user_id_defaulted"], 2)
 
-    def test_rejects_duplicate_question_ids(self):
+    def test_rejects_duplicate_legacy_ids(self):
         questions, report = self.transform([valid_record(), valid_record(no="OLD-18")])
 
         self.assertEqual(len(questions), 1)
         self.assertEqual(len(report.errors), 1)
         self.assertIn("중복된 id", report.errors[0]["reason"])
+
+    def test_accepts_17_digit_legacy_id_as_string(self):
+        questions, report = self.transform([valid_record(id="12345678901234567")])
+
+        self.assertEqual(report.errors, [])
+        self.assertEqual(questions[0].legacy_id, "12345678901234567")
 
     def test_requires_answer_date_only_when_answer_exists(self):
         questions, report = self.transform([
@@ -102,6 +108,70 @@ class QnaJsonMigrationTest(unittest.TestCase):
         self.assertEqual(questions, [])
         self.assertEqual(len(report.errors), 1)
         self.assertEqual(report.errors[0]["field"], "req_comment")
+
+    def test_uses_database_generated_id_for_question_and_messages(self):
+        questions, report = self.transform([valid_record(id="12345678901234567")])
+
+        class FakeCursor:
+            def __init__(self):
+                self.lastrowid = 0
+                self.question_ids = []
+                self.message_question_ids = []
+                self.result = None
+
+            def execute(self, sql, parameters=()):
+                if parameters and sql.count("%s") != len(parameters):
+                    raise AssertionError("SQL placeholder count mismatch")
+                if f"INSERT INTO `{MIGRATION.QUESTION_TABLE}`" in sql:
+                    self.lastrowid = 101
+                    self.question_ids.append(self.lastrowid)
+                elif f"INSERT INTO `{MIGRATION.MESSAGE_TABLE}`" in sql:
+                    self.message_question_ids.append(parameters[0])
+                elif f"FROM `{MIGRATION.QUESTION_TABLE}`" in sql:
+                    self.result = (len(self.question_ids),)
+                elif f"FROM `{MIGRATION.MESSAGE_TABLE}`" in sql:
+                    self.result = (len(self.message_question_ids),)
+
+            def fetchone(self):
+                return self.result
+
+            def close(self):
+                pass
+
+        class FakeConnection:
+            def __init__(self):
+                self.db_cursor = FakeCursor()
+                self.committed = False
+                self.rolled_back = False
+
+            def cursor(self):
+                return self.db_cursor
+
+            def commit(self):
+                self.committed = True
+
+            def rollback(self):
+                self.rolled_back = True
+
+        connection = FakeConnection()
+        original_inspect = MIGRATION.inspect_database
+        MIGRATION.inspect_database = lambda _connection, _report: {
+            MIGRATION.QUESTION_TABLE: 3,
+            MIGRATION.MESSAGE_TABLE: 4,
+        }
+        try:
+            MIGRATION.apply_migration(connection, questions, report, allow_nonempty=True)
+        finally:
+            MIGRATION.inspect_database = original_inspect
+
+        self.assertTrue(connection.committed)
+        self.assertFalse(connection.rolled_back)
+        self.assertEqual(connection.db_cursor.question_ids, [101])
+        self.assertEqual(connection.db_cursor.message_question_ids, [101, 101])
+        self.assertEqual(report.id_mapping, [{
+            "legacy_id": "12345678901234567",
+            "question_id": 101,
+        }])
 
 
 if __name__ == "__main__":

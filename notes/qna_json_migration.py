@@ -7,7 +7,9 @@
 ``req_comment``는 질문 본문으로 저장한다. ``ans_comment``와 ``add_comment``는
 각각 답변 1, 답변 2로 저장하며 두 답변은 원본 구조상 같은 답변자와 답변 시각을
 사용한다.
-원본 ``id``는 ``question_id``로 보존하고 ``no``는 보고서 검증에만 사용한다.
+원본 ``id``는 17자리도 손실 없이 문자열로 읽고, DB의 ``question_id``는 자동
+발급받는다. 적재 보고서에는 원본 ID와 신규 ID의 매핑을 남긴다. ``no``는 보고서
+검증에만 사용한다.
 """
 
 from __future__ import annotations
@@ -166,7 +168,7 @@ class MessageRow:
 class QuestionRow:
     source_index: int
     legacy_no: str | None
-    question_id: int
+    legacy_id: str
     title: str
     body_html: str
     body_text: str
@@ -196,28 +198,31 @@ class MigrationReport:
     warning_counts: dict[str, int] = field(default_factory=dict)
     warnings: list[dict[str, Any]] = field(default_factory=list)
     errors: list[dict[str, Any]] = field(default_factory=list)
+    id_mapping: list[dict[str, Any]] = field(default_factory=list)
     target: dict[str, Any] = field(default_factory=dict)
     assumptions: list[str] = field(default_factory=lambda: [
         "req_comment를 질문 body_html/body_text로 저장",
         "ans_comment, add_comment를 시간순 메시지 2개로 저장",
         "두 메시지는 원본 구조상 ans_knoxid/ansname/ansdate를 공통 사용",
-        "원본 id를 question_id로 보존하고 no는 DB에 저장하지 않음",
+        "17자리 원본 id는 문자열로 보존하고 DB question_id는 자동 발급",
+        "원본 id와 신규 question_id 매핑은 이 보고서의 id_mapping에 기록",
+        "원본 no는 DB에 저장하지 않음",
         "과거 알림, 변경 이력, 태그는 생성하지 않음",
         "완료 상태여도 명시적인 최종 답변 정보가 없어 final_message_id는 NULL",
     ])
 
-    def add_warning(self, code: str, source_index: int, question_id: int | None, field_name: str) -> None:
+    def add_warning(self, code: str, source_index: int, legacy_id: str | None, field_name: str) -> None:
         self.warnings.append({
             "code": code,
             "source_index": source_index,
-            "question_id": question_id,
+            "legacy_id": legacy_id,
             "field": field_name,
         })
 
-    def add_error(self, source_index: int, question_id: int | None, field_name: str, reason: str) -> None:
+    def add_error(self, source_index: int, legacy_id: str | None, field_name: str, reason: str) -> None:
         self.errors.append({
             "source_index": source_index,
-            "question_id": question_id,
+            "legacy_id": legacy_id,
             "field": field_name,
             "reason": reason,
         })
@@ -245,16 +250,15 @@ def optional_text(value: Any) -> str:
     return normalize_nfkc(value)
 
 
-def parse_question_id(value: Any) -> int:
+def parse_legacy_id(value: Any) -> str:
     if isinstance(value, bool):
         raise MigrationError("id는 양의 정수여야 합니다")
     text = normalize_nfkc(value)
     if not re.fullmatch(r"[1-9]\d*", text):
         raise MigrationError("id는 양의 정수여야 합니다")
-    question_id = int(text)
-    if question_id > MAX_SAFE_JAVASCRIPT_INTEGER:
-        raise MigrationError("id가 웹 화면에서 안전하게 처리할 수 있는 최대 정수를 초과합니다")
-    return question_id
+    if len(text) > 100:
+        raise MigrationError("id 값이 100자를 초과합니다")
+    return text
 
 
 def parse_datetime(value: Any, field_name: str) -> datetime:
@@ -306,19 +310,19 @@ def safe_html_from_text(text: str) -> str:
     return "".join(f"<p>{html.escape(part).replace(chr(10), '<br>')}</p>" for part in paragraphs)
 
 
-def normalize_category(value: Any, report: MigrationReport, index: int, question_id: int) -> str:
+def normalize_category(value: Any, report: MigrationReport, index: int, legacy_id: str) -> str:
     raw = normalize_nfkc(value)
     category = CATEGORY_ALIASES.get(raw.casefold())
     if category:
         return category
-    report.add_warning("category_defaulted", index, question_id, "group2")
+    report.add_warning("category_defaulted", index, legacy_id, "group2")
     return "미분류"
 
 
-def normalize_line_name(value: Any, report: MigrationReport, index: int, question_id: int) -> str:
+def normalize_line_name(value: Any, report: MigrationReport, index: int, legacy_id: str) -> str:
     line_name = normalize_nfkc(value)
     if not line_name:
-        report.add_warning("line_defaulted", index, question_id, "line")
+        report.add_warning("line_defaulted", index, legacy_id, "line")
         return "미지정"
     if len(line_name) > 100:
         raise MigrationError("line 값이 100자를 초과합니다")
@@ -335,16 +339,16 @@ def resolve_author(
     name_field: str,
     report: MigrationReport,
     index: int,
-    question_id: int,
+    legacy_id: str,
 ) -> tuple[str, str]:
     user_id = normalize_nfkc(user_value)
     display_name = normalize_nfkc(name_value)
     if not user_id:
         user_id = fallback_user_id
-        report.add_warning("author_user_id_defaulted", index, question_id, user_field)
+        report.add_warning("author_user_id_defaulted", index, legacy_id, user_field)
     if not display_name:
         display_name = fallback_display_name
-        report.add_warning("author_display_name_defaulted", index, question_id, name_field)
+        report.add_warning("author_display_name_defaulted", index, legacy_id, name_field)
     if len(user_id) > 100:
         raise MigrationError(f"{user_field} 값이 100자를 초과합니다")
     if len(display_name) > 100:
@@ -352,24 +356,24 @@ def resolve_author(
     return user_id, display_name
 
 
-def normalize_status(value: Any, has_messages: bool, report: MigrationReport, index: int, question_id: int) -> str:
+def normalize_status(value: Any, has_messages: bool, report: MigrationReport, index: int, legacy_id: str) -> str:
     raw = normalize_nfkc(value)
     status = STATUS_ALIASES.get(raw.casefold())
     if status is None:
-        report.add_warning("status_derived", index, question_id, "status2")
+        report.add_warning("status_derived", index, legacy_id, "status2")
         return "active" if has_messages else "waiting"
     if status == "waiting" and has_messages:
-        report.add_warning("status_waiting_changed_to_active", index, question_id, "status2")
+        report.add_warning("status_waiting_changed_to_active", index, legacy_id, "status2")
         return "active"
     if status == "active" and not has_messages:
-        report.add_warning("status_active_without_message", index, question_id, "status2")
+        report.add_warning("status_active_without_message", index, legacy_id, "status2")
     return status
 
 
 def transform_record(record: Any, index: int, report: MigrationReport) -> QuestionRow:
     if not isinstance(record, dict):
         raise MigrationError("각 목록 항목은 JSON 객체여야 합니다")
-    question_id = parse_question_id(record.get("id"))
+    legacy_id = parse_legacy_id(record.get("id"))
     title = require_text(record.get("title"), "title", 255)
     question_body = legacy_plain_text(record.get("req_comment"))
     if not question_body:
@@ -386,7 +390,7 @@ def transform_record(record: Any, index: int, report: MigrationReport) -> Questi
         name_field="reqname",
         report=report,
         index=index,
-        question_id=question_id,
+        legacy_id=legacy_id,
     )
 
     answer_values = [(field_name, label, legacy_plain_text(record.get(field_name))) for field_name, label in MESSAGE_FIELDS]
@@ -402,7 +406,7 @@ def transform_record(record: Any, index: int, report: MigrationReport) -> Questi
             name_field="ansname",
             report=report,
             index=index,
-            question_id=question_id,
+            legacy_id=legacy_id,
         )
         answer_created_at = parse_datetime(record.get("ansdate"), "ansdate")
         for field_name, _label, body_text in answer_values:
@@ -417,18 +421,18 @@ def transform_record(record: Any, index: int, report: MigrationReport) -> Questi
                 created_at=answer_created_at,
             ))
 
-    status = normalize_status(record.get("status2"), bool(messages), report, index, question_id)
+    status = normalize_status(record.get("status2"), bool(messages), report, index, legacy_id)
     updated_at = max([question_created_at, *(message.created_at for message in messages)])
     question_body_text = re.sub(r"\s+", " ", question_body).strip()
     return QuestionRow(
         source_index=index,
         legacy_no=optional_text(record.get("no")) or None,
-        question_id=question_id,
+        legacy_id=legacy_id,
         title=title,
         body_html=safe_html_from_text(question_body),
         body_text=question_body_text,
-        category=normalize_category(record.get("group2"), report, index, question_id),
-        line_name=normalize_line_name(record.get("line"), report, index, question_id),
+        category=normalize_category(record.get("group2"), report, index, legacy_id),
+        line_name=normalize_line_name(record.get("line"), report, index, legacy_id),
         status=status,
         author_user_id=question_author[0],
         author_display_name=question_author[1],
@@ -457,29 +461,29 @@ def load_and_transform(path: Path, report: MigrationReport) -> list[QuestionRow]
     report.source_rows = len(records)
 
     questions: list[QuestionRow] = []
-    seen_ids: set[int] = set()
+    seen_ids: set[str] = set()
     seen_legacy_numbers: set[str] = set()
     for index, record in enumerate(records):
-        question_id: int | None = None
+        legacy_id: str | None = None
         try:
             if isinstance(record, dict):
                 try:
-                    question_id = parse_question_id(record.get("id"))
+                    legacy_id = parse_legacy_id(record.get("id"))
                 except MigrationError:
                     pass
             question = transform_record(record, index, report)
-            question_id = question.question_id
-            if question.question_id in seen_ids:
+            legacy_id = question.legacy_id
+            if question.legacy_id in seen_ids:
                 raise MigrationError("중복된 id입니다")
-            seen_ids.add(question.question_id)
+            seen_ids.add(question.legacy_id)
             if question.legacy_no:
                 if question.legacy_no in seen_legacy_numbers:
-                    report.add_warning("duplicate_legacy_no", index, question.question_id, "no")
+                    report.add_warning("duplicate_legacy_no", index, question.legacy_id, "no")
                 seen_legacy_numbers.add(question.legacy_no)
             questions.append(question)
         except MigrationError as error:
             field_name = _guess_error_field(str(error))
-            report.add_error(index, question_id, field_name, str(error))
+            report.add_error(index, legacy_id, field_name, str(error))
 
     report.valid_questions = len(questions)
     report.valid_messages = sum(len(question.messages) for question in questions)
@@ -588,26 +592,12 @@ def inspect_database(connection: Any, report: MigrationReport) -> dict[str, int]
         cursor.close()
 
 
-def ensure_no_existing_ids(connection: Any, questions: Sequence[QuestionRow]) -> None:
-    cursor = connection.cursor()
-    try:
-        for question in questions:
-            cursor.execute(
-                f"SELECT 1 FROM `{QUESTION_TABLE}` WHERE question_id = %s LIMIT 1",
-                (question.question_id,),
-            )
-            if cursor.fetchone():
-                raise MigrationError(f"이미 존재하는 question_id가 있습니다: {question.question_id}")
-    finally:
-        cursor.close()
-
-
 QUESTION_INSERT_SQL = f"""
 INSERT INTO `{QUESTION_TABLE}` (
-  question_id, title, body_html, body_text, category, line_name, status,
+  title, body_html, body_text, category, line_name, status,
   author_user_id, author_display_name, final_message_id, view_count,
   created_at, updated_at, hidden_at, hidden_by_user_id
-) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NULL, 0, %s, %s, NULL, NULL)
+) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NULL, 0, %s, %s, NULL, NULL)
 """
 
 MESSAGE_INSERT_SQL = f"""
@@ -625,14 +615,13 @@ def apply_migration(connection: Any, questions: Sequence[QuestionRow], report: M
             "대상 질문/메시지 테이블이 비어 있지 않아 중단했습니다. 기존 데이터와 함께 넣어야 한다면 "
             "백업과 중복 위험을 확인한 뒤 --allow-nonempty를 명시하세요"
         )
-    ensure_no_existing_ids(connection, questions)
     cursor = connection.cursor()
     inserted_questions = 0
     inserted_messages = 0
+    generated_question_ids: list[int] = []
     try:
         for question in questions:
             cursor.execute(QUESTION_INSERT_SQL, (
-                question.question_id,
                 question.title,
                 question.body_html,
                 question.body_text,
@@ -644,10 +633,18 @@ def apply_migration(connection: Any, questions: Sequence[QuestionRow], report: M
                 question.created_at,
                 question.updated_at,
             ))
+            new_question_id = int(cursor.lastrowid)
+            if new_question_id <= 0 or new_question_id > MAX_SAFE_JAVASCRIPT_INTEGER:
+                raise MigrationError("DB가 웹 화면에서 안전하게 처리할 수 없는 question_id를 발급했습니다")
+            generated_question_ids.append(new_question_id)
+            report.id_mapping.append({
+                "legacy_id": question.legacy_id,
+                "question_id": new_question_id,
+            })
             inserted_questions += 1
             for message in question.messages:
                 cursor.execute(MESSAGE_INSERT_SQL, (
-                    question.question_id,
+                    new_question_id,
                     message.body_html,
                     message.body_text,
                     message.author_user_id,
@@ -657,18 +654,18 @@ def apply_migration(connection: Any, questions: Sequence[QuestionRow], report: M
                 ))
                 inserted_messages += 1
 
-        cursor.execute(f"SELECT COUNT(*) FROM `{QUESTION_TABLE}` WHERE question_id IN ({','.join(['%s'] * len(questions))})", tuple(question.question_id for question in questions))
+        cursor.execute(f"SELECT COUNT(*) FROM `{QUESTION_TABLE}` WHERE question_id IN ({','.join(['%s'] * len(generated_question_ids))})", tuple(generated_question_ids))
         verified_questions = int(cursor.fetchone()[0])
         if verified_questions != len(questions):
             raise MigrationError("트랜잭션 내 질문 건수 검증에 실패했습니다")
         cursor.execute(
-            f"SELECT COUNT(*) FROM `{MESSAGE_TABLE}` WHERE question_id IN ({','.join(['%s'] * len(questions))})",
-            tuple(question.question_id for question in questions),
+            f"SELECT COUNT(*) FROM `{MESSAGE_TABLE}` WHERE question_id IN ({','.join(['%s'] * len(generated_question_ids))})",
+            tuple(generated_question_ids),
         )
         verified_messages = int(cursor.fetchone()[0])
         expected_existing_messages = 0
         if allow_nonempty:
-            # 기존 질문 ID 충돌을 위에서 차단했으므로 해당 질문 ID의 메시지는 0건이어야 한다.
+            # DB가 새로 발급한 질문 ID이므로 기존 메시지는 없어야 한다.
             expected_existing_messages = 0
         if verified_messages != inserted_messages + expected_existing_messages:
             raise MigrationError("트랜잭션 내 메시지 건수 검증에 실패했습니다")
@@ -681,6 +678,7 @@ def apply_migration(connection: Any, questions: Sequence[QuestionRow], report: M
         }
     except Exception:
         connection.rollback()
+        report.id_mapping.clear()
         raise
     finally:
         cursor.close()
