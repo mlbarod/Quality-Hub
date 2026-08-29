@@ -106,6 +106,26 @@ MESSAGE_FIELDS = (
     ("add_comment", "답변 2"),
 )
 
+ALLOWED_LEGACY_HTML_TAGS = {
+    "a", "b", "blockquote", "br", "caption", "code", "col", "colgroup",
+    "div", "em", "h1", "h2", "h3", "h4", "h5", "h6", "hr", "i", "img",
+    "li", "ol", "p", "pre", "s", "span", "strike", "strong", "sub", "sup",
+    "table", "tbody", "td", "tfoot", "th", "thead", "tr", "u", "ul",
+}
+VOID_LEGACY_HTML_TAGS = {"br", "col", "hr", "img"}
+DANGEROUS_LEGACY_HTML_TAGS = {
+    "button", "embed", "form", "iframe", "input", "link", "math", "meta",
+    "object", "option", "script", "select", "style", "svg", "textarea",
+}
+LEGACY_HTML_ATTRIBUTES = {
+    "a": {"href", "rel", "target", "title"},
+    "img": {"alt", "height", "src", "title", "width"},
+    "td": {"colspan", "rowspan"},
+    "th": {"colspan", "rowspan"},
+    "col": {"span", "width"},
+}
+MAX_MEDIUMTEXT_BYTES = 16_777_215
+
 
 class MigrationError(Exception):
     """안전하게 사용자에게 표시할 수 있는 이관 오류."""
@@ -152,6 +172,99 @@ class _PlainTextExtractor(HTMLParser):
 
     def text(self) -> str:
         return "".join(self.parts)
+
+
+class _SafeLegacyHtmlParser(HTMLParser):
+    """표와 Base64 그림은 보존하고 실행 가능한 HTML은 제거한다."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.parts: list[str] = []
+        self.open_tags: list[str] = []
+        self.skip_depth = 0
+
+    @staticmethod
+    def _safe_url(tag: str, name: str, value: str) -> bool:
+        normalized = value.strip()
+        if tag == "img" and name == "src":
+            return bool(re.match(
+                r"^(?:https?:|/|data:image/(?:png|jpeg|gif|webp);base64,)",
+                normalized,
+                flags=re.IGNORECASE,
+            ))
+        if tag == "a" and name == "href":
+            return bool(re.match(r"^(?:https?:|mailto:|#|/)", normalized, flags=re.IGNORECASE))
+        return True
+
+    def _attributes(self, tag: str, attrs: list[tuple[str, str | None]]) -> str:
+        allowed = LEGACY_HTML_ATTRIBUTES.get(tag, set())
+        serialized: list[str] = []
+        seen: set[str] = set()
+        for raw_name, raw_value in attrs:
+            name = raw_name.lower()
+            if tag == "img" and name == "img_src":
+                name = "src"
+            if name not in allowed or name in seen or raw_value is None:
+                continue
+            value = str(raw_value).strip()
+            if tag == "img" and name == "src" and re.match(
+                r"^data:image/(?:png|jpeg|gif|webp);base64,",
+                value,
+                flags=re.IGNORECASE,
+            ):
+                prefix, payload = value.split(",", 1)
+                payload = re.sub(r"\s+", "", payload)
+                value = f"{prefix},{payload}"
+            if not self._safe_url(tag, name, value):
+                continue
+            if name in {"height", "width", "colspan", "rowspan", "span"} and not re.fullmatch(r"\d{1,4}", value):
+                continue
+            if name == "target" and value not in {"_blank", "_self"}:
+                continue
+            if name == "rel":
+                value = "noopener noreferrer"
+            seen.add(name)
+            serialized.append(f' {name}="{html.escape(value, quote=True)}"')
+        return "".join(serialized)
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        tag = tag.lower()
+        if tag in DANGEROUS_LEGACY_HTML_TAGS:
+            self.skip_depth += 1
+            return
+        if self.skip_depth or tag not in ALLOWED_LEGACY_HTML_TAGS:
+            return
+        self.parts.append(f"<{tag}{self._attributes(tag, attrs)}>")
+        if tag not in VOID_LEGACY_HTML_TAGS:
+            self.open_tags.append(tag)
+
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        tag = tag.lower()
+        if self.skip_depth or tag in DANGEROUS_LEGACY_HTML_TAGS or tag not in ALLOWED_LEGACY_HTML_TAGS:
+            return
+        self.parts.append(f"<{tag}{self._attributes(tag, attrs)}>")
+
+    def handle_endtag(self, tag: str) -> None:
+        tag = tag.lower()
+        if tag in DANGEROUS_LEGACY_HTML_TAGS:
+            self.skip_depth = max(0, self.skip_depth - 1)
+            return
+        if self.skip_depth or tag not in self.open_tags:
+            return
+        last_index = len(self.open_tags) - 1 - self.open_tags[::-1].index(tag)
+        for closing_tag in reversed(self.open_tags[last_index:]):
+            self.parts.append(f"</{closing_tag}>")
+        del self.open_tags[last_index:]
+
+    def handle_data(self, data: str) -> None:
+        if self.skip_depth == 0:
+            self.parts.append(html.escape(data, quote=False))
+
+    def html(self) -> str:
+        for tag in reversed(self.open_tags):
+            self.parts.append(f"</{tag}>")
+        self.open_tags.clear()
+        return "".join(self.parts).strip()
 
 
 @dataclass(frozen=True)
@@ -202,6 +315,7 @@ class MigrationReport:
     target: dict[str, Any] = field(default_factory=dict)
     assumptions: list[str] = field(default_factory=lambda: [
         "req_comment를 질문 body_html/body_text로 저장",
+        "표와 Base64 그림 HTML은 보존하고 실행 가능한 태그·속성은 제거",
         "ans_comment, add_comment를 시간순 메시지 2개로 저장",
         "두 메시지는 원본 구조상 ans_knoxid/ansname/ansdate를 공통 사용",
         "17자리 원본 id는 문자열로 보존하고 DB question_id는 자동 발급",
@@ -310,6 +424,25 @@ def safe_html_from_text(text: str) -> str:
     return "".join(f"<p>{html.escape(part).replace(chr(10), '<br>')}</p>" for part in paragraphs)
 
 
+def sanitize_legacy_html(value: Any) -> str:
+    """기존 HTML의 표·그림·기본 서식은 보존하고 위험 요소는 제거한다."""
+    raw = "" if value is None else str(value).strip()
+    if not raw:
+        return ""
+    if not re.search(r"<\s*[a-zA-Z][^>]*>", raw):
+        return safe_html_from_text(legacy_plain_text(raw))
+    parser = _SafeLegacyHtmlParser()
+    try:
+        parser.feed(raw)
+        parser.close()
+    except Exception as error:
+        raise MigrationError("기존 HTML 형식을 해석할 수 없습니다") from error
+    sanitized = parser.html()
+    if len(sanitized.encode("utf-8")) > MAX_MEDIUMTEXT_BYTES:
+        raise MigrationError("HTML 본문이 MEDIUMTEXT 최대 크기를 초과합니다")
+    return sanitized
+
+
 def normalize_category(value: Any, report: MigrationReport, index: int, legacy_id: str) -> str:
     raw = normalize_nfkc(value)
     category = CATEGORY_ALIASES.get(raw.casefold())
@@ -414,7 +547,7 @@ def transform_record(record: Any, index: int, report: MigrationReport) -> Questi
                 raise MigrationError(f"{field_name} 값이 500000자를 초과합니다")
             messages.append(MessageRow(
                 source_field=field_name,
-                body_html=safe_html_from_text(body_text),
+                body_html=sanitize_legacy_html(record.get(field_name)),
                 body_text=re.sub(r"\s+", " ", body_text).strip(),
                 author_user_id=answer_author[0],
                 author_display_name=answer_author[1],
@@ -429,7 +562,7 @@ def transform_record(record: Any, index: int, report: MigrationReport) -> Questi
         legacy_no=optional_text(record.get("no")) or None,
         legacy_id=legacy_id,
         title=title,
-        body_html=safe_html_from_text(question_body),
+        body_html=sanitize_legacy_html(record.get("req_comment")),
         body_text=question_body_text,
         category=normalize_category(record.get("group2"), report, index, legacy_id),
         line_name=normalize_line_name(record.get("line"), report, index, legacy_id),

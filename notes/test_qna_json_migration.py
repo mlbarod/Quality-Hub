@@ -13,6 +13,13 @@ assert SPEC.loader is not None
 sys.modules[SPEC.name] = MIGRATION
 SPEC.loader.exec_module(MIGRATION)
 
+REPAIR_PATH = Path(__file__).with_name("qna_html_repair.py")
+REPAIR_SPEC = importlib.util.spec_from_file_location("qna_html_repair", REPAIR_PATH)
+REPAIR = importlib.util.module_from_spec(REPAIR_SPEC)
+assert REPAIR_SPEC.loader is not None
+sys.modules[REPAIR_SPEC.name] = REPAIR
+REPAIR_SPEC.loader.exec_module(REPAIR)
+
 
 def valid_record(**overrides):
     record = {
@@ -62,6 +69,45 @@ class QnaJsonMigrationTest(unittest.TestCase):
         self.assertEqual(question.body_text, "질문 본문 다음 줄")
         self.assertNotIn("script", question.body_html)
         self.assertNotIn("alert", question.body_html)
+
+    def test_preserves_table_and_valid_base64_png_but_removes_executable_html(self):
+        png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+        raw_html = (
+            "<table style='color:red'><tr><td colspan='2'>측정값</td></tr></table>"
+            f"<img src='data:image/png;base64,{png}' onerror='alert(1)' />"
+            "<script>alert(2)</script>"
+        )
+
+        sanitized = MIGRATION.sanitize_legacy_html(raw_html)
+
+        self.assertIn("<table>", sanitized)
+        self.assertIn('<td colspan="2">측정값</td>', sanitized)
+        self.assertIn(f'<img src="data:image/png;base64,{png}">', sanitized)
+        self.assertNotIn("style=", sanitized)
+        self.assertNotIn("onerror", sanitized)
+        self.assertNotIn("script", sanitized)
+        self.assertNotIn("alert", sanitized)
+        REPAIR.validate_embedded_image(f"data:image/png;base64,{png}")
+
+    def test_prepares_existing_question_html_repair_from_id_mapping(self):
+        png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+        record = valid_record(
+            id="12345678901234567",
+            req_comment=f"<p>본문</p><table><tr><td>값</td></tr></table><img src='data:image/png;base64,{png}'>",
+        )
+        source = {MIGRATION.ROOT_KEY: [record]}
+        migration_report = {
+            "status": "completed",
+            "id_mapping": [{"legacy_id": "12345678901234567", "question_id": 101}],
+        }
+
+        repairs = REPAIR.prepare_repairs(source, migration_report)
+
+        self.assertEqual(len(repairs), 1)
+        self.assertEqual(repairs[0]["question_id"], 101)
+        self.assertEqual(repairs[0]["image_count"], 1)
+        self.assertEqual(repairs[0]["embedded_image_count"], 1)
+        self.assertEqual(repairs[0]["table_count"], 1)
 
     def test_waiting_with_message_becomes_active(self):
         questions, report = self.transform([valid_record(status2="waiting")])
