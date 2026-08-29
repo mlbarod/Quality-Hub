@@ -207,6 +207,16 @@
   line-height: 1.8;
 }
 
+.qna-question-content {
+  color: #263b4a;
+  font-size: 14px;
+  font-weight: 430;
+}
+
+.qna-question-content blockquote {
+  color: #405665;
+}
+
 .qna-message-content {
   color: #454a4f;
   line-height: 1.65;

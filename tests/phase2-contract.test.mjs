@@ -87,7 +87,7 @@ test("기준선 접근성 보완 계약을 유지한다", () => {
   assert.match(html, /data-dashboard-shell/)
   assert.match(script, /suppressGlobalSearchFocusRestore/)
   assert.match(script, /syncPrimaryWorkspaceAccessibility/)
-  assert.match(qnaApp, /aria-label="Q&A 현재 위치"/)
+  assert.match(qnaApp, /aria-label="품질VOE 현재 위치"/)
   assert.match(styles, /--faint-foreground:/)
   assert.match(styles, /data-current-role="blocked"/)
   assert.match(html, /<span class="sr-only">Rule&amp;SOP 제목 검색<\/span>/)

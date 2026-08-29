@@ -122,13 +122,19 @@ test("이미 닫힌 작업 화면은 다시 갱신하지 않아 App 전환 경�
   assert.match(script, /initializedModes\.user && prototype\.dataset\.userMode === mode/)
 })
 
-test("제목 크기는 유지하고 주요 설명 문구를 Q&A 기준인 12px 이상으로 표시한다", () => {
+test("제목 크기는 유지하고 주요 설명 문구를 품질VOE 기준인 12px 이상으로 표시한다", () => {
   assert.match(styles, /--description-sm: 12px;/)
   assert.match(styles, /--description-md: 13px;/)
   assert.match(styles, /--description-lg: 14px;/)
   assert.match(styles, /\.section-heading > p,[\s\S]*font-size: var\(--description-lg\);/)
   assert.match(styles, /\.top-nav-menu small,[\s\S]*font-size: var\(--description-md\);/)
   assert.match(styles, /\.agent-citations button small,[\s\S]*font-size: var\(--description-sm\);/)
-  assert.match(qnaApp, /Q&amp;A 게시판<\/h2>[\s\S]*text-\[12px\][^>]*>질문을 등록하고 담당자와 답변을 이어가세요/)
+  assert.match(qnaApp, /품질VOE 게시판<\/h2>[\s\S]*text-\[12px\][^>]*>질문을 등록하고 담당자와 답변을 이어가세요/)
   assert.match(qnaApp, /DialogDescription[^>]*text-\[12px\][^>]*>구분·라인과 질문 정보를 선택/)
+})
+
+test("품질VOE 상세 질문 본문을 넓고 또렷하게 표시한다", () => {
+  assert.match(qnaApp, /max-w-\[1560px\]/)
+  assert.match(qnaApp, /qna-rendered-content qna-question-content/)
+  assert.match(qnaCss, /\.qna-question-content \{[\s\S]*color: #263b4a;[\s\S]*font-size: 14px;[\s\S]*font-weight: 430;/)
 })

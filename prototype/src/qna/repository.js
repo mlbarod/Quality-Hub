@@ -69,7 +69,7 @@ function createRequest() {
     }
     const response = await fetchImpl(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) })
     const payload = await response.json().catch(() => ({}))
-    if (!response.ok) throw new QnaRepositoryError(payload.error?.message ?? "Q&A DB 요청을 처리하지 못했습니다.", { status: response.status, code: payload.error?.code })
+    if (!response.ok) throw new QnaRepositoryError(payload.error?.message ?? "품질VOE DB 요청을 처리하지 못했습니다.", { status: response.status, code: payload.error?.code })
     return payload
   }
 }
@@ -157,7 +157,7 @@ export const qnaRepository = {
     dispatchSnapshot(isTestMode ? testSeed : emptySnapshot)
   },
   write(snapshot) {
-    if (!isTestMode) throw new QnaRepositoryError("운영 Q&A 데이터는 로컬 저장소에 쓸 수 없습니다.")
+    if (!isTestMode) throw new QnaRepositoryError("운영 품질VOE 데이터는 로컬 저장소에 쓸 수 없습니다.")
     dispatchSnapshot(normalizeTestSnapshot(snapshot))
     return this.read()
   },

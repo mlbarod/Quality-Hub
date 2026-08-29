@@ -18,7 +18,7 @@ describe("Q&A 프로토타입", () => {
     const user = userEvent.setup()
     render(<QnaApp lineOptions={["테스트 라인 A", "테스트 라인 B"]} />)
 
-    const board = screen.getByRole("region", { name: "Q&A 게시글 목록" })
+    const board = screen.getByRole("region", { name: "품질VOE 게시글 목록" })
     expect(within(board).getByText("등록일")).toBeInTheDocument()
     expect(within(board).getByText("구분")).toBeInTheDocument()
     expect(within(board).getByText("라인")).toBeInTheDocument()
@@ -96,7 +96,7 @@ describe("Q&A 프로토타입", () => {
     window.addEventListener("qualityhub:qna-close", closeHandler)
     render(<QnaApp />)
 
-    const topBar = screen.getByRole("region", { name: "Q&A 상단 도구" })
+    const topBar = screen.getByRole("region", { name: "품질VOE 상단 도구" })
     const mainButton = within(topBar).getByRole("button", { name: "Main" })
     expect(topBar.querySelector("button")).toBe(mainButton)
     expect(mainButton).toHaveClass("report-back-button")
@@ -127,14 +127,14 @@ describe("Q&A 프로토타입", () => {
     await user.click(screen.getByRole("button", { name: "질문 삭제" }))
     await user.click(screen.getByRole("button", { name: "삭제 목록 1" }))
 
-    const dialog = screen.getByRole("dialog", { name: "Q&A 삭제 목록" })
+    const dialog = screen.getByRole("dialog", { name: "품질VOE 삭제 목록" })
     expect(within(dialog).getByText(title)).toBeInTheDocument()
     expect(within(dialog).getByText("삭제한 질문과 답변·댓글은 실제로 지워지지 않으며 마스터가 복구할 수 있습니다.")).toBeInTheDocument()
     expect(within(dialog).getByText(/김품질 삭제/)).toBeInTheDocument()
     expect(within(dialog).queryByText(/숨김/)).not.toBeInTheDocument()
 
     await user.click(within(dialog).getByRole("button", { name: "복구" }))
-    expect(within(dialog).getByText("삭제된 Q&A 항목이 없습니다.")).toBeInTheDocument()
+    expect(within(dialog).getByText("삭제된 품질VOE 항목이 없습니다.")).toBeInTheDocument()
   }, 15000)
 
   test("알림을 모두 읽음 처리하고 연결된 질문을 연다", async () => {
@@ -240,7 +240,7 @@ describe("Q&A 프로토타입", () => {
   test("질문 작성 버튼을 게시판 우측 상단에서 제공한다", () => {
     render(<QnaApp />)
 
-    const board = screen.getByRole("region", { name: "Q&A 게시글 목록" })
+    const board = screen.getByRole("region", { name: "품질VOE 게시글 목록" })
     const writeButton = within(board).getByRole("button", { name: "질문 작성" })
     expect(writeButton).toHaveClass("qna-write-button")
     expect(writeButton).toHaveClass("h-[52px]", "min-w-[168px]")

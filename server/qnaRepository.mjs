@@ -87,7 +87,7 @@ export function normalizeTags(tags) {
 function normalizeActor(actor) {
   if (!actor || typeof actor !== "object") throw new TypeError("사용자 정보가 필요합니다.")
   const role = requireText(actor.role, "role", 20)
-  if (!["master", "admin", "general"].includes(role)) throw new TypeError("Q&A를 사용할 권한이 없습니다.")
+  if (!["master", "admin", "general"].includes(role)) throw new TypeError("품질VOE를 사용할 권한이 없습니다.")
   return {
     userId: requireText(actor.userId, "userId", 100),
     displayName: requireText(actor.displayName, "displayName", 100),
@@ -266,7 +266,7 @@ export class QnaNotFoundError extends Error {
 
 export class QnaPermissionError extends Error {
   constructor() {
-    super("이 Q&A 작업을 수행할 권한이 없습니다.")
+    super("이 품질VOE 작업을 수행할 권한이 없습니다.")
     this.name = "QnaPermissionError"
   }
 }

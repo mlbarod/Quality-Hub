@@ -477,7 +477,7 @@ const setAgentMode = (mode, { announce = true, focus = true } = {}) => {
   if (prototype.dataset.userMode === "open") {
     document.title = "Quality Hub · 사용자 및 권한";
   } else if (prototype.dataset.qnaMode === "open") {
-    document.title = "Quality Hub · Q&A";
+    document.title = "Quality Hub · 품질VOE";
   } else if (prototype.dataset.ruleMode === "open") {
     document.title = "Quality Hub · Rule&SOP";
   } else if (prototype.dataset.reportMode === "catalog") {
@@ -915,7 +915,7 @@ const setQnaMode = (mode, { announce = true, focus = true, restoreAgent = true, 
     button.setAttribute("aria-expanded", String(mode === "open"));
   });
   skipLink?.setAttribute("href", mode === "open" ? "#qna-main" : "#main-content");
-  document.title = mode === "open" ? "Quality Hub · Q&A" : "Quality Hub";
+  document.title = mode === "open" ? "Quality Hub · 품질VOE" : "Quality Hub";
 
   if (mode === "open") {
     const qnaViewDetail = { view, postId };
@@ -932,7 +932,7 @@ const setQnaMode = (mode, { announce = true, focus = true, restoreAgent = true, 
   }
 
   if (!announce) return;
-  if (mode === "open") showToast(view === "notifications" ? "Q&A 알림을 열었습니다." : "Q&A 게시판을 열었습니다.");
+  if (mode === "open") showToast(view === "notifications" ? "품질VOE 알림을 열었습니다." : "품질VOE 게시판을 열었습니다.");
   else showToast("Main으로 돌아왔습니다.");
 };
 
@@ -2376,7 +2376,7 @@ function syncGlobalSearchResults() {
     .map((post) => createGlobalSearchResult({
       target: "qna",
       id: post.id,
-      type: `Q&A · ${post.category}`,
+      type: `품질VOE · ${post.category}`,
       title: post.title,
       description: `${post.id} · ${post.author} · ${qnaStatusLabels[post.status] ?? post.status}`,
       searchText: buildQnaSearchText(post),
@@ -2386,7 +2386,7 @@ function syncGlobalSearchResults() {
   container.replaceChildren(...reportResults, ...ruleResults, ...qnaResults);
   const unreadCount = qnaData.notifications.filter((notification) => !notification.read).length;
   document.querySelectorAll("[data-qna-notifications]").forEach((button) => {
-    button.setAttribute("aria-label", `Q&A 알림 ${unreadCount}개`);
+    button.setAttribute("aria-label", `품질VOE 알림 ${unreadCount}개`);
     button.querySelector(":scope > i")?.replaceChildren(String(unreadCount));
   });
   applyGlobalSearch();

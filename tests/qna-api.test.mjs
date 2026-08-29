@@ -86,6 +86,6 @@ test("Q&A API는 사용자 정보 누락, 권한 거부와 DB 오류를 구분�
 
   const failed = await callApi({ async getSnapshot() { throw Object.assign(new Error("secret"), { sqlState: "HY000", errno: 1001 }) } }, { headers: identity })
   assert.equal(failed.statusCode, 503)
-  assert.deepEqual(JSON.parse(failed.body), { error: { code: "DB_FAILED", message: "Q&A DB 요청을 처리하지 못했습니다." } })
+  assert.deepEqual(JSON.parse(failed.body), { error: { code: "DB_FAILED", message: "품질VOE DB 요청을 처리하지 못했습니다." } })
   assert.doesNotMatch(failed.body, /secret|HY000|1001/)
 })

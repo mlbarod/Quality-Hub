@@ -36,7 +36,7 @@ function requireActor(req) {
   const displayName = decodeURIComponent(singleHeader(req, "x-quality-hub-user-name")?.trim() || userId || "")
   const role = singleHeader(req, "x-quality-hub-role")?.trim()
   if (!userId || userId.length > 100 || !displayName || displayName.length > 100 || !ROLES.has(role)) {
-    throw new QnaApiRequestError("Q&A 사용자 식별 정보가 필요합니다.", { status: 401, code: "USER_REQUIRED" })
+    throw new QnaApiRequestError("품질VOE 사용자 식별 정보가 필요합니다.", { status: 401, code: "USER_REQUIRED" })
   }
   return { userId, displayName, role }
 }
@@ -85,9 +85,9 @@ function toApiError(error) {
   if (error instanceof QnaPermissionError) return new QnaApiRequestError(error.message, { status: 403, code: "QNA_FORBIDDEN" })
   if (error instanceof TypeError || error instanceof URIError) return new QnaApiRequestError(error.message, { status: 400, code: "INVALID_INPUT" })
   if (error && typeof error === "object" && ("sqlState" in error || "errno" in error || "fatal" in error)) {
-    return new QnaApiRequestError("Q&A DB 요청을 처리하지 못했습니다.", { status: 503, code: "DB_FAILED" })
+    return new QnaApiRequestError("품질VOE DB 요청을 처리하지 못했습니다.", { status: 503, code: "DB_FAILED" })
   }
-  return new QnaApiRequestError("Q&A 요청을 처리하지 못했습니다.", { status: 500, code: "INTERNAL_ERROR" })
+  return new QnaApiRequestError("품질VOE 요청을 처리하지 못했습니다.", { status: 500, code: "INTERNAL_ERROR" })
 }
 
 export function createQnaApi({ repository, repositoryFactory = createQnaRepository, logger = console } = {}) {
@@ -98,7 +98,7 @@ export function createQnaApi({ repository, repositoryFactory = createQnaReposito
       try {
         activeRepository = repositoryFactory()
       } catch {
-        throw new QnaApiRequestError("Q&A DB 연결 설정을 확인해 주세요.", { status: 503, code: "DB_FAILED" })
+        throw new QnaApiRequestError("품질VOE DB 연결 설정을 확인해 주세요.", { status: 503, code: "DB_FAILED" })
       }
       ownsRepository = true
     }
@@ -146,7 +146,7 @@ export function createQnaApi({ repository, repositoryFactory = createQnaReposito
           return true
         }
         const allow = route.type === "snapshot" ? "GET" : route.type === "questions" || route.type === "messages" ? "POST" : "PATCH"
-        sendJson(res, 405, { error: { code: "METHOD_NOT_ALLOWED", message: "지원하지 않는 Q&A API 요청입니다." } }, { Allow: allow })
+        sendJson(res, 405, { error: { code: "METHOD_NOT_ALLOWED", message: "지원하지 않는 품질VOE API 요청입니다." } }, { Allow: allow })
         return true
       } catch (error) {
         const apiError = toApiError(error)
