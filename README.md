@@ -14,7 +14,7 @@
 
 ## 현재 상태
 
-현재 B 상단 메뉴형 화면과 DB 기반 Report·Rule&SOP·Q&A·알림을 제공합니다. 품질 Agent는 사내 RAG·GPT-OSS와 MariaDB/MySQL 대화 History를 Backend API로 연결했습니다. AD FS OpenID Connect 인증과 DB 세션·역할 권한 코드는 구현했지만 실제 사내망 로그인과 운영 DB CRUD는 아직 검증하지 않았습니다. 최신 단계·판정과 남은 검증은 [개발 계획](docs/DEVELOPMENT_PLAN.md)을 단일 기준으로 확인합니다. 모바일·태블릿 화면은 개발 범위에서 제외합니다.
+현재 B 상단 메뉴형 화면과 DB 기반 Report·Rule&SOP·Q&A·알림을 제공합니다. 품질 Agent는 사내 RAG·OpenWebUI의 `gpt-oss-120b` 모델과 MariaDB/MySQL 대화 History를 Backend API로 연결했습니다. AD FS OpenID Connect 인증과 DB 세션·역할 권한 코드는 구현했지만 실제 사내망 로그인과 운영 DB CRUD는 아직 검증하지 않았습니다. 최신 단계·판정과 남은 검증은 [개발 계획](docs/DEVELOPMENT_PLAN.md)을 단일 기준으로 확인합니다. 모바일·태블릿 화면은 개발 범위에서 제외합니다.
 
 ## 프로젝트 문서
 
@@ -102,15 +102,15 @@ npm run rag:document:delete -- "0000ABCD"
 
 `rag:document:add`는 공식 가이드의 예시 문서 `ABCD00001`을 실제 인덱스에 추가하며, `rag:document:delete`는 전달한 `doc_id`의 문서를 실제로 삭제합니다. 실행 전 대상 인덱스와 문서 ID를 확인해야 합니다. RAG 검색 Client는 Backend Chat 흐름에서 재사용하지만 Quality Agent UI에는 아직 연결되지 않습니다.
 
-## GPT-OSS Chat Completions Client 확인
+## OpenWebUI Chat Completions Client 확인
 
-루트의 필수 원본 `.env.gpt-oss`에는 사내 API 설정이 들어 있습니다. `GPT_OSS_API_URL`은 DS API HUB URL 끝에 `/v1`을 추가한 전체 base URL이고 실제 인증 credential은 `GPT_OSS_CREDENTIAL_KEY` 형식입니다. 파일은 Git에서 제외되며 코드·검증 작업에서 내용을 변경하지 않습니다. 형식은 `.env.gpt-oss.example`에서 확인합니다.
+루트의 필수 원본 `.env.gpt-oss`에는 OpenWebUI API 설정이 들어 있습니다. `OPENWEBUI_URL`에는 OpenWebUI 기본 URL을 입력하며 Client가 공식 Chat Completions 경로인 `/api/chat/completions`를 사용합니다. `OPENWEBUI_API_TOKEN`은 OpenWebUI 계정에서 발급한 API key이며 Bearer token으로 전달합니다. 파일은 Git에서 제외되며 코드·검증 작업에서 내용을 변경하지 않습니다. 전체 형식은 `.env.gpt-oss.example`에서 확인하고, 인증과 endpoint 계약은 [OpenWebUI 공식 API 문서](https://docs.openwebui.com/reference/api-endpoints/)를 따릅니다.
 
 ```bash
 npm run gpt-oss:chat -- "You are a helpful assistant." "How are you?"
 ```
 
-두 메시지를 생략하면 공식 예제의 system/user message를 사용합니다. 이 명령은 `gpt-oss-120b` Chat Completions API만 독립 호출합니다. GPT-OSS Client는 Backend Chat 흐름에서 재사용하지만 Quality Agent UI에는 아직 연결되지 않습니다.
+두 메시지를 생략하면 공식 예제의 system/user message를 사용합니다. 이 명령은 OpenWebUI의 `gpt-oss-120b` Chat Completions API만 독립 호출합니다. `OPENWEBUI_COMMON_HEADERS`는 문자열 값만 가진 JSON 객체이며, timeout은 `OPENWEBUI_TIMEOUT_SECONDS=120`을 기본으로 합니다. `OPENWEBUI_SUMMARY_BATCH_SIZE=10`은 향후 별도 요약 배치 기능을 위한 설정으로 검증해 보관하며, 현재 단일 Chat Completions 요청에는 공식 필드가 아니므로 전송하지 않습니다. Client는 Backend Chat 흐름에서 재사용합니다.
 
 ## LLM 대화 History DB 확인
 
@@ -137,7 +137,7 @@ npm run backend:chat:check -- "quality.kim" "질문 내용"
 npm run backend:chat:check -- "quality.kim" "후속 질문" "기존-conversation-uuid"
 ```
 
-이 명령은 user message 저장 → RAG 검색과 `hits.hits[]`의 제목·본문·점수 Context 구성 → 최근 완료 message 최대 6건을 실제 대화 role과 6,000자 예산으로 적용 → 기존 규격의 GPT-OSS 호출 → assistant 답변과 RAG 출처 JSON 저장을 순서대로 실행합니다. RAG 결과 0건은 정상 처리하며, RAG·GPT-OSS·DB 실패는 서로 다른 단계로 출력하고 user message의 `status`에 `rag_failed`, `gpt_failed`, `db_failed` 기록을 시도합니다. 외부 API를 기다리는 동안 DB transaction을 유지하지 않습니다.
+이 명령은 user message 저장 → RAG 검색과 `hits.hits[]`의 제목·본문·점수 Context 구성 → 최근 완료 message 최대 6건을 실제 대화 role과 6,000자 예산으로 적용 → OpenWebUI의 `gpt-oss-120b` 호출 → assistant 답변과 RAG 출처 JSON 저장을 순서대로 실행합니다. RAG 결과 0건은 정상 처리하며, RAG·LLM·DB 실패는 서로 다른 단계로 출력하고 기존 DB 호환성을 위해 user message의 `status`에 `rag_failed`, `gpt_failed`, `db_failed` 기록을 시도합니다. 외부 API를 기다리는 동안 DB transaction을 유지하지 않습니다.
 
 개발 환경에서 정확도 확인이 필요하면 `QUALITY_AGENT_SAFE_TRACE=1 npm run dev`로 서버를 실행합니다. 서버 콘솔에는 질문·문서 원문, Credential, 사용자 ID 대신 질문 길이, RAG hit 수와 필드명, Context 길이, History 개수·길이, 최종 message role·길이, 모델과 temperature만 기록됩니다. 운영 컨테이너에서는 필요한 점검 시간에만 같은 환경변수를 주입하고 확인 후 제거합니다.
 

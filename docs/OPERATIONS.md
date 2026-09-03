@@ -11,7 +11,7 @@ Quality Hub는 Docker Compose의 단일 Node 컨테이너로 운영한다. 컨�
 - Docker Engine과 Docker Compose v2를 설치한다.
 - 리버스 프록시에서 전용 도메인의 `/`를 `http://127.0.0.1:<QUALITY_HUB_PORT>`로 전달한다.
 - 리버스 프록시에서 HTTPS, 사내망·허용 IP 제한과 HSTS를 적용한다.
-- 컨테이너가 MariaDB/MySQL, RAG와 GPT-OSS 주소로 나갈 수 있어야 한다.
+- 컨테이너가 MariaDB/MySQL, RAG와 OpenWebUI 주소로 나갈 수 있어야 한다.
 - 사용자 브라우저가 현재 화면 글꼴을 받으려면 `cdn.jsdelivr.net`, `fonts.googleapis.com`, `fonts.gstatic.com`에 접근할 수 있어야 한다. 접근할 수 없으면 시스템 기본 글꼴로 표시된다.
 - 단일 컨테이너 교체 중에는 짧은 접속 중단이 발생할 수 있다.
 
@@ -31,7 +31,7 @@ test -f prototype/.env.local
 
 - `.env.compose`: 이미지 태그와 호스트 바인딩 주소·포트
 - `.env.rag`: RAG API 주소와 Credential
-- `.env.gpt-oss`: GPT-OSS API 주소와 Credential
+- `.env.gpt-oss`: OpenWebUI URL·모델·API token과 선택 설정
 - `.env.db`: MariaDB/MySQL 접속정보
 - `.env.sso`: SSO와 세션 설정
 - `prototype/.env.local`: Vite 빌드에 포함되는 Q&A 라인 표시값
@@ -61,7 +61,7 @@ curl -fsS http://127.0.0.1:${QUALITY_HUB_PORT:-4173}/readyz
 docker compose --env-file .env.compose logs --tail=100 app
 ```
 
-`/healthz`의 정상 응답은 `{"status":"ok"}`다. 이 경로는 앱 프로세스의 생존 상태만 확인한다. `/readyz`는 DB·RAG·GPT-OSS와 활성화된 SSO의 필수 환경변수가 입력됐을 때 HTTP 200을 반환하지만 실제 네트워크 연결 성공까지 보장하지 않는다. 최종 연동은 로그인, Agent 질문과 Report·Rule&SOP·Q&A 목록 조회로 별도 확인한다. Q&A 테이블과 행 수는 운영 서버에서 `npm run db:qna:check`로 읽기 전용 확인한 뒤 빈 게시판에서 질문·답변·수정·숨김·복구를 역할별로 검증한다. 로그에는 접속정보, 토큰, Claim 값이나 SQL 원문을 남기지 않는다.
+`/healthz`의 정상 응답은 `{"status":"ok"}`다. 이 경로는 앱 프로세스의 생존 상태만 확인한다. `/readyz`는 DB·RAG·OpenWebUI와 활성화된 SSO의 필수 환경변수가 입력됐을 때 HTTP 200을 반환하지만 실제 네트워크 연결 성공까지 보장하지 않는다. 최종 연동은 로그인, Agent 질문과 Report·Rule&SOP·Q&A 목록 조회로 별도 확인한다. Q&A 테이블과 행 수는 운영 서버에서 `npm run db:qna:check`로 읽기 전용 확인한 뒤 빈 게시판에서 질문·답변·수정·숨김·복구를 역할별로 검증한다. 로그에는 접속정보, 토큰, Claim 값이나 SQL 원문을 남기지 않는다.
 
 리버스 프록시의 기본 전달 예시는 다음과 같다. 실제 인증서·IP 정책과 설정 위치는 사내 운영 기준을 따른다.
 

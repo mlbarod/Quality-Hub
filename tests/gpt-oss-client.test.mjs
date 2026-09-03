@@ -1,29 +1,31 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import {
+import OpenAI, {
   APIConnectionTimeoutError,
   APIError,
 } from "openai"
 
 import {
   createGptOssChatCompletion,
-  createGptOssRequestHeaders,
   GPT_OSS_MODEL,
   GPT_OSS_TEMPERATURE,
   GptOssApiError,
   GptOssResponseError,
   GptOssTimeoutError,
   loadGptOssConfig,
+  normalizeOpenWebUiApiUrl,
 } from "../server/gptOssClient.mjs"
 import { generateGptOssReply } from "../server/gptOssService.mjs"
 
 const config = {
-  apiUrl: "https://gpt-oss.example.internal/v1",
-  credentialKey: "credential:TICKET-example==",
-  systemName: "quality-hub-playground",
-  userId: "quality.kim",
+  apiUrl: "https://openwebui.example.internal/api",
+  model: "gpt-oss-120b",
+  apiToken: "sk-openwebui-example",
+  commonHeaders: { "X-Quality-Hub": "agent" },
+  timeoutSeconds: 120,
   timeoutMs: 120_000,
+  summaryBatchSize: 10,
 }
 
 function createOpenAIMock({ completion, error } = {}) {
@@ -54,60 +56,39 @@ function createCompletion(content = "I am fine.") {
   }
 }
 
-test("GPT-OSS Backend 환경변수와 기본 timeout을 읽고 누락·잘못된 값을 거부한다", () => {
+test("OpenWebUI 환경변수와 기본 설정을 읽고 URL을 공식 API base URL로 정규화한다", () => {
   const environment = {
-    GPT_OSS_API_URL: config.apiUrl,
-    GPT_OSS_CREDENTIAL_KEY: config.credentialKey,
-    GPT_OSS_SYSTEM_NAME: config.systemName,
-    GPT_OSS_USER_ID: config.userId,
+    OPENWEBUI_URL: "https://openwebui.example.internal/",
+    OPENWEBUI_MODEL: config.model,
+    OPENWEBUI_API_TOKEN: config.apiToken,
+    OPENWEBUI_COMMON_HEADERS: '{"X-Quality-Hub":"agent"}',
   }
 
   assert.deepEqual(loadGptOssConfig(environment), config)
-  assert.throws(() => loadGptOssConfig({}), /GPT_OSS_API_URL, GPT_OSS_CREDENTIAL_KEY, GPT_OSS_SYSTEM_NAME, GPT_OSS_USER_ID/)
-  assert.throws(() => loadGptOssConfig({ ...environment, GPT_OSS_TIMEOUT_MS: "0" }), /1 이상의 정수/)
+  assert.equal(normalizeOpenWebUiApiUrl("https://openwebui.example.internal/api"), config.apiUrl)
+  assert.equal(normalizeOpenWebUiApiUrl("https://openwebui.example.internal/api/chat/completions"), config.apiUrl)
+  assert.throws(() => loadGptOssConfig({}), /OPENWEBUI_URL, OPENWEBUI_MODEL, OPENWEBUI_API_TOKEN/)
+  assert.throws(() => loadGptOssConfig({ ...environment, OPENWEBUI_TIMEOUT_SECONDS: "0" }), /1 이상의 정수/)
+  assert.throws(() => loadGptOssConfig({ ...environment, OPENWEBUI_SUMMARY_BATCH_SIZE: "no" }), /1 이상의 정수/)
+  assert.throws(() => loadGptOssConfig({ ...environment, OPENWEBUI_COMMON_HEADERS: "[]" }), /JSON 객체/)
+  assert.throws(() => loadGptOssConfig({ ...environment, OPENWEBUI_COMMON_HEADERS: '{"X-Test":1}' }), /문자열/)
+  assert.throws(() => normalizeOpenWebUiApiUrl("file:///tmp/openwebui"), /HTTP\(S\)/)
 })
 
-test("공식 Header 구조와 요청별 Prompt/Completion UUID를 생성한다", () => {
-  const ids = ["prompt-uuid", "completion-uuid"]
-  const result = createGptOssRequestHeaders(config, () => ids.shift())
-
-  assert.deepEqual(result, {
-    headers: {
-      "x-dep-ticket": "credential:TICKET-example==",
-      "Send-System-Name": "quality-hub-playground",
-      "User-Id": "quality.kim",
-      "User-Type": "AD_ID",
-      "Prompt-Msg-Id": "prompt-uuid",
-      "Completion-Msg-Id": "completion-uuid",
-    },
-    promptMessageId: "prompt-uuid",
-    completionMessageId: "completion-uuid",
-  })
-})
-
-test("OpenAI SDK Client와 Chat Completions 요청이 공식 계약을 유지한다", async () => {
+test("OpenAI 호환 Client로 Bearer token, 공통 Header와 Chat Completions 요청을 전달한다", async () => {
   const mock = createOpenAIMock({ completion: createCompletion() })
-  const ids = ["prompt-uuid", "completion-uuid"]
   const result = await createGptOssChatCompletion({
     systemMessage: "You are a helpful assistant.",
     userMessage: "How are you?",
   }, {
     config,
-    uuidFactory: () => ids.shift(),
     OpenAIImpl: mock.OpenAIImpl,
   })
 
   assert.deepEqual(mock.calls.clients, [{
-    apiKey: "dummy",
-    baseURL: "https://gpt-oss.example.internal/v1",
-    defaultHeaders: {
-      "x-dep-ticket": "credential:TICKET-example==",
-      "Send-System-Name": "quality-hub-playground",
-      "User-Id": "quality.kim",
-      "User-Type": "AD_ID",
-      "Prompt-Msg-Id": "prompt-uuid",
-      "Completion-Msg-Id": "completion-uuid",
-    },
+    apiKey: "sk-openwebui-example",
+    baseURL: "https://openwebui.example.internal/api",
+    defaultHeaders: { "X-Quality-Hub": "agent" },
     timeout: 120_000,
   }])
   assert.deepEqual(mock.calls.requests, [{
@@ -118,12 +99,55 @@ test("OpenAI SDK Client와 Chat Completions 요청이 공식 계약을 유지한
     ],
     temperature: GPT_OSS_TEMPERATURE,
   }])
+  assert.equal("summary_batch_size" in mock.calls.requests[0], false)
   assert.equal("reasoning_effort" in mock.calls.requests[0], false)
-  assert.equal(result.promptMessageId, "prompt-uuid")
-  assert.equal(result.completionMessageId, "completion-uuid")
+  assert.deepEqual(result, { completion: createCompletion() })
 })
 
-test("Backend 통합 호출은 History의 user/assistant role을 그대로 전달한다", async () => {
+test("OpenWebUI 공식 endpoint와 Bearer 인증으로 실제 HTTP 요청을 구성한다", async () => {
+  let observedRequest
+  class OpenWebUiTestClient extends OpenAI {
+    constructor(options) {
+      super({
+        ...options,
+        fetch: async (url, init) => {
+          const headers = new Headers(init.headers)
+          observedRequest = {
+            url: String(url),
+            authorization: headers.get("authorization"),
+            commonHeader: headers.get("x-quality-hub"),
+            body: JSON.parse(init.body),
+          }
+          return new Response(JSON.stringify(createCompletion("정상 답변")), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          })
+        },
+      })
+    }
+  }
+
+  await createGptOssChatCompletion({ systemMessage: "system", userMessage: "user" }, {
+    config,
+    OpenAIImpl: OpenWebUiTestClient,
+  })
+
+  assert.deepEqual(observedRequest, {
+    url: "https://openwebui.example.internal/api/chat/completions",
+    authorization: "Bearer sk-openwebui-example",
+    commonHeader: "agent",
+    body: {
+      model: "gpt-oss-120b",
+      messages: [
+        { role: "system", content: "system" },
+        { role: "user", content: "user" },
+      ],
+      temperature: 0.5,
+    },
+  })
+})
+
+test("Backend 통합 호출은 History의 user/assistant role과 설정된 모델을 그대로 전달한다", async () => {
   const mock = createOpenAIMock({ completion: createCompletion() })
   const messages = [
     { role: "system", content: "system" },
@@ -143,28 +167,16 @@ test("Backend 통합 호출은 History의 user/assistant role을 그대로 전�
     createGptOssChatCompletion({ messages: [{ role: "tool", content: "잘못된 role" }] }, { config, OpenAIImpl: mock.OpenAIImpl }),
     /role은 system, user 또는 assistant/,
   )
-})
 
-test("각 Chat Completion 호출마다 새로운 UUID Header를 만든다", async () => {
-  const mock = createOpenAIMock({ completion: createCompletion() })
-  const ids = ["prompt-1", "completion-1", "prompt-2", "completion-2"]
-  const options = { config, uuidFactory: () => ids.shift(), OpenAIImpl: mock.OpenAIImpl }
-
-  await createGptOssChatCompletion({ systemMessage: "system", userMessage: "first" }, options)
-  await createGptOssChatCompletion({ systemMessage: "system", userMessage: "second" }, options)
-
-  assert.equal(mock.calls.clients[0].defaultHeaders["Prompt-Msg-Id"], "prompt-1")
-  assert.equal(mock.calls.clients[1].defaultHeaders["Prompt-Msg-Id"], "prompt-2")
-  assert.equal(mock.calls.clients[0].defaultHeaders["Completion-Msg-Id"], "completion-1")
-  assert.equal(mock.calls.clients[1].defaultHeaders["Completion-Msg-Id"], "completion-2")
+  const whitespaceMessages = [{ role: "user", content: "  원문 공백 유지  " }]
+  await createGptOssChatCompletion({ messages: whitespaceMessages }, { config, OpenAIImpl: mock.OpenAIImpl })
+  assert.deepEqual(mock.calls.requests[1].messages, whitespaceMessages)
 })
 
 test("Service는 choices[0].message.content와 확인 메타데이터를 반환한다", async () => {
   const mock = createOpenAIMock({ completion: createCompletion("정상 답변") })
-  const ids = ["prompt-uuid", "completion-uuid"]
   const result = await generateGptOssReply({ systemMessage: "system", userMessage: "user" }, {
     config,
-    uuidFactory: () => ids.shift(),
     OpenAIImpl: mock.OpenAIImpl,
   })
 
@@ -174,8 +186,6 @@ test("Service는 choices[0].message.content와 확인 메타데이터를 반환�
     model: "gpt-oss-120b",
     finishReason: "stop",
     usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
-    promptMessageId: "prompt-uuid",
-    completionMessageId: "completion-uuid",
   })
 })
 

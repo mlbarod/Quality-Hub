@@ -68,7 +68,7 @@
 
 - 사내 자체 LLM 서비스를 API로 연결하여 GPT형 대화 기능 제공
 - 기본 우측 대화 패널에서 사용하고 필요할 때 전체 작업 화면으로 확장
-- RAG 검색, GPT-OSS 답변 생성과 MariaDB/MySQL 대화 History를 Backend API로 연결하고 패널·전체 화면이 같은 conversation 상태를 공유
+- RAG 검색, OpenWebUI의 `gpt-oss-120b` 답변 생성과 MariaDB/MySQL 대화 History를 Backend API로 연결하고 패널·전체 화면이 같은 conversation 상태를 공유
 - 답변의 줄바꿈·강조·목록·표 양식은 안전하게 정제해 표시하고 내부 RAG 출처 정보는 사용자 화면에 노출하지 않음
 - 질문 전송과 답변 표시 중에는 패널·전체 화면을 최신 메시지까지 자동 스크롤하되 사용자가 위로 이동하면 자동 추적을 중단
 - SSO 활성화 시 서버가 검증한 세션의 user ID를 대화 소유권에 사용하고 브라우저 Header 값은 무시하며, SSO 비활성화 시에만 역할 미리보기의 user ID를 테스트 식별값으로 사용
@@ -164,6 +164,6 @@
 - 통합 검색은 현재 DB에서 조회한 Report·Rule&SOP 제목과 Q&A 제목·본문·숨김 처리되지 않은 답변·댓글을 동적으로 반영
 - SSO 활성화 시 서버 세션의 사용자 ID·표시 이름·역할로 Q&A API 권한을 집행하고 브라우저가 보낸 사용자 Header를 덮어씀. 비활성화 시 역할 미리보기 Header는 사내망 시범 테스트 식별값일 뿐 실제 인증으로 간주하지 않음
 - 첨부파일은 저장소와 운영 정책이 확정되지 않아 Q&A 작성 범위에서 제외하며, 기존 데이터 이관은 게시판 CRUD 검증 후 별도 Excel·pandas 절차로 수행
-- 품질 Agent는 사내 RAG·GPT-OSS와 대화 DB를 Backend 흐름과 기존 UI에 연결했으며, Streaming은 적용하지 않음
+- 품질 Agent는 사내 RAG·OpenWebUI의 `gpt-oss-120b` 모델과 대화 DB를 Backend 흐름 및 기존 UI에 연결했으며, Streaming은 적용하지 않음
 - 대시보드 조회는 `dashboard_report`에, Report 목록 조회·신규 등록·수정·실제 삭제는 `report_reg`에, Rule&SOP 목록 조회·신규 등록·수정·실제 삭제는 `rulesop`에 연결함. SSO 코드와 DB 세션·권한 저장 구조는 구현했으나 실제 사내 IdP·DB·Spotfire 인증, 나머지 업무 DB·Parquet·공유 폴더 연동과 운영 보안·성능 검증은 후속 작업으로 유지
 - 완료된 단계의 상세 근거는 단계 보고서와 디자인 검토 보고서에 증거 스냅샷으로 보존하며 현재 상태 판단에는 개발 계획을 우선함

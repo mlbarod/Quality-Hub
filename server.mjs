@@ -26,7 +26,7 @@ const shutdownTimeoutMs = 10_000
 const readinessRequirements = {
   database: ["DB_HOST", "DB_USER", "DB_PASSWORD", "DB_NAME"],
   rag: ["RAG_API_URL", "PASS_KEY", "RAG_KEY", "INDEX_NAME"],
-  gptOss: ["GPT_OSS_API_URL", "GPT_OSS_CREDENTIAL_KEY", "GPT_OSS_SYSTEM_NAME", "GPT_OSS_USER_ID"],
+  openWebUi: ["OPENWEBUI_URL", "OPENWEBUI_MODEL", "OPENWEBUI_API_TOKEN"],
 }
 
 const productionSecurityHeaders = {

@@ -137,7 +137,7 @@ test("컨테이너 헬스체크 경로는 Backend 연결 없이 응답한다", a
 test("운영 준비 상태는 필수 Backend 설정의 입력 여부를 구분한다", async (t) => {
   assert.deepEqual(getRuntimeReadiness({}), {
     ready: false,
-    components: { database: "not_configured", rag: "not_configured", gptOss: "not_configured", sso: "disabled" },
+    components: { database: "not_configured", rag: "not_configured", openWebUi: "not_configured", sso: "disabled" },
   })
 
   const configuredEnvironment = {
@@ -149,10 +149,9 @@ test("운영 준비 상태는 필수 Backend 설정의 입력 여부를 구분�
     PASS_KEY: "pass-key",
     RAG_KEY: "rag-key",
     INDEX_NAME: "quality",
-    GPT_OSS_API_URL: "https://gpt.internal/v1",
-    GPT_OSS_CREDENTIAL_KEY: "credential",
-    GPT_OSS_SYSTEM_NAME: "quality-hub",
-    GPT_OSS_USER_ID: "quality-hub",
+    OPENWEBUI_URL: "https://openwebui.internal",
+    OPENWEBUI_MODEL: "gpt-oss-120b",
+    OPENWEBUI_API_TOKEN: "token",
   }
   assert.equal(getRuntimeReadiness(configuredEnvironment).ready, true)
 
@@ -165,7 +164,7 @@ test("운영 준비 상태는 필수 Backend 설정의 입력 여부를 구분�
   assert.equal(response.status, 200)
   assert.deepEqual(await response.json(), {
     status: "ready",
-    components: { database: "configured", rag: "configured", gptOss: "configured", sso: "disabled" },
+    components: { database: "configured", rag: "configured", openWebUi: "configured", sso: "disabled" },
   })
 })
 

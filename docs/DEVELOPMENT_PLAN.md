@@ -64,7 +64,7 @@
 
 **완료 기준:** 최신 데이터 반영, 장애 시 마지막 정상 데이터 표시, 권한 제한을 검증한다.
 
-2026-08-11 품질 Agent의 사내 RAG 검색, GPT-OSS 답변 생성과 MariaDB/MySQL 대화 History를 하나의 Backend 흐름으로 연결하고 기존 우측 패널·전체 화면에서 같은 대화를 사용하도록 구현했다. 실제 SSO 대신 역할 미리보기 user ID를 테스트 식별값으로 사용하며, Streaming·Spotfire·나머지 사내 데이터 연동과 운영 검증은 남아 있으므로 4단계 전체 완료로 판정하지 않는다.
+2026-08-11 품질 Agent의 사내 RAG 검색, LLM 답변 생성과 MariaDB/MySQL 대화 History를 하나의 Backend 흐름으로 연결하고 기존 우측 패널·전체 화면에서 같은 대화를 사용하도록 구현했다. 2026-09-04 LLM 호출 대상은 기존 전용 GPT-OSS API에서 OpenWebUI 공식 Chat Completions API와 `gpt-oss-120b` 모델로 교체했다. 실제 SSO 대신 역할 미리보기 user ID를 테스트 식별값으로 사용하며, 실제 OpenWebUI 운영 연결·Streaming·Spotfire·나머지 사내 데이터 연동과 운영 검증은 남아 있으므로 4단계 전체 완료로 판정하지 않는다.
 
 2026-08-11 각종 Report 조회 App의 목록·신규 등록·수정·실제 삭제를 품질 Agent와 같은 DB 환경변수의 `report_reg`에 연결하고, `report_url`을 Spotfire 원본 iframe과 새 창 열기에 사용하도록 구현했다. `user_id`와 `reg_time`은 신규 등록 시 화면에 표시하지 않고 기록한다. 테이블에 고유키가 없어 서버가 목록 조회마다 임시 식별자를 발급하고 수정·삭제 시 원래 6개 컬럼을 모두 대조해 한 행만 처리하며, Report 카드는 여러 시각화 유형을 무작위 순서로 배정한다. 실제 SSO와 Spotfire iframe·인증 정책 및 운영 환경 검증은 남아 있으므로 4단계는 계속 진행 중이다.
 

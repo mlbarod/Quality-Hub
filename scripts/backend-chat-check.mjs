@@ -37,7 +37,7 @@ if (!userId || !question) {
     console.log(`assistant message: ${result.assistantMessage.messageId} (${result.assistantMessage.status})`)
     console.log(`최근 History: ${result.historyCount}건`)
     console.log(`RAG 사용: ${result.ragUsed ? "예" : "아니요"} / 출처 ${result.ragSources.length}건`)
-    console.log(`GPT-OSS 모델: ${result.answer.model ?? "gpt-oss-120b"}`)
+    console.log(`OpenWebUI 모델: ${result.answer.model ?? "gpt-oss-120b"}`)
     console.log("답변:")
     console.log(result.answer.content)
     console.log("RAG 출처 JSON:")

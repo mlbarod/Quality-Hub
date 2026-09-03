@@ -9,7 +9,7 @@ export async function generateGptOssReply(input, options = {}) {
   const content = choice?.message?.content
 
   if (typeof content !== "string" || content.length === 0) {
-    throw new GptOssResponseError("GPT-OSS 응답에 choices[0].message.content가 없습니다.", {
+    throw new GptOssResponseError("OpenWebUI 응답에 choices[0].message.content가 없습니다.", {
       completion: result.completion,
     })
   }
@@ -20,7 +20,5 @@ export async function generateGptOssReply(input, options = {}) {
     model: result.completion.model,
     finishReason: choice.finish_reason,
     usage: result.completion.usage,
-    promptMessageId: result.promptMessageId,
-    completionMessageId: result.completionMessageId,
   }
 }

@@ -433,7 +433,7 @@ export function createBackendChatService({
           userId,
           status: BACKEND_CHAT_STATUS.GPT_FAILED,
         })
-        throw createFailure(BackendChatGptOssError, "GPT-OSS 답변 생성에 실패했습니다.", {
+        throw createFailure(BackendChatGptOssError, "OpenWebUI 답변 생성에 실패했습니다.", {
           operation: "gpt_oss_chat",
           cause,
           conversationId,

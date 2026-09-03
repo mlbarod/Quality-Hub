@@ -1,16 +1,13 @@
-import { randomUUID } from "node:crypto"
-
 import OpenAI, { APIConnectionTimeoutError, APIError } from "openai"
 
 export const GPT_OSS_MODEL = "gpt-oss-120b"
 export const GPT_OSS_TEMPERATURE = 0.5
-export const DEFAULT_GPT_OSS_TIMEOUT_MS = 120_000
-const DUMMY_OPENAI_API_KEY = "dummy"
+export const DEFAULT_OPENWEBUI_TIMEOUT_SECONDS = 120
+export const DEFAULT_OPENWEBUI_SUMMARY_BATCH_SIZE = 10
 const REQUIRED_CONFIG = [
-  "GPT_OSS_API_URL",
-  "GPT_OSS_CREDENTIAL_KEY",
-  "GPT_OSS_SYSTEM_NAME",
-  "GPT_OSS_USER_ID",
+  "OPENWEBUI_URL",
+  "OPENWEBUI_MODEL",
+  "OPENWEBUI_API_TOKEN",
 ]
 
 export class GptOssTimeoutError extends Error {
@@ -72,85 +69,116 @@ function normalizeChatMessages({ messages, systemMessage, userMessage }) {
   })
 }
 
-function parseTimeout(value) {
-  if (value === undefined || value === "") return DEFAULT_GPT_OSS_TIMEOUT_MS
-  if (!/^\d+$/.test(value)) throw new TypeError("GPT_OSS_TIMEOUT_MS는 1 이상의 정수여야 합니다.")
-  const timeoutMs = Number(value)
-  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1) {
-    throw new TypeError("GPT_OSS_TIMEOUT_MS는 1 이상의 정수여야 합니다.")
+function parsePositiveInteger(value, { defaultValue, fieldName }) {
+  if (value === undefined || value === "") return defaultValue
+  if (!/^\d+$/.test(value)) throw new TypeError(`${fieldName}는 1 이상의 정수여야 합니다.`)
+  const parsed = Number(value)
+  if (!Number.isSafeInteger(parsed) || parsed < 1) {
+    throw new TypeError(`${fieldName}는 1 이상의 정수여야 합니다.`)
   }
-  return timeoutMs
+  return parsed
+}
+
+function parseCommonHeaders(value) {
+  if (value === undefined || value.trim() === "") return {}
+
+  let headers
+  try {
+    headers = JSON.parse(value)
+  } catch {
+    throw new TypeError("OPENWEBUI_COMMON_HEADERS는 JSON 객체여야 합니다.")
+  }
+  if (!headers || typeof headers !== "object" || Array.isArray(headers)) {
+    throw new TypeError("OPENWEBUI_COMMON_HEADERS는 JSON 객체여야 합니다.")
+  }
+  for (const [name, headerValue] of Object.entries(headers)) {
+    if (name.trim().length === 0 || typeof headerValue !== "string") {
+      throw new TypeError("OPENWEBUI_COMMON_HEADERS의 헤더 이름과 값은 문자열이어야 합니다.")
+    }
+  }
+  return headers
+}
+
+export function normalizeOpenWebUiApiUrl(value) {
+  const input = requireText(value, "OPENWEBUI_URL").trim()
+  let url
+  try {
+    url = new URL(input)
+  } catch {
+    throw new TypeError("OPENWEBUI_URL은 유효한 HTTP(S) URL이어야 합니다.")
+  }
+  if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || url.search || url.hash) {
+    throw new TypeError("OPENWEBUI_URL은 인증정보, query, hash가 없는 HTTP(S) URL이어야 합니다.")
+  }
+
+  const pathname = url.pathname.replace(/\/+$/, "")
+  if (pathname.endsWith("/api/chat/completions")) {
+    url.pathname = pathname.slice(0, -"/chat/completions".length)
+  } else if (pathname.endsWith("/api")) {
+    url.pathname = pathname
+  } else {
+    url.pathname = `${pathname}/api`
+  }
+  return url.toString().replace(/\/$/, "")
 }
 
 export function loadGptOssConfig(environment = process.env) {
-  const missing = REQUIRED_CONFIG.filter((name) => typeof environment[name] !== "string" || environment[name].length === 0)
+  const missing = REQUIRED_CONFIG.filter((name) => typeof environment[name] !== "string" || environment[name].trim().length === 0)
   if (missing.length > 0) {
-    throw new Error(`GPT-OSS API 환경변수가 필요합니다: ${missing.join(", ")}`)
+    throw new Error(`OpenWebUI API 환경변수가 필요합니다: ${missing.join(", ")}`)
   }
 
-  return {
-    apiUrl: environment.GPT_OSS_API_URL,
-    credentialKey: environment.GPT_OSS_CREDENTIAL_KEY,
-    systemName: environment.GPT_OSS_SYSTEM_NAME,
-    userId: environment.GPT_OSS_USER_ID,
-    timeoutMs: parseTimeout(environment.GPT_OSS_TIMEOUT_MS),
+  const timeoutSeconds = parsePositiveInteger(environment.OPENWEBUI_TIMEOUT_SECONDS, {
+    defaultValue: DEFAULT_OPENWEBUI_TIMEOUT_SECONDS,
+    fieldName: "OPENWEBUI_TIMEOUT_SECONDS",
+  })
+  const timeoutMs = timeoutSeconds * 1_000
+  if (!Number.isSafeInteger(timeoutMs)) {
+    throw new TypeError("OPENWEBUI_TIMEOUT_SECONDS가 너무 큽니다.")
   }
-}
-
-export function createGptOssRequestHeaders(config, uuidFactory = randomUUID) {
-  const promptMessageId = uuidFactory()
-  const completionMessageId = uuidFactory()
-
   return {
-    headers: {
-      "x-dep-ticket": config.credentialKey,
-      "Send-System-Name": config.systemName,
-      "User-Id": config.userId,
-      "User-Type": "AD_ID",
-      "Prompt-Msg-Id": promptMessageId,
-      "Completion-Msg-Id": completionMessageId,
-    },
-    promptMessageId,
-    completionMessageId,
+    apiUrl: normalizeOpenWebUiApiUrl(environment.OPENWEBUI_URL),
+    model: requireText(environment.OPENWEBUI_MODEL, "OPENWEBUI_MODEL").trim(),
+    apiToken: requireText(environment.OPENWEBUI_API_TOKEN, "OPENWEBUI_API_TOKEN").trim(),
+    commonHeaders: parseCommonHeaders(environment.OPENWEBUI_COMMON_HEADERS),
+    timeoutSeconds,
+    timeoutMs,
+    summaryBatchSize: parsePositiveInteger(environment.OPENWEBUI_SUMMARY_BATCH_SIZE, {
+      defaultValue: DEFAULT_OPENWEBUI_SUMMARY_BATCH_SIZE,
+      fieldName: "OPENWEBUI_SUMMARY_BATCH_SIZE",
+    }),
   }
 }
 
 export async function createGptOssChatCompletion(input, {
   config = loadGptOssConfig(),
-  uuidFactory = randomUUID,
   OpenAIImpl = OpenAI,
 } = {}) {
   const messages = normalizeChatMessages(input ?? {})
-
-  const requestHeaders = createGptOssRequestHeaders(config, uuidFactory)
   const client = new OpenAIImpl({
-    apiKey: DUMMY_OPENAI_API_KEY,
+    apiKey: config.apiToken,
     baseURL: config.apiUrl,
-    defaultHeaders: requestHeaders.headers,
+    defaultHeaders: config.commonHeaders,
     timeout: config.timeoutMs,
   })
 
   try {
     const completion = await client.chat.completions.create({
-      model: GPT_OSS_MODEL,
+      model: config.model,
       messages,
       temperature: GPT_OSS_TEMPERATURE,
     })
 
-    return {
-      completion,
-      promptMessageId: requestHeaders.promptMessageId,
-      completionMessageId: requestHeaders.completionMessageId,
-    }
+    return { completion }
   } catch (error) {
     if (error instanceof APIConnectionTimeoutError) {
-      throw new GptOssTimeoutError(`GPT-OSS API 호출이 ${config.timeoutMs}ms 안에 완료되지 않았습니다.`, {
+      throw new GptOssTimeoutError(`OpenWebUI API 호출이 ${config.timeoutSeconds}초 안에 완료되지 않았습니다.`, {
         timeoutMs: config.timeoutMs,
         cause: error,
       })
     }
     if (error instanceof APIError) {
-      throw new GptOssApiError(`GPT-OSS API 호출에 실패했습니다.${error.status ? ` HTTP ${error.status}` : ""}`, {
+      throw new GptOssApiError(`OpenWebUI API 호출에 실패했습니다.${error.status ? ` HTTP ${error.status}` : ""}`, {
         status: error.status,
         code: error.code,
         type: error.type,
@@ -159,7 +187,7 @@ export async function createGptOssChatCompletion(input, {
       })
     }
     if (error instanceof SyntaxError) {
-      throw new GptOssResponseError("GPT-OSS API 응답을 JSON으로 해석할 수 없습니다.", { cause: error })
+      throw new GptOssResponseError("OpenWebUI API 응답을 JSON으로 해석할 수 없습니다.", { cause: error })
     }
     throw error
   }

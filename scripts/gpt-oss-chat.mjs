@@ -11,9 +11,7 @@ const userMessage = userInput?.trim() || "How are you?"
 
 try {
   const result = await generateGptOssReply({ systemMessage, userMessage })
-  console.log(`GPT-OSS 모델: ${result.model ?? "gpt-oss-120b"}`)
-  console.log(`Prompt-Msg-Id: ${result.promptMessageId}`)
-  console.log(`Completion-Msg-Id: ${result.completionMessageId}`)
+  console.log(`OpenWebUI 모델: ${result.model ?? "gpt-oss-120b"}`)
   console.log(`Finish reason: ${result.finishReason ?? "확인되지 않음"}`)
   console.log("답변:")
   console.log(result.content)
