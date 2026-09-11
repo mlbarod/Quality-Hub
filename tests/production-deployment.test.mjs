@@ -39,7 +39,7 @@ test("C-DEP 이미지는 필수 환경파일을 변경하지 않고 지정 경�
   assert.doesNotMatch(cdepDockerfile, /ARG VITE_QNA_LINE_CATEGORIES|ENV VITE_QNA_LINE_CATEGORIES/)
   assert.match(cdepDockerfile, /COPY prototype \.\/prototype/)
   assert.match(cdepDockerfile, /COPY prototype\/\.env\.local \.\/prototype\/\.env\.local/)
-  for (const fileName of ["db", "rag", "gpt-oss", "sso"]) {
+  for (const fileName of ["db", "rag", "gpt-oss", "sso", "mail"]) {
     assert.match(cdepDockerfile, new RegExp(`COPY[^\\n]*\\.env\\.${fileName} \\.\\/`))
   }
 })
@@ -56,7 +56,7 @@ test("Compose는 앱을 loopback에 제한하고 읽기 전용으로 실행한�
 
 test("필수 운영 환경파일은 Git에서 제외하고 Docker 빌드 컨텍스트에 포함한다", () => {
   assert.match(dockerignore, /^\.env\*$/m)
-  for (const fileName of ["db", "rag", "gpt-oss", "sso"]) {
+  for (const fileName of ["db", "rag", "gpt-oss", "sso", "mail"]) {
     assert.match(dockerignore, new RegExp(`^!\\.env\\.${fileName}$`, "m"))
     assert.match(gitignore, new RegExp(`^\\.env\\.${fileName}$`, "m"))
   }

@@ -11,6 +11,7 @@ coverage
 !.env.rag
 !.env.gpt-oss
 !.env.sso
+!.env.mail
 !prototype/.env.local
 certs/
 docs

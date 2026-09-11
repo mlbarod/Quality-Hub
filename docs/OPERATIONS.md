@@ -34,11 +34,14 @@ test -f prototype/.env.local
 - `.env.gpt-oss`: OpenWebUI URL·모델·API token과 선택 설정
 - `.env.db`: MariaDB/MySQL 접속정보
 - `.env.sso`: SSO와 세션 설정
+- `.env.mail`: Knox 메일 설정. C-DEP 빌드에서는 추가 필수이며, 미사용 환경도 `KNOX_MAIL_ENABLED=false`인 파일을 제공
 - `prototype/.env.local`: Vite 빌드에 포함되는 Q&A 라인 표시값
 
 이 다섯 필수 환경파일은 Git에 추가하지 않는다. 개발·빌드·배포 작업은 파일 내용을 생성·수정·덮어쓰지 않고 승인된 원본을 그대로 사용한다. Compose는 루트 환경파일을 컨테이너 실행 환경으로 전달하고, C-DEP용 `docker/Dockerfile-prod`는 C-DEP가 빌드 작업공간에 제공한 원본을 지정 경로로 복사한다. 따라서 C-DEP 이미지와 Artifactory 접근 권한은 비밀정보 취급 기준으로 제한한다. `prototype/.env.local`의 `VITE_` 값은 브라우저 번들에 포함되므로 비밀번호나 인증정보를 넣지 않는다.
 
 `.env.compose`는 위 다섯 필수 환경파일과 별도로 배포 명령에 사용하는 파일이다. 최초 준비와 값 변경은 환경 소유자의 승인된 절차로만 수행하고 애플리케이션 작업에서 수정하지 않는다.
+
+C-DEP의 빌드 버튼을 사용하는 환경은 `.env.mail`도 `.env.db`와 같은 작업공간 루트에 제공한다. `docker/Dockerfile-prod`가 `/opt/work/.env.mail`로 복사하고 서버 시작 시 읽는다. `.env.mail`도 Git에 추가하지 않으며 개발 작업에서 원본 내용을 변경하지 않는다. 일반 Compose 환경의 메일 설정과 시작 로그 확인은 [품질VOE 메일 연동 안내](QNA_MAIL_INTEGRATION.md)를 따른다.
 
 ## 배포
 

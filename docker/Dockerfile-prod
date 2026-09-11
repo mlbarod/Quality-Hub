@@ -31,6 +31,7 @@ COPY --chown=node\:node .env.db ./
 COPY --chown=node\:node .env.rag ./
 COPY --chown=node\:node .env.gpt-oss ./
 COPY --chown=node\:node .env.sso ./
+COPY --chown=node\:node .env.mail ./
 
 USER node
 EXPOSE 8080
