@@ -8,6 +8,7 @@ FROM dependencies AS build
 
 COPY prototype ./prototype
 COPY prototype/.env.local ./prototype/.env.local
+COPY server/qnaLimits.mjs ./server/qnaLimits.mjs
 COPY vite.config.mjs jsconfig.json components.json ./
 RUN npm run build
 
