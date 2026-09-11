@@ -157,3 +157,15 @@ test('요약 목록과 단일 질문 조회 옵션을 서버 저장소에 전달
   const missing = await callApi({ async getSnapshot() { return { posts: [] } } }, { url: '/api/qna/questions/7', headers: identity })
   assert.equal(missing.statusCode, 404)
 })
+
+test('큰 사진 두 장이 포함된 8MB 요청을 허용하고 20MB 초과 요청은 저장 전에 거절한다', async () => {
+  let calls = 0
+  const repository = { async createQuestion() { calls++; return { questionId: 1 } } }
+  const bodyHtml = '<p>사진 설명</p>' + '<img src="data:image/png;base64,' + 'A'.repeat(4 * 1024 * 1024) + '"><img src="data:image/png;base64,' + 'A'.repeat(4 * 1024 * 1024) + '">'
+  const accepted = await callApi(repository, { method: 'POST', url: '/api/qna/questions', headers: identity, body: { bodyHtml } })
+  assert.equal(accepted.statusCode, 201)
+  const rejected = await callApi(repository, { method: 'POST', url: '/api/qna/questions', headers: identity, body: { bodyHtml: 'a'.repeat(20 * 1024 * 1024) } })
+  assert.equal(rejected.statusCode, 413)
+  assert.equal(calls, 1)
+  assert.match(JSON.parse(rejected.body).error.message, /사진 크기를 줄이거나/)
+})

@@ -2496,8 +2496,33 @@ document.querySelector("[data-global-search-results]")?.addEventListener("click"
     }
 });
 
+let qnaWaitingRequest = 0;
+function renderQnaWaitingCount(snapshot) {
+  const count = snapshot.posts.filter((post) => !post.hidden && post.status === "waiting").length;
+  const badge = document.querySelector("[data-qna-waiting-count]");
+  badge?.replaceChildren(`${count}건 대기`);
+  badge?.classList.toggle("is-attention", count > 0);
+}
+
+async function refreshQnaWaitingCount(canAccess) {
+  const request = ++qnaWaitingRequest;
+  const badge = document.querySelector("[data-qna-waiting-count]");
+  badge?.replaceChildren(canAccess ? "확인 중" : "접근 제한");
+  badge?.classList.remove("is-attention");
+  if (!canAccess) return;
+  try {
+    const snapshot = await qnaRepository.getSnapshot();
+    if (request === qnaWaitingRequest) renderQnaWaitingCount(snapshot);
+  } catch {
+    if (request === qnaWaitingRequest) badge?.replaceChildren("확인 불가");
+  }
+}
+
 window.addEventListener(LOCAL_DATA_EVENT, (event) => {
-  if (event.detail?.key === "qna") syncGlobalSearchResults();
+  if (event.detail?.key === "qna") {
+    renderQnaWaitingCount(event.detail.data);
+    syncGlobalSearchResults();
+  }
 });
 syncGlobalSearchResults();
 
@@ -2731,7 +2756,7 @@ const applyRole = (role, { announce = true, user = null } = {}) => {
 
   syncPrimaryWorkspaceAccessibility();
   window.dispatchEvent(new CustomEvent("qualityhub:role-change", { detail: { role, policy: currentRolePolicy, user: roleOption } }));
-  if (currentRolePolicy.canAccess) void qnaRepository.getSnapshot().catch(() => {});
+  void refreshQnaWaitingCount(currentRolePolicy.canAccess);
   if (announce) showToast(isSsoMode ? `${roleOption.label} 권한이 적용되었습니다.` : `${roleOption.label} 역할 화면으로 전환했습니다. (목업)`);
 };
 

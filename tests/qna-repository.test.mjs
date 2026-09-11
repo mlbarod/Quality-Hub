@@ -163,3 +163,10 @@ test('질문 등록 결과에 DB 저장에 사용한 정제된 상세를 포함�
   assert.match(calls[0][0], /CURRENT_TIMESTAMP/)
   assert.ok(calls.every(([sql]) => !sql.includes('SELECT')))
 })
+
+test('이미지 포함 본문은 15MB 바이트 한도로 검사하며 큰 사진을 보존한다', () => {
+  const html = '<p>사진 설명</p><img src="data:image/png;base64,' + 'A'.repeat(2 * 1024 * 1024) + '">'
+  assert.equal(sanitizeRichHtml(html), html)
+  assert.throws(() => sanitizeRichHtml('가'.repeat(6 * 1024 * 1024)), (error) => error.code === 'BODY_TOO_LARGE')
+  assert.throws(() => sanitizeRichHtml('a'.repeat(15 * 1024 * 1024 + 1)), (error) => error.code === 'BODY_TOO_LARGE')
+})

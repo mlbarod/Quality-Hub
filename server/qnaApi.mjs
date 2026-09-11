@@ -1,8 +1,9 @@
-import { createQnaRepository, QnaNotFoundError, QnaPermissionError } from "./qnaRepository.mjs"
+import { createQnaRepository, QnaNotFoundError, QnaPermissionError, QnaValidationError } from "./qnaRepository.mjs"
+import { MAX_QNA_REQUEST_BYTES, QNA_SIZE_MESSAGE } from "./qnaLimits.mjs"
 import { createQnaMailNotifier } from "./qnaMail.mjs"
 
 const API_PATH = "/api/qna"
-const MAX_JSON_BODY_BYTES = 600 * 1024
+const MAX_JSON_BODY_BYTES = MAX_QNA_REQUEST_BYTES
 const ROLES = new Set(["master", "admin", "general"])
 
 function sendJson(res, statusCode, payload, extraHeaders = {}) {
@@ -45,9 +46,15 @@ function requireActor(req) {
 async function readJsonBody(req) {
   const chunks = []
   let byteLength = 0
-  for await (const chunk of req) {
+  const rejectLargeBody = () => {
+    req.resume()
+    throw new QnaApiRequestError(QNA_SIZE_MESSAGE, { status: 413, code: "BODY_TOO_LARGE" })
+  }
+  if (Number(singleHeader(req, "content-length")) > MAX_JSON_BODY_BYTES) rejectLargeBody()
+  // 크기 초과 시 소켓을 먼저 끊지 않아야 브라우저에 안내 응답을 보낼 수 있다.
+  for await (const chunk of req.iterator({ destroyOnReturn: false })) {
     byteLength += chunk.length
-    if (byteLength > MAX_JSON_BODY_BYTES) throw new QnaApiRequestError("요청 내용이 너무 큽니다.", { status: 413, code: "BODY_TOO_LARGE" })
+    if (byteLength > MAX_JSON_BODY_BYTES) rejectLargeBody()
     chunks.push(chunk)
   }
   if (byteLength === 0) return {}
@@ -84,6 +91,8 @@ function toApiError(error) {
   if (error instanceof QnaApiRequestError) return error
   if (error instanceof QnaNotFoundError) return new QnaApiRequestError(error.message, { status: 404, code: "QNA_NOT_FOUND" })
   if (error instanceof QnaPermissionError) return new QnaApiRequestError(error.message, { status: 403, code: "QNA_FORBIDDEN" })
+  if (error?.code === "BODY_TOO_LARGE" || ["ER_DATA_TOO_LONG", "ER_NET_PACKET_TOO_LARGE"].includes(error?.code)) return new QnaApiRequestError(QNA_SIZE_MESSAGE, { status: 413, code: "BODY_TOO_LARGE" })
+  if (error instanceof QnaValidationError) return new QnaApiRequestError(error.message, { status: 400, code: "VALIDATION_FAILED" })
   if (error instanceof TypeError || error instanceof URIError) return new QnaApiRequestError(error.message, { status: 400, code: "INVALID_INPUT" })
   if (error && typeof error === "object" && ("sqlState" in error || "errno" in error || "fatal" in error)) {
     return new QnaApiRequestError("품질VOE DB 요청을 처리하지 못했습니다.", { status: 503, code: "DB_FAILED" })

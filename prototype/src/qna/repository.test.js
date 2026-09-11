@@ -71,6 +71,26 @@ test('상세 요청은 한 글만 가져오고 저장 실패는 캐시를 변경
   const detail = await repository.getQuestion(1)
   expect(detail.posts[0].detailLoaded).toBe(true)
   expect(fetch.mock.calls[1][0]).toBe('/api/qna/questions/1')
-  await expect(repository.createQuestion({ title: '실패' })).rejects.toThrow('저장 실패')
+  await expect(repository.createQuestion({ title: '실패' })).rejects.toThrow('일시적인 서버 문제')
   expect(repository.read().posts).toHaveLength(1)
+})
+
+test('프록시 HTML 413 응답을 사용자 용량 안내로 바꾸고 내부 오류를 노출하지 않는다', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('<html>nginx internal diagnostic</html>', { status: 413 })))
+  await expect(repository.createQuestion({ title: '사진' })).rejects.toThrow('사진 크기를 줄이거나')
+})
+
+test('클라이언트 한도를 넘는 본문은 전송하지 않고 거절한다', async () => {
+  const fetch = vi.fn()
+  vi.stubGlobal('fetch', fetch)
+  await expect(repository.createQuestion({ bodyHtml: 'a'.repeat(15 * 1024 * 1024 + 1) })).rejects.toMatchObject({ status: 413 })
+  expect(fetch).not.toHaveBeenCalled()
+})
+
+test('저장 중 로그인 만료와 연결 실패를 안내용 오류로 전달한다', async () => {
+  document.querySelector('.prototype').dataset.authMode = 'sso'
+  const fetch = vi.fn().mockResolvedValueOnce(new Response('', { status: 401 })).mockRejectedValueOnce(new TypeError('Failed to fetch secret-host'))
+  vi.stubGlobal('fetch', fetch)
+  await expect(repository.createQuestion({ title: '제목' })).rejects.toThrow('로그인이 만료')
+  await expect(repository.createQuestion({ title: '제목' })).rejects.toThrow('저장 여부를 확인할 수 없습니다')
 })

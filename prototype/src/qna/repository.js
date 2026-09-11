@@ -1,6 +1,8 @@
 import { createSessionAwareFetch } from "@/auth/sessionClient"
 import { LOCAL_DATA_EVENT } from "@/data/localRepository"
 import { initialNotifications, initialPosts } from "@/qna/data"
+import { MAX_QNA_HTML_BYTES, MAX_QNA_REQUEST_BYTES, QNA_SIZE_MESSAGE } from "../../../server/qnaLimits.mjs"
+import { qnaFailureMessage } from "./errors"
 
 const emptySnapshot = { posts: [], notifications: [], history: [] }
 const isTestMode = import.meta.env.MODE === "test"
@@ -84,8 +86,13 @@ function dispatchSnapshot(snapshot) {
 
 function createRequest() {
   const identity = getIdentity()
-  const fetchImpl = createSessionAwareFetch({ isSsoMode: identity.isSsoMode })
   return async (path, { method = "GET", body } = {}) => {
+    // 저장 중 로그인 만료는 작성창을 유지한 채 안내한다. 조회의 기존 로그인 이동은 유지한다.
+    const fetchImpl = createSessionAwareFetch({ isSsoMode: identity.isSsoMode && method === "GET" })
+    const json = body === undefined ? undefined : JSON.stringify(body)
+    if ((typeof body?.bodyHtml === "string" && new Blob([body.bodyHtml]).size > MAX_QNA_HTML_BYTES) || (json && new Blob([json]).size > MAX_QNA_REQUEST_BYTES)) {
+      throw new QnaRepositoryError(QNA_SIZE_MESSAGE, { status: 413, code: "BODY_TOO_LARGE" })
+    }
     const headers = { Accept: "application/json" }
     if (body !== undefined) headers["Content-Type"] = "application/json"
     if (!identity.isSsoMode) {
@@ -93,9 +100,19 @@ function createRequest() {
       headers["x-quality-hub-user-name"] = encodeURIComponent(identity.displayName)
       headers["x-quality-hub-role"] = identity.role
     }
-    const response = await fetchImpl(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) })
-    const payload = await response.json().catch(() => ({}))
-    if (!response.ok) throw new QnaRepositoryError(payload.error?.message ?? "품질VOE DB 요청을 처리하지 못했습니다.", { status: response.status, code: payload.error?.code })
+    let response
+    try { response = await fetchImpl(path, { method, headers, body: json }) } catch (error) {
+      if (error?.code === "AUTHENTICATION_REDIRECT") throw error
+      throw new QnaRepositoryError(qnaFailureMessage({ code: "NETWORK_ERROR" }), { code: "NETWORK_ERROR" })
+    }
+    let payload
+    try { payload = await response.json() } catch {
+      if (response.ok) throw new QnaRepositoryError(qnaFailureMessage({ code: "INVALID_RESPONSE" }), { code: "INVALID_RESPONSE" })
+    }
+    if (!response.ok) {
+      const details = { status: response.status, code: payload?.error?.code, message: payload?.error?.message }
+      throw new QnaRepositoryError(qnaFailureMessage(details), details)
+    }
     return payload
   }
 }

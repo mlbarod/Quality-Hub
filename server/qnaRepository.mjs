@@ -3,6 +3,9 @@ import { randomUUID } from "node:crypto"
 import mysql from "mysql2/promise"
 
 import { loadDbConfig } from "./conversationHistoryRepository.mjs"
+import { MAX_QNA_HTML_BYTES, QNA_SIZE_MESSAGE } from "./qnaLimits.mjs"
+
+export class QnaValidationError extends TypeError {}
 
 const QUESTION_CATEGORIES = new Set(["Rule", "SPC", "FDC", "TTTM", "Report", "WF Loss", "미분류"])
 const QUESTION_STATUSES = new Set(["waiting", "active", "completed"])
@@ -22,15 +25,17 @@ const ACTION_LABELS = {
 }
 
 function requireText(value, fieldName, maxLength) {
-  if (typeof value !== "string" || value.trim().length === 0) throw new TypeError(`${fieldName} 값을 입력해 주세요.`)
+  fieldName = ({ title: "제목", bodyHtml: "본문", category: "구분", lineName: "라인", userId: "사용자", displayName: "작성자 이름", role: "사용 권한" })[fieldName] ?? fieldName
+  if (typeof value !== "string" || value.trim().length === 0) throw new QnaValidationError(`${fieldName} 값을 입력해 주세요.`)
   const normalized = value.trim().normalize("NFKC")
-  if (normalized.length > maxLength) throw new TypeError(`${fieldName} 값은 ${maxLength}자 이하여야 합니다.`)
+  if (normalized.length > maxLength) throw new QnaValidationError(`${fieldName} 값은 ${maxLength}자 이하여야 합니다.`)
   return normalized
 }
 
 function requireId(value, fieldName) {
+  fieldName = ({ questionId: "게시글", messageId: "답변", notificationId: "알림" })[fieldName] ?? fieldName
   const normalized = Number(value)
-  if (!Number.isSafeInteger(normalized) || normalized <= 0) throw new TypeError(`${fieldName} 값이 올바르지 않습니다.`)
+  if (!Number.isSafeInteger(normalized) || normalized <= 0) throw new QnaValidationError(`${fieldName} 값이 올바르지 않습니다.`)
   return normalized
 }
 
@@ -52,7 +57,9 @@ function stripHtml(value) {
 }
 
 export function sanitizeRichHtml(value) {
-  const html = requireText(value, "bodyHtml", 500_000)
+  if (typeof value === "string" && Buffer.byteLength(value, "utf8") > MAX_QNA_HTML_BYTES) throw Object.assign(new QnaValidationError(QNA_SIZE_MESSAGE), { code: "BODY_TOO_LARGE" })
+  const html = requireText(value, "bodyHtml", MAX_QNA_HTML_BYTES)
+  if (Buffer.byteLength(html, "utf8") > MAX_QNA_HTML_BYTES) throw Object.assign(new QnaValidationError(QNA_SIZE_MESSAGE), { code: "BODY_TOO_LARGE" })
   const withoutDangerousNodes = html
     .replace(/<(script|style|iframe|object|embed|form|input|button|textarea|select|option|meta|link)\b[^>]*>[\s\S]*?<\/\1>/gi, "")
     .replace(/<(script|style|iframe|object|embed|form|input|button|textarea|select|option|meta|link)\b[^>]*\/?\s*>/gi, "")
@@ -68,26 +75,26 @@ export function sanitizeRichHtml(value) {
 
 export function normalizeTags(tags) {
   if (tags === undefined) return []
-  if (!Array.isArray(tags)) throw new TypeError("tags 값은 배열이어야 합니다.")
+  if (!Array.isArray(tags)) throw new QnaValidationError("태그를 쉼표로 구분해 입력해 주세요.")
   const seen = new Set()
   const normalized = []
   for (const rawTag of tags) {
     const tag = String(rawTag ?? "").trim().replace(/^#+/, "").trim().normalize("NFKC")
     if (!tag) continue
-    if (tag.length > 50) throw new TypeError("태그는 50자 이하여야 합니다.")
+    if (tag.length > 50) throw new QnaValidationError("태그는 50자 이하여야 합니다.")
     const key = tag.toLocaleLowerCase("ko-KR")
     if (seen.has(key)) continue
     seen.add(key)
     normalized.push(tag)
   }
-  if (normalized.length > 5) throw new TypeError("태그는 최대 5개까지 입력할 수 있습니다.")
+  if (normalized.length > 5) throw new QnaValidationError("태그는 최대 5개까지 입력할 수 있습니다.")
   return normalized
 }
 
 function normalizeActor(actor) {
-  if (!actor || typeof actor !== "object") throw new TypeError("사용자 정보가 필요합니다.")
+  if (!actor || typeof actor !== "object") throw new QnaValidationError("사용자 정보가 필요합니다.")
   const role = requireText(actor.role, "role", 20)
-  if (!["master", "admin", "general"].includes(role)) throw new TypeError("품질VOE를 사용할 권한이 없습니다.")
+  if (!["master", "admin", "general"].includes(role)) throw new QnaValidationError("품질VOE를 사용할 권한이 없습니다.")
   return {
     userId: requireText(actor.userId, "userId", 100),
     displayName: requireText(actor.displayName, "displayName", 100),
@@ -97,10 +104,10 @@ function normalizeActor(actor) {
 
 function questionInput(input) {
   const category = requireText(input?.category, "category", 30)
-  if (!QUESTION_CATEGORIES.has(category)) throw new TypeError("category 값이 올바르지 않습니다.")
+  if (!QUESTION_CATEGORIES.has(category)) throw new QnaValidationError("구분을 목록에서 다시 선택해 주세요.")
   const bodyHtml = sanitizeRichHtml(input?.bodyHtml)
   const bodyText = stripHtml(bodyHtml)
-  if (!bodyText) throw new TypeError("질문 본문을 입력해 주세요.")
+  if (!bodyText) throw new QnaValidationError("질문 본문을 입력해 주세요.")
   return {
     title: requireText(input?.title, "title", 255),
     bodyHtml,
@@ -114,7 +121,7 @@ function questionInput(input) {
 function messageInput(input) {
   const bodyHtml = sanitizeRichHtml(input?.bodyHtml)
   const bodyText = stripHtml(bodyHtml)
-  if (!bodyText) throw new TypeError("답변 내용을 입력해 주세요.")
+  if (!bodyText) throw new QnaValidationError("답변 내용을 입력해 주세요.")
   return { bodyHtml, bodyText }
 }
 
@@ -430,7 +437,7 @@ export function createQnaRepository({ pool = createQnaPool(), uuidFactory = rand
         if (input?.operation === "status") {
           if (!PRIVILEGED_ROLES.has(actor.role)) throw new QnaPermissionError()
           const status = requireText(input.status, "status", 20)
-          if (!QUESTION_STATUSES.has(status)) throw new TypeError("status 값이 올바르지 않습니다.")
+          if (!QUESTION_STATUSES.has(status)) throw new QnaValidationError("처리 상태를 목록에서 다시 선택해 주세요.")
           await connection.execute("UPDATE quality_hub_qna_question SET status = ?, final_message_id = IF(? = 'completed', final_message_id, NULL), updated_at = CURRENT_TIMESTAMP(3) WHERE question_id = ?", [status, status, questionId])
           await insertNotification(connection, { questionId, recipientUserId: current.authorUserId, actorUserId: actor.userId, eventType: "status_changed", uuidFactory })
           await insertHistory(connection, { questionId, actionType: "status_changed", actor, detail: { status }, uuidFactory })
@@ -466,7 +473,7 @@ export function createQnaRepository({ pool = createQnaPool(), uuidFactory = rand
         const title = requireText(input?.title, "title", 255)
         const bodyHtml = sanitizeRichHtml(input?.bodyHtml)
         const bodyText = stripHtml(bodyHtml)
-        if (!bodyText) throw new TypeError("질문 본문을 입력해 주세요.")
+        if (!bodyText) throw new QnaValidationError("질문 본문을 입력해 주세요.")
         await connection.execute(`
           UPDATE quality_hub_qna_question
           SET title = ?, body_html = ?, body_text = ?, updated_at = CURRENT_TIMESTAMP(3)
