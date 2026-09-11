@@ -120,14 +120,14 @@
 
 - 메일 발송 API는 `POST https://openapi.samsung.net/mail/api/v2.0/mails/send?userId={KNOX_MAIL_USER_ID}`이며, `userId`에는 개발자 본인의 Knox ID를 서버 환경변수 `KNOX_MAIL_USER_ID`로 설정하여 사용
 - 요청 헤더는 `accept: */*`, `Content-Type: application/json`, `Authorization: Bearer {token}`, `System-ID: {System id}`를 사용. 토큰과 System ID는 서버 환경변수로 제공하며, 사용자 확인상 토큰은 만료되지 않음
-- 요청 본문은 `subject`, `docSecuType: PERSONAL`, `contents`, `contentType: TEXT`, `sender: {emailAddress}`, `recipients: [{emailAddress, recipientType: TO}]` 구조를 사용. `sender.emailAddress`는 질문 또는 추가 답변 작성자의 `{knox_id}@samsung.com`으로 구성하고, 수신자 주소는 각 수신자의 `{knox_id}@samsung.com`으로 구성. URL의 `userId`와 본문의 발신자는 별도로 처리
+- 요청 본문은 `subject`, `docSecuType: PERSONAL`, `contents`, `contentType: HTML`, `sender: {emailAddress}`, `recipients: [{emailAddress, recipientType: TO}]` 구조를 사용. `sender.emailAddress`는 질문 또는 추가 답변 작성자의 `{knox_id}@samsung.com`으로 구성하고, 수신자 주소는 각 수신자의 `{knox_id}@samsung.com`으로 구성. URL의 `userId`와 본문의 발신자는 별도로 처리
 - 수신 대상은 권한 관리 탭에 등록된 관리자와 마스터이며, 작성자가 수신 대상인 경우 본인도 포함. 사용자 확인상 수신자 수 제한은 없음
 - 메일 제목은 게시글 신규 등록 시 `[품질 Hub VOE] 게시글 등록:{질문 제목}`, 추가 답변 등록 시 `[품질 Hub VOE] 추가 답변: {질문 제목}`으로 구성
-- 메일 본문은 사용자가 승인한 예시처럼 작성자·구분·라인, 게시글 바로가기 링크, 실제 질문 본문 순서로 표시. `contentType: TEXT`로 글과 줄바꿈을 제공하며, 리치 텍스트 서식·이미지 보존은 HTML 형식 지원 확인이 필요
+- 메일 본문은 사용자가 승인한 예시처럼 작성자·구분·라인, 게시글 바로가기 링크, 실제 질문 본문 순서로 표시. 2026-09-11 사용자 요청으로 `contentType: HTML` 본문에 VOE의 문단·강조·목록·인용·링크·표 서식을 유지하고 이미지는 `[이미지: 게시글에서 확인]` 안내로 대체. 임의 HTML 속성·외부 리소스는 제외하며 실제 Knox HTML 지원과 수신 표시는 미검증
 - 설명용 성공 응답(`200 OK`, `success`, `messageId`)과 실패 응답(`401 Unauthorized`, `code`, `message`) 예시는 실제 Knox API 규격으로 확정하지 않음
 - 발송 실패 시 추가 재시도는 최대 1회. 게시글·답변 저장 성공 후 비동기 발송하며 메일 실패로 저장을 취소하지 않고 실패를 기록
 - 성공·실패 응답 구조와 성공 판정 기준은 미수령. HTTP 2xx는 접수·응답 검증 대기로 기록하고, HTTP 오류·네트워크 오류·시간 초과에 추가 1회 재시도. 실제 응답 본문에 따른 업무 오류 판정은 사내 검증 후 보완
-- 추가 답변 메일에는 질문 원문 아래에 새 답변 본문도 표시. 게시글 링크는 숫자 질문 ID로 상세 화면을 열도록 구성
+- 추가 답변 메일에는 질문 원문 아래에 굵은 구분선과 `추가 답변` 제목을 넣어 새 답변 본문을 명확히 구분. 게시글 링크는 숫자 질문 ID로 상세 화면을 열도록 구성
 - 설정과 구현 제한사항은 [품질VOE Knox 메일 알림](QNA_MAIL_INTEGRATION.md)을 따름. 실제 사내망 발송·수신 검증은 사용자가 직접 수행하며 아직 미검증
 
 ## 데이터 원천

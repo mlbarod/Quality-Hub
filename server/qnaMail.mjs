@@ -1,3 +1,5 @@
+import { escapeMailHtml, richHtmlToMailHtml } from "./qnaMailHtml.mjs"
+
 const ENDPOINT = "https://openapi.samsung.net/mail/api/v2.0/mails/send"
 const REQUIRED_ENV = ["KNOX_MAIL_USER_ID", "KNOX_MAIL_TOKEN", "KNOX_MAIL_SYSTEM_ID", "KNOX_MAIL_PORTAL_URL"]
 
@@ -72,13 +74,22 @@ export function buildQnaMail(config, { eventType, question, message, actor, reci
   link.searchParams.set("questionId", String(question.questionId))
   const reply = eventType === "message_created"
   const contents = [
-    `작성자: ${actor.displayName}`, `구분: ${question.category}`, `라인: ${question.lineName}`,
-    "", "게시글 바로가기:", link.href, "", "질문 본문:", richHtmlToMailText(question.bodyHtml),
+    '<!doctype html><html lang="ko"><head><meta charset="utf-8"></head><body style="margin:0;padding:24px;background:#ffffff;">',
+    '<div style="font-family:Arial,\'Malgun Gothic\',sans-serif;font-size:14px;line-height:1.8;color:#263b4a;text-align:left;overflow-wrap:break-word;">',
+    `<p style="margin:0 0 16px;">작성자: ${escapeMailHtml(actor.displayName)}<br>구분: ${escapeMailHtml(question.category)}<br>라인: ${escapeMailHtml(question.lineName)}</p>`,
+    `<p style="margin:0 0 24px;">게시글 바로가기:<br><a href="${escapeMailHtml(link.href)}" target="_blank" rel="noopener noreferrer" style="color:#0673bc;text-decoration:underline;overflow-wrap:anywhere;">${escapeMailHtml(link.href)}</a></p>`,
+    '<h2 style="margin:0 0 16px;font-size:18px;color:#172c3c;">질문 본문</h2>',
+    `<div>${richHtmlToMailHtml(question.bodyHtml, config.portalUrl)}</div>`,
   ]
-  if (reply) contents.push("", "추가 답변:", richHtmlToMailText(message.bodyHtml))
+  if (reply) contents.push(
+    '<hr style="margin:32px 0 24px;border:0;border-top:3px solid #6c91aa;">',
+    '<h2 style="margin:0 0 16px;font-size:18px;color:#172c3c;">추가 답변</h2>',
+    `<div style="font-size:13px;line-height:1.65;color:#454a4f;">${richHtmlToMailHtml(message.bodyHtml, config.portalUrl)}</div>`,
+  )
+  contents.push("</div></body></html>")
   return {
     subject: `${reply ? "[품질 Hub VOE] 추가 답변: " : "[품질 Hub VOE] 게시글 등록:"}${question.title}`,
-    docSecuType: "PERSONAL", contents: contents.join("\n"), contentType: "TEXT",
+    docSecuType: "PERSONAL", contents: contents.join("\n"), contentType: "HTML",
     sender: { emailAddress: emailAddress(actor.userId) },
     recipients: [...new Set(recipientUserIds.map(emailAddress))].map((address) => ({ emailAddress: address, recipientType: "TO" })),
   }

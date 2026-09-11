@@ -41,6 +41,7 @@
     "lucide-react": "^1.28.0",
     "mysql2": "^3.23.2",
     "openai": "^7.4.0",
+    "parse5": "8.0.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "tailwind-merge": "^3.6.0"
