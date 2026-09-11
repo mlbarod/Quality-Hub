@@ -10,7 +10,9 @@
 
 ## 서버 설정
 
-`.env.mail.example`을 참고해 환경 소유자가 Git에 저장하지 않는 `.env.mail`을 작성한다. 개발 작업에서는 실제 환경파일을 생성하거나 수정하지 않았다.
+사용자는 사내 플랫폼의 빌드 버튼으로 웹서비스를 실행하며 직접 터미널에서 실행하지 않는다. 설정·로그 안내는 이 실행 방식을 기준으로 한다. 플랫폼의 실행 환경변수 설정에 아래 값을 등록하거나, 실행 서버가 읽을 수 있는 프로젝트 루트의 `.env.mail`을 제공한다. 빌드 단계에만 설정한 변수는 서버 실행 단계에 전달되는지 별도 확인해야 한다.
+
+`.env.mail.example`을 참고하며 실제 값은 Git에 저장하지 않는다. 개발 작업에서는 실제 환경파일을 생성하거나 수정하지 않았다. 현재 사내 플랫폼이 환경변수·파일을 실행 서버에 전달하는 구체적 방식은 확인하지 않았다.
 
 | 환경변수 | 설정 |
 | --- | --- |
@@ -23,7 +25,7 @@
 
 `npm run dev`와 `npm start`는 `.env.mail`이 있으면 읽는다. 설정 후 서버를 재시작한다. `VITE_` 환경변수로 비밀값을 전달하지 않는다.
 
-Docker Compose는 기존 구성에 `-f compose.mail.yaml`을 추가해 실행한다. 예를 들어 SSO 사용 환경에서는 다음 명령으로 운영자가 변경을 반영한다.
+아래는 Docker Compose를 직접 사용하는 운영자에게만 해당하는 참고 설정이다. 사내 플랫폼의 빌드 버튼이 Compose를 사용한다고 가정하지 않는다. Docker Compose는 기존 구성에 `-f compose.mail.yaml`을 추가한다.
 
 ```sh
 docker compose -f compose.yaml -f compose.sso.yaml -f compose.mail.yaml up -d --build
@@ -48,10 +50,20 @@ API URL의 `userId`는 개발자 ID이고, 본문의 `sender.emailAddress`는 �
 
 ## 실패 처리 및 운영 로그
 
+메일 로그는 `Q&A mail` 접두어와 한 줄 JSON으로 서버 표준 출력에 기록한다. 설정·발송 오류는 DB 오류와 같은 `console.error`(표준 오류), 비활성화·수신자 누락은 `console.warn`(표준 오류), 정상 설정·HTTP 접수는 `console.info`(표준 출력)를 사용한다. 사내 화면이 어떤 출력과 로그 수준을 수집하는지는 실제 확인이 필요하다.
+
+서버 시작 시 `configured`, `disabled`, `configuration_failed` 중 하나를 남긴다. 이는 프론트엔드 빌드 중이 아니라 서버 실행이 시작될 때의 로그다. 새 질문·답변 등록 시 비활성 상태도 `skipped_disabled`로 기록한다. `missingFields`와 `field`는 변수명만 표시하고 설정값은 표시하지 않는다. 준비 실패에는 `stage`를, 알려진 DB·DNS·연결·인증서 오류에는 `errorCode`를 표시하며 원본 오류 메시지·SQL·비밀값은 출력하지 않는다.
+
+로그 개선은 메일·Q&A API 자동 테스트로 확인했다. 사내 플랫폼에서 실제 표시되는지와 미발송 원인은 아직 확인하지 못했다.
+
 HTTP 오류(2xx 외 응답), 네트워크 오류와 제한 시간 초과 시 동일 요청을 추가 1회만 보낸다. 설정 오류·DB 조회 실패·수신자 없음은 HTTP 발송 전에 기록하고 종료한다. 토큰·수신 주소·제목·본문·원격 오류 본문은 로그에 남기지 않는다.
 
 | 로그 상태 | 의미 |
 | --- | --- |
+| `configured` | 시작 시 필수 설정 형식 확인 완료. 실제 API 연결 성공을 뜻하지 않음 |
+| `disabled` | 시작 시 메일 비활성. `enabled_not_set`은 활성화 변수 미전달, `enabled_not_true`는 값이 정확히 `true`가 아님 |
+| `configuration_failed` | 시작 시 설정 오류. `missingFields`·`field` 확인 |
+| `skipped_disabled` | 새 질문·답변 저장 후 메일이 비활성이어서 발송 생략 |
 | `http_accepted_response_unverified` | HTTP 2xx 응답을 받음. 실제 응답 본문·전달 결과는 미검증 |
 | `retrying` | 첫 시도 실패, 추가 1회 진행 |
 | `failed` | 두 번째 시도까지 실패 |

@@ -315,40 +315,42 @@ export function createQnaRepository({ pool = createQnaPool(), uuidFactory = rand
       return { question: questions[0], message, recipientUserIds: recipients.map((row) => row.userId), departmentRuleCount: Number(departmentRules[0]?.count ?? 0) }
     },
 
-    async getSnapshot(actorInput) {
+    async getSnapshot(actorInput, { summary = false, questionId: requestedId } = {}) {
+      const questionId = requestedId === undefined ? null : requireId(requestedId, "questionId")
+      const params = questionId === null ? [] : [questionId]
       const actor = normalizeActor(actorInput)
       const includeHidden = actor.role === "master"
       const [questionResult, messageResult, tagResult, notificationResult, historyResult] = await Promise.all([
         pool.execute(`
-          SELECT question_id AS questionId, title, body_html AS bodyHtml, body_text AS bodyText,
+          SELECT question_id AS questionId, title, ${summary ? "NULL" : "body_html"} AS bodyHtml, body_text AS bodyText,
             category, line_name AS lineName, status, author_user_id AS authorUserId,
             author_display_name AS authorDisplayName, final_message_id AS finalMessageId,
             view_count AS viewCount, created_at AS createdAt, updated_at AS updatedAt,
             hidden_at AS hiddenAt, hidden_by_user_id AS hiddenByUserId
           FROM quality_hub_qna_question
-          ${includeHidden ? "" : "WHERE hidden_at IS NULL"}
+          ${questionId === null ? (includeHidden ? "" : "WHERE hidden_at IS NULL") : `WHERE question_id = ?${includeHidden ? "" : " AND hidden_at IS NULL"}`}
           ORDER BY created_at DESC, question_id DESC
-        `),
+        `, params),
         pool.execute(`
           SELECT m.message_id AS messageId, m.question_id AS questionId,
-            m.body_html AS bodyHtml, m.body_text AS bodyText,
+            ${summary ? "NULL" : "m.body_html"} AS bodyHtml, m.body_text AS bodyText,
             m.author_user_id AS authorUserId, m.author_display_name AS authorDisplayName,
             m.created_at AS createdAt, m.updated_at AS updatedAt,
             m.hidden_at AS hiddenAt, m.hidden_by_user_id AS hiddenByUserId,
             q.author_user_id AS questionAuthorUserId, q.final_message_id AS finalMessageId
           FROM quality_hub_qna_message m
           INNER JOIN quality_hub_qna_question q ON q.question_id = m.question_id
-          ${includeHidden ? "" : "WHERE q.hidden_at IS NULL AND m.hidden_at IS NULL"}
+          ${questionId === null ? (includeHidden ? "" : "WHERE q.hidden_at IS NULL AND m.hidden_at IS NULL") : `WHERE m.question_id = ?${includeHidden ? "" : " AND q.hidden_at IS NULL AND m.hidden_at IS NULL"}`}
           ORDER BY m.question_id, m.created_at, m.message_id
-        `),
+        `, params),
         pool.execute(`
           SELECT t.question_id AS questionId, t.tag_name AS tagName
           FROM quality_hub_qna_question_tag t
           INNER JOIN quality_hub_qna_question q ON q.question_id = t.question_id
-          ${includeHidden ? "" : "WHERE q.hidden_at IS NULL"}
+          ${questionId === null ? (includeHidden ? "" : "WHERE q.hidden_at IS NULL") : `WHERE t.question_id = ?${includeHidden ? "" : " AND q.hidden_at IS NULL"}`}
           ORDER BY t.question_id, t.tag_name
-        `),
-        pool.execute(`
+        `, params),
+        questionId === null ? pool.execute(`
           SELECT n.notification_id AS notificationId, n.question_id AS questionId,
             n.event_type AS eventType, n.read_at AS readAt, n.created_at AS createdAt,
             q.title, q.created_at AS questionCreatedAt
@@ -357,8 +359,8 @@ export function createQnaRepository({ pool = createQnaPool(), uuidFactory = rand
           WHERE n.recipient_user_id = ?
           ORDER BY n.created_at DESC
           LIMIT 100
-        `, [actor.userId]),
-        actor.role === "master" ? pool.execute(`
+        `, [actor.userId]) : Promise.resolve([[]]),
+        questionId === null && actor.role === "master" ? pool.execute(`
           SELECT h.history_id AS historyId, h.question_id AS questionId,
             h.message_id AS messageId, h.action_type AS actionType,
             h.actor_display_name AS actorDisplayName, h.detail_json AS detailJson,
@@ -369,7 +371,7 @@ export function createQnaRepository({ pool = createQnaPool(), uuidFactory = rand
           LIMIT 200
         `) : Promise.resolve([[]]),
       ])
-      const posts = toPosts(questionResult[0], messageResult[0], tagResult[0])
+      const posts = toPosts(questionResult[0], messageResult[0], tagResult[0]).map((post, index) => ({ ...post, detailLoaded: !summary, bodyText: questionResult[0][index].bodyText }))
       const postCodes = new Map(posts.map((post) => [post.questionId, post.id]))
       return {
         posts,
@@ -393,9 +395,10 @@ export function createQnaRepository({ pool = createQnaPool(), uuidFactory = rand
       }
     },
 
-    async createQuestion(input, actorInput) {
+    async createQuestion(input, actorInput, { includePost = false } = {}) {
       const actor = normalizeActor(actorInput)
       const question = questionInput(input)
+      const createdAt = new Date()
       return withTransaction(pool, async (connection) => {
         const [result] = await connection.execute(`
           INSERT INTO quality_hub_qna_question (
@@ -409,7 +412,8 @@ export function createQnaRepository({ pool = createQnaPool(), uuidFactory = rand
           await connection.execute("INSERT INTO quality_hub_qna_question_tag (question_id, tag_name) VALUES (?, ?)", [questionId, tag])
         }
         await insertHistory(connection, { questionId, actionType: "question_created", actor, uuidFactory })
-        return { questionId }
+        const post = includePost ? { ...toPosts([{ ...question, questionId, authorUserId: actor.userId, authorDisplayName: actor.displayName, status: "waiting", viewCount: 0, createdAt, updatedAt: createdAt }], [], question.tags.map((tagName) => ({ questionId, tagName })))[0], detailLoaded: true, bodyText: question.bodyText } : undefined
+        return { questionId, ...(includePost ? { post } : {}) }
       })
     },
 
@@ -473,10 +477,11 @@ export function createQnaRepository({ pool = createQnaPool(), uuidFactory = rand
       })
     },
 
-    async createMessage(questionIdInput, input, actorInput) {
+    async createMessage(questionIdInput, input, actorInput, { includeMessage = false } = {}) {
       const questionId = requireId(questionIdInput, "questionId")
       const actor = normalizeActor(actorInput)
       const message = messageInput(input)
+      const createdAt = new Date()
       return withTransaction(pool, async (connection) => {
         const question = await lockQuestion(connection, questionId)
         if (question.hiddenAt) throw new QnaNotFoundError("질문")
@@ -490,7 +495,7 @@ export function createQnaRepository({ pool = createQnaPool(), uuidFactory = rand
         await connection.execute("UPDATE quality_hub_qna_question SET status = IF(status = 'waiting', 'active', status), updated_at = CURRENT_TIMESTAMP(3) WHERE question_id = ?", [questionId])
         await insertNotification(connection, { questionId, recipientUserId: question.authorUserId, actorUserId: actor.userId, eventType: "reply_created", uuidFactory })
         await insertHistory(connection, { questionId, messageId, actionType: "message_created", actor, uuidFactory })
-        return { messageId }
+        return { messageId, ...(includeMessage ? { message: { id: String(messageId), messageId, author: actor.displayName, authorUserId: actor.userId, role: question.authorUserId === actor.userId ? "질문자" : "답변·댓글", time: formatDate(createdAt), body: message.bodyText, content: message.bodyHtml, hidden: false, isFinal: false }, questionStatus: question.status === "waiting" ? "active" : question.status } : {}) }
       })
     },
 

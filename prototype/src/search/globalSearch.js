@@ -45,7 +45,7 @@ export function buildTitleSearchText(title) {
 }
 
 export function buildQnaSearchText(post) {
-  const body = htmlToSearchText(post?.content ?? post?.excerpt ?? "")
+  const body = post?.bodyText ?? htmlToSearchText(post?.content ?? post?.excerpt ?? "")
   const comments = Array.isArray(post?.messages)
     ? post.messages.filter((message) => !message?.hidden).map((message) => message?.body ?? "")
     : []

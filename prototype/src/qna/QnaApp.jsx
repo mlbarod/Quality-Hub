@@ -9,6 +9,7 @@ import {
   Eye,
   FilterX,
   MessageCircle,
+  LoaderCircle,
   PenLine,
   Pencil,
   Search,
@@ -248,7 +249,7 @@ function EditQuestionDialog({ post, open, onOpenChange, onSave }) {
   )
 }
 
-function PostDetailView({ post, onBack, onMutate, currentRole, currentUser }) {
+function PostDetailView({ post, onBack, onMutate, currentRole, currentUser, busy }) {
   const [replyEditorOpen, setReplyEditorOpen] = useState(false)
   const [replyContent, setReplyContent] = useState("")
   const [replyPlainText, setReplyPlainText] = useState("")
@@ -350,7 +351,7 @@ function PostDetailView({ post, onBack, onMutate, currentRole, currentUser }) {
               </div>
               <div className="border-t border-[#e3ebf0] bg-[#fafbfa] p-5">
                 <div className="mb-2 flex items-center justify-between"><strong className="text-[11px] font-semibold text-[#42474c]">추가 답변</strong>{!replyEditorOpen ? <Button type="button" size="sm" variant="outline" onClick={() => setReplyEditorOpen(true)}><PenLine className="size-3.5" />답변 작성</Button> : null}</div>
-                {replyEditorOpen ? <><Suspense fallback={<div className="grid min-h-[160px] place-items-center rounded-[10px] border border-[#d5e3ec] bg-white text-[11px] text-[#7b8287]">편집기를 준비하고 있습니다.</div>}><RichTextEditor ariaLabel="추가 답변 편집기" toolbarLabel="추가 답변 서식 도구" placeholder="확인 내용이나 추가 질문을 입력하세요." compact onChange={(html, text) => { setReplyContent(html); setReplyPlainText(text) }} /></Suspense><div className="mt-3 flex items-center justify-between"><span className="text-[9px] text-[#60798b]">현재 로그인 사용자 이름으로 DB에 등록됩니다.</span><div className="flex gap-2"><Button type="button" variant="ghost" onClick={closeReplyEditor}>취소</Button><Button type="button" onClick={submitReply} disabled={!replyPlainText.trim()}><Send className="size-4" />답변 등록</Button></div></div></> : <p className="m-0 text-[12px] text-[#60798b]">답변 작성 버튼을 누르면 서식 편집기가 이 위치에 열립니다.</p>}
+                {replyEditorOpen ? <><Suspense fallback={<div className="grid min-h-[160px] place-items-center rounded-[10px] border border-[#d5e3ec] bg-white text-[11px] text-[#7b8287]">편집기를 준비하고 있습니다.</div>}><RichTextEditor ariaLabel="추가 답변 편집기" toolbarLabel="추가 답변 서식 도구" placeholder="확인 내용이나 추가 질문을 입력하세요." compact onChange={(html, text) => { setReplyContent(html); setReplyPlainText(text) }} /></Suspense><div className="mt-3 flex items-center justify-between"><span className="text-[9px] text-[#60798b]">현재 로그인 사용자 이름으로 DB에 등록됩니다.</span><div className="flex gap-2"><Button type="button" variant="ghost" onClick={closeReplyEditor} disabled={busy}>취소</Button><Button type="button" onClick={submitReply} disabled={busy || !replyPlainText.trim()}>{busy ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}{busy ? "등록 중…" : "답변 등록"}</Button></div></div></> : <p className="m-0 text-[12px] text-[#60798b]">답변 작성 버튼을 누르면 서식 편집기가 이 위치에 열립니다.</p>}
               </div>
             </section>
           </div>
@@ -382,7 +383,7 @@ function NotificationsView({ notifications, onReadAll, onOpenPost }) {
   )
 }
 
-function WriteQuestionDialog({ open, onOpenChange, onSubmit, returnFocusRef, lineOptions }) {
+function WriteQuestionDialog({ open, onOpenChange, onSubmit, returnFocusRef, lineOptions, busy }) {
   const [title, setTitle] = useState("")
   const [category, setCategory] = useState(QNA_CATEGORY_OPTIONS[0])
   const [line, setLine] = useState(lineOptions[0] ?? "")
@@ -408,6 +409,7 @@ function WriteQuestionDialog({ open, onOpenChange, onSubmit, returnFocusRef, lin
 
   const submit = (event) => {
     event.preventDefault()
+    if (busy) return
     const nextErrors = {}
     if (!line) nextErrors.line = "라인 환경변수를 먼저 설정해 주세요."
     if (!title.trim()) nextErrors.title = "제목을 입력해 주세요."
@@ -419,7 +421,7 @@ function WriteQuestionDialog({ open, onOpenChange, onSubmit, returnFocusRef, lin
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(next) => { if (!busy) onOpenChange(next) }}>
       <DialogContent className="grid-rows-[auto_minmax(0,1fr)_auto]" aria-describedby="write-question-description" onCloseAutoFocus={(event) => { event.preventDefault(); window.requestAnimationFrame(() => { if (submittedRef.current) document.querySelector("#qna-main")?.focus(); else returnFocusRef.current?.focus() }) }}>
         <header className="border-b border-[#e3ebf0] px-7 py-5 pr-16"><DialogTitle className="text-[19px] font-[680] tracking-[-.025em]">새 질문 작성</DialogTitle><DialogDescription id="write-question-description" className="mt-1 text-[12px] text-[#567286]">구분·라인과 질문 정보를 선택하고 확인이 필요한 내용을 작성합니다.</DialogDescription></header>
         <form id="qna-write-form" className="overflow-y-auto px-7 py-6" onSubmit={submit} noValidate>
@@ -431,7 +433,7 @@ function WriteQuestionDialog({ open, onOpenChange, onSubmit, returnFocusRef, lin
           <div className="mt-5"><label className="mb-1.5 block text-[11px] font-semibold text-[#4c5257]">본문</label><Suspense fallback={<div className="grid min-h-[280px] place-items-center rounded-[10px] border border-[#d5e3ec] bg-[#fafbfa] text-[11px] text-[#7b8287]">편집기를 준비하고 있습니다.</div>}><RichTextEditor key={editorKey} onChange={(html, text) => { setContent(html); setPlainText(text) }} error={Boolean(errors.content)} /></Suspense>{errors.content ? <small className="mt-1.5 block text-[10px] text-[#b64c45]">{errors.content}</small> : null}</div>
           <label className="mt-5 grid gap-1.5 text-[11px] font-semibold text-[#4c5257]">태그 <Input value={tags} onChange={(event) => setTags(event.target.value)} placeholder="예: 이상률, 적용시점, 장비A (쉼표로 구분)" /><small className="font-normal text-[#60798b]">최대 5개까지 입력할 수 있으며 중요도는 사용하지 않습니다.</small></label>
         </form>
-        <footer className="flex items-center justify-between border-t border-[#e3ebf0] bg-[#fafbfa] px-7 py-4"><span className="text-[12px] text-[#60798b]">등록 내용은 Quality Hub DB에 저장됩니다.</span><div className="flex gap-2"><Button type="button" variant="outline" onClick={() => onOpenChange(false)}>취소</Button><Button type="submit" form="qna-write-form" className="h-[41px]"><Send className="size-4" />질문 등록</Button></div></footer>
+        <footer className="flex items-center justify-between border-t border-[#e3ebf0] bg-[#fafbfa] px-7 py-4"><span className="text-[12px] text-[#60798b]">등록 내용은 Quality Hub DB에 저장됩니다.</span><div className="flex gap-2"><Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>취소</Button><Button type="submit" form="qna-write-form" className="h-[41px]" disabled={busy}>{busy ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}{busy ? "등록 중…" : "질문 등록"}</Button></div></footer>
       </DialogContent>
     </Dialog>
   )
@@ -439,7 +441,7 @@ function WriteQuestionDialog({ open, onOpenChange, onSubmit, returnFocusRef, lin
 
 export function QnaApp({ initialView = "list", lineOptions = QNA_LINE_OPTIONS }) {
   const initialRole = document.querySelector(".prototype")?.dataset.currentRole ?? "master"
-  const initialSnapshot = qnaRepository.read()
+  const [initialSnapshot] = useState(() => qnaRepository.read())
   const hasCachedSnapshot = initialSnapshot.posts.length > 0 || initialSnapshot.notifications.length > 0
   const [posts, setPosts] = useState(initialSnapshot.posts)
   const [notifications, setNotifications] = useState(initialSnapshot.notifications)
@@ -455,6 +457,9 @@ export function QnaApp({ initialView = "list", lineOptions = QNA_LINE_OPTIONS })
   const [loadState, setLoadState] = useState(hasCachedSnapshot ? "ready" : "loading")
   const [loadError, setLoadError] = useState("")
   const [mutationBusy, setMutationBusy] = useState(false)
+  const mutationBusyRef = useRef(false)
+  const [detailError, setDetailError] = useState("")
+  const [detailRetry, setDetailRetry] = useState(0)
   const [liveMessage, setLiveMessage] = useState("")
   const liveTimerRef = useRef(null)
   const writeReturnFocusRef = useRef(null)
@@ -510,6 +515,16 @@ export function QnaApp({ initialView = "list", lineOptions = QNA_LINE_OPTIONS })
   }, [loadState, posts])
 
   useEffect(() => {
+    if (view !== "detail" || !selectedPost || selectedPost.detailLoaded !== false) return
+    let cancelled = false
+    setDetailError("")
+    void qnaRepository.getQuestion(selectedPost.questionId).then((snapshot) => {
+      if (!cancelled) applySnapshot(snapshot)
+    }).catch((error) => { if (!cancelled) setDetailError(error.message ?? "질문을 불러오지 못했습니다.") })
+    return () => { cancelled = true }
+  }, [view, selectedPost?.questionId, selectedPost?.detailLoaded, currentRole, detailRetry])
+
+  useEffect(() => {
     const handleRole = (event) => {
       setCurrentRole(event.detail?.role ?? "blocked")
       setCurrentUser(event.detail?.user ?? getRoleOption(event.detail?.role ?? "blocked"))
@@ -543,7 +558,8 @@ export function QnaApp({ initialView = "list", lineOptions = QNA_LINE_OPTIONS })
   }
 
   const runMutation = async (action, successMessage, afterSuccess) => {
-    if (mutationBusy) return false
+    if (mutationBusyRef.current) return false
+    mutationBusyRef.current = true
     setMutationBusy(true)
     try {
       const snapshot = await action()
@@ -555,6 +571,7 @@ export function QnaApp({ initialView = "list", lineOptions = QNA_LINE_OPTIONS })
       announce(error.message ?? "품질VOE DB 요청을 처리하지 못했습니다.")
       return false
     } finally {
+      mutationBusyRef.current = false
       setMutationBusy(false)
     }
   }
@@ -582,11 +599,11 @@ export function QnaApp({ initialView = "list", lineOptions = QNA_LINE_OPTIONS })
 
   return (
     <div className="qna-scope h-full text-[#0f2233] antialiased" aria-busy={mutationBusy}>
-      <QnaTopBar view={view} unreadCount={unreadCount} onNavigate={navigate} role={currentRole} deletedCount={hiddenPosts.length + hiddenMessages.length} onOpenDeleted={() => setRecoveryOpen(true)} onOpenHistory={() => setHistoryOpen(true)} />
+      <QnaTopBar view={view} unreadCount={unreadCount} onNavigate={navigate} role={currentRole} deletedCount={hiddenPosts.length + hiddenMessages.length} onOpenDeleted={() => setRecoveryOpen(true)} onOpenHistory={() => { setHistoryOpen(true); void loadSnapshot() }} />
       {view === "list" ? <PostListView posts={filteredPosts} allPosts={activePosts} filters={filters} setFilters={setFilters} onSelect={selectPost} onWrite={(event) => { writeReturnFocusRef.current = event.currentTarget; setWriteOpen(true) }} lineOptions={lineOptions} /> : null}
-      {view === "detail" ? <PostDetailView post={selectedPost} onBack={() => navigate("list")} onMutate={runMutation} currentRole={currentRole} currentUser={currentUser} /> : null}
+      {view === "detail" && selectedPost?.detailLoaded === false ? <main id="qna-main" tabIndex="-1" className="grid h-[calc(100%-66px)] place-items-center"><div role="status" className="grid justify-items-center gap-3">{detailError ? <><p>{detailError}</p><Button onClick={() => setDetailRetry((value) => value + 1)}>다시 시도</Button></> : <><LoaderCircle className="size-5 animate-spin" /><p>질문을 불러오고 있습니다.</p></>}<Button variant="ghost" onClick={() => navigate("list")}>목록으로</Button></div></main> : view === "detail" ? <PostDetailView post={selectedPost} onBack={() => navigate("list")} onMutate={runMutation} currentRole={currentRole} currentUser={currentUser} busy={mutationBusy} /> : null}
       {view === "notifications" ? <NotificationsView notifications={notifications} onReadAll={() => runMutation(() => qnaRepository.markAllNotificationsRead(), "모든 알림을 읽음 처리했습니다.")} onOpenPost={openNotification} /> : null}
-      <WriteQuestionDialog open={writeOpen} onOpenChange={setWriteOpen} onSubmit={createPost} returnFocusRef={writeReturnFocusRef} lineOptions={lineOptions} />
+      <WriteQuestionDialog busy={mutationBusy} open={writeOpen} onOpenChange={setWriteOpen} onSubmit={createPost} returnFocusRef={writeReturnFocusRef} lineOptions={lineOptions} />
       <Dialog open={recoveryOpen} onOpenChange={setRecoveryOpen}><DialogContent className="w-[min(720px,calc(100vw-64px))]"><header className="border-b border-[#e3ebf0] px-7 py-5"><DialogTitle className="text-[18px] font-[680]">품질VOE 삭제 목록</DialogTitle><DialogDescription className="mt-1 text-[11px] text-[#60798b]">삭제한 질문과 답변·댓글은 실제로 지워지지 않으며 마스터가 복구할 수 있습니다.</DialogDescription></header><div className="grid max-h-[440px] gap-2 overflow-y-auto px-7 py-6">{hiddenPosts.map((post) => <article key={post.id} className="flex items-center gap-3 rounded-[9px] border border-[#dce7ee] bg-[#fafbfa] p-4"><span className="min-w-0 flex-1"><Badge variant="muted">질문</Badge><strong className="mt-1 block truncate text-[12px]">{post.title}</strong><small className="mt-1 block text-[10px] text-[#60798b]">{formatDateTime(post.hiddenAt)} · {post.hiddenBy} 삭제</small></span><Button type="button" size="sm" variant="outline" onClick={() => runMutation(() => qnaRepository.updateQuestion(post.questionId, { operation: "restore" }), "질문을 복구했습니다.")}><ArchiveRestore className="size-3.5" />복구</Button></article>)}{hiddenMessages.map(({ post, message }) => <article key={`${post.id}-${message.id}`} className="flex items-center gap-3 rounded-[9px] border border-[#dce7ee] bg-[#fafbfa] p-4"><span className="min-w-0 flex-1"><Badge variant="muted">답변·댓글</Badge><strong className="mt-1 block truncate text-[12px]">{post.title}</strong><small className="mt-1 block truncate text-[10px] text-[#60798b]">{message.author} · {message.body}</small></span><Button type="button" size="sm" variant="outline" onClick={() => runMutation(() => qnaRepository.updateMessage(post.questionId, message.messageId, { operation: "restore" }), "답변을 복구했습니다.")}><ArchiveRestore className="size-3.5" />복구</Button></article>)}{!hiddenPosts.length && !hiddenMessages.length ? <p className="py-12 text-center text-[12px] text-[#60798b]">삭제된 품질VOE 항목이 없습니다.</p> : null}</div></DialogContent></Dialog>
       <Dialog open={historyOpen} onOpenChange={setHistoryOpen}><DialogContent className="w-[min(720px,calc(100vw-64px))]"><header className="border-b border-[#e3ebf0] px-7 py-5"><DialogTitle className="text-[18px] font-[680]">품질VOE 변경 이력</DialogTitle><DialogDescription className="mt-1 text-[12px] text-[#60798b]">DB에 기록된 질문·답변·상태 변경 이력을 표시합니다.</DialogDescription></header><div className="grid max-h-[440px] gap-2 overflow-y-auto px-7 py-6">{historyEntries.length ? historyEntries.map((entry) => <article key={entry.id} className="flex items-center gap-3 rounded-[9px] border border-[#dce7ee] bg-[#fafbfa] p-4"><span className="min-w-0 flex-1"><strong className="block truncate text-[12px]">{entry.targetName}</strong><small className="mt-1 block text-[10px] text-[#60798b]">{formatDateTime(entry.occurredAt)} · {entry.actor}{entry.detail ? ` · ${entry.detail}` : ""}</small></span><Badge variant="muted">{entry.action}</Badge></article>) : <p className="py-12 text-center text-[12px] text-[#60798b]">아직 변경 이력이 없습니다.</p>}</div></DialogContent></Dialog>
       <div className={cn("pointer-events-none fixed bottom-7 left-1/2 z-[130] -translate-x-1/2 rounded-[9px] bg-[#172c3c] px-4 py-2.5 text-[12px] font-medium text-white shadow-xl transition", liveMessage ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0")} role="status" aria-live="polite" aria-atomic="true">{liveMessage}</div>

@@ -123,3 +123,43 @@ test("메일은 공개 질문·답변과 개별 관리자·마스터를 조회�
   assert.match(calls[2][0], /is_active = 1 AND role_name = 'admin' AND claim_field = 'user_id' AND match_type = 'exact'/)
   assert.match(calls[0][0], /hidden_at IS NULL/)
 })
+
+test('목록 요약은 HTML을 DB에서 가져오지 않고 검색용 텍스트를 유지한다', async () => {
+  const queries = []
+  const repository = createQnaRepository({ pool: { async execute(sql) {
+    queries.push(sql)
+    if (sql.includes('FROM quality_hub_qna_question\n')) return [[{ questionId: 7, title: '질문', bodyHtml: null, bodyText: '본문 검색어', createdAt: '2026-09-11', updatedAt: '2026-09-11' }]]
+    return [[]]
+  } } })
+  const result = await repository.getSnapshot(master, { summary: true })
+  assert.equal(result.posts[0].detailLoaded, false)
+  assert.equal(result.posts[0].bodyText, '본문 검색어')
+  assert.equal(result.posts[0].content, null)
+  assert.match(queries[0], /NULL AS bodyHtml/)
+  assert.match(queries[1], /NULL AS bodyHtml/)
+  assert.doesNotMatch(queries.join('\n'), /body_html/)
+})
+
+test('단일 상세는 질문 ID로 세 쿼리를 한정하며 알림과 전체 이력을 재조회하지 않는다', async () => {
+  const queries = []
+  const repository = createQnaRepository({ pool: { async execute(sql, params) { queries.push([sql, params]); return [[]] } } })
+  await repository.getSnapshot({ ...master, role: 'general' }, { questionId: 7 })
+  assert.equal(queries.length, 3)
+  for (const [sql, params] of queries) {
+    assert.deepEqual(params, [7])
+    assert.match(sql, /question_id = \?/)
+    assert.match(sql, /hidden_at IS NULL/)
+  }
+})
+
+test('질문 등록 결과에 DB 저장에 사용한 정제된 상세를 포함하고 추가 조회하지 않는다', async () => {
+  const calls = []
+  const repository = createQnaRepository({ pool: { async execute(sql, params) { calls.push([sql, params]); return [{ insertId: 33 }] } } })
+  const result = await repository.createQuestion({ title: '제목', bodyHtml: '<p>본문</p><script>secret()</script>', category: 'FDC', lineName: 'A', tags: [] }, master, { includePost: true })
+  assert.equal(result.post.questionId, 33)
+  assert.equal(result.post.detailLoaded, true)
+  assert.equal(result.post.content, '<p>본문</p>')
+  assert.ok(Number.isFinite(Date.parse(result.post.createdAt)))
+  assert.match(calls[0][0], /CURRENT_TIMESTAMP/)
+  assert.ok(calls.every(([sql]) => !sql.includes('SELECT')))
+})

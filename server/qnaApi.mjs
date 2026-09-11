@@ -67,7 +67,7 @@ function parseRoute(req) {
   } catch {
     return null
   }
-  if (url.pathname === API_PATH) return { type: "snapshot" }
+  if (url.pathname === API_PATH) return { type: "snapshot", summary: url.searchParams.get("summary") === "1" }
   if (url.pathname === `${API_PATH}/questions`) return { type: "questions" }
   if (url.pathname === `${API_PATH}/notifications`) return { type: "notifications" }
   const parts = url.pathname.slice(API_PATH.length + 1).split("/").map((part) => decodeURIComponent(part))
@@ -92,6 +92,7 @@ function toApiError(error) {
 }
 
 export function createQnaApi({ repository, repositoryFactory = createQnaRepository, logger = console, mailNotifier = createQnaMailNotifier({ logger }) } = {}) {
+  mailNotifier.reportStartup?.()
   let activeRepository = repository
   let ownsRepository = false
   const pendingMail = new Set()
@@ -124,15 +125,22 @@ export function createQnaApi({ repository, repositoryFactory = createQnaReposito
         return true
       }
       if (!route) return false
+      const startedAt = performance.now()
       try {
         const actor = requireActor(req)
         const method = req.method ?? "GET"
         if (method === "GET" && route.type === "snapshot") {
-          sendJson(res, 200, await getRepository().getSnapshot(actor))
+          sendJson(res, 200, await getRepository().getSnapshot(actor, { summary: route.summary }))
+          return true
+        }
+        if (method === "GET" && route.type === "question") {
+          const snapshot = await getRepository().getSnapshot(actor, { questionId: route.questionId })
+          if (!snapshot.posts[0]) throw new QnaNotFoundError("질문")
+          sendJson(res, 200, { post: snapshot.posts[0] })
           return true
         }
         if (method === "POST" && route.type === "questions") {
-          const result = await getRepository().createQuestion(await readJsonBody(req), actor)
+          const result = await getRepository().createQuestion(await readJsonBody(req), actor, { includePost: true })
           notify({ eventType: "question_created", questionId: result.questionId, actor })
           sendJson(res, 201, result)
           return true
@@ -142,7 +150,7 @@ export function createQnaApi({ repository, repositoryFactory = createQnaReposito
           return true
         }
         if (method === "POST" && route.type === "messages") {
-          const result = await getRepository().createMessage(route.questionId, await readJsonBody(req), actor)
+          const result = await getRepository().createMessage(route.questionId, await readJsonBody(req), actor, { includeMessage: true })
           notify({ eventType: "message_created", questionId: route.questionId, messageId: result.messageId, actor })
           sendJson(res, 201, result)
           return true
@@ -155,7 +163,7 @@ export function createQnaApi({ repository, repositoryFactory = createQnaReposito
           sendJson(res, 200, await getRepository().markNotificationsRead(await readJsonBody(req), actor))
           return true
         }
-        const allow = route.type === "snapshot" ? "GET" : route.type === "questions" || route.type === "messages" ? "POST" : "PATCH"
+        const allow = route.type === "snapshot" ? "GET" : route.type === "question" ? "GET, PATCH" : route.type === "questions" || route.type === "messages" ? "POST" : "PATCH"
         sendJson(res, 405, { error: { code: "METHOD_NOT_ALLOWED", message: "지원하지 않는 품질VOE API 요청입니다." } }, { Allow: allow })
         return true
       } catch (error) {
@@ -174,6 +182,10 @@ export function createQnaApi({ repository, repositoryFactory = createQnaReposito
         }
         sendJson(res, apiError.status, { error: { code: apiError.code, message: apiError.message } })
         return true
+      } finally {
+        const durationMs = Math.round(performance.now() - startedAt)
+        const log = durationMs >= 1000 ? logger.warn ?? logger.info : logger.info
+        log?.call(logger, `Q&A timing ${JSON.stringify({ method: req.method, route: route.type, durationMs, status: res.statusCode })}`)
       }
     },
 

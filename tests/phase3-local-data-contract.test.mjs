@@ -59,7 +59,7 @@ test("Rule&SOP와 Q&A DB 조회가 동적 통합 검색에 연결된다", async 
   assert.match(app, /syncGlobalSearchResults/)
   assert.match(app, /qnaRepository\.read\(\)/)
   assert.match(app, /qnaRepository\.getSnapshot\(\)/)
-  assert.match(qnaRepository, /"\/api\/qna"/)
+  assert.match(qnaRepository, /"\/api\/qna\?summary=1"/)
   assert.match(qna, /qnaRepository\.createQuestion/)
   assert.match(qna, /qnaRepository\.createMessage/)
   assert.match(qna, /Quality Hub DB에 저장됩니다/)

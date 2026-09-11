@@ -137,3 +137,23 @@ test("저장 실패와 수정에는 메일이 없고 추가 답변 등록에만 
   assert.equal(events[0].questionId, 7)
   assert.equal(events[0].messageId, 9)
 })
+
+test("서버 API 생성 시 메일 설정 상태를 한 번 보고한다", async () => {
+  let startupCalls = 0
+  const api = createQnaApi({ repository: {}, mailNotifier: { reportStartup() { startupCalls++ }, async notify() {} } })
+  assert.equal(startupCalls, 1)
+  await api.close()
+})
+
+test('요약 목록과 단일 질문 조회 옵션을 서버 저장소에 전달한다', async () => {
+  const received = []
+  const repository = { async getSnapshot(actor, options) { received.push(options); return { posts: [{ questionId: 7, title: '질문' }] } } }
+  const list = await callApi(repository, { url: '/api/qna?summary=1', headers: identity })
+  const detail = await callApi(repository, { url: '/api/qna/questions/7', headers: identity })
+  assert.equal(list.statusCode, 200)
+  assert.equal(detail.statusCode, 200)
+  assert.deepEqual(received, [{ summary: true }, { questionId: 7 }])
+  assert.equal(JSON.parse(detail.body).post.questionId, 7)
+  const missing = await callApi({ async getSnapshot() { return { posts: [] } } }, { url: '/api/qna/questions/7', headers: identity })
+  assert.equal(missing.statusCode, 404)
+})

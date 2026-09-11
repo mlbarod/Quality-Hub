@@ -24,6 +24,32 @@ function normalizeTestSnapshot(snapshot) {
 
 const testSeed = normalizeTestSnapshot({ posts: initialPosts, notifications: initialNotifications, history: [] })
 let cachedSnapshot = structuredClone(isTestMode ? testSeed : emptySnapshot)
+let cacheIdentity = null
+let loadedAt = 0
+let revision = 0
+let pendingSnapshot = null
+const pendingDetails = new Map()
+
+function ensureIdentity() {
+  const identity = getIdentity()
+  const key = `${identity.isSsoMode}:${identity.userId}:${identity.role}`
+  if (cacheIdentity !== key) {
+    cacheIdentity = key
+    cachedSnapshot = structuredClone(isTestMode ? testSeed : emptySnapshot)
+    loadedAt = 0
+    revision++
+    pendingSnapshot = null
+    pendingDetails.clear()
+  }
+  return key
+}
+
+function publishMutation(update) {
+  revision++
+  loadedAt = 0
+  dispatchSnapshot(update(cachedSnapshot))
+  return structuredClone(cachedSnapshot)
+}
 
 export class QnaRepositoryError extends Error {
   constructor(message, { status = 0, code = "QNA_REQUEST_FAILED" } = {}) {
@@ -76,7 +102,9 @@ function createRequest() {
 
 async function mutate(path, body, method = "PATCH") {
   await createRequest()(path, { method, body })
-  return qnaRepository.getSnapshot()
+  revision++
+  loadedAt = 0
+  return qnaRepository.getSnapshot({ force: true })
 }
 
 function testResult() {
@@ -87,22 +115,53 @@ function testResult() {
 export const qnaRepository = {
   key: "qna",
   read() {
+    ensureIdentity()
     return structuredClone(cachedSnapshot)
   },
-  async getSnapshot() {
+  async getSnapshot({ force = false } = {}) {
+    const identity = ensureIdentity()
     if (isTestMode) return structuredClone(cachedSnapshot)
-    const snapshot = await createRequest()("/api/qna")
-    dispatchSnapshot(snapshot)
-    return structuredClone(snapshot)
+    if (!force && loadedAt && Date.now() - loadedAt < 15000) return this.read()
+    if (pendingSnapshot?.revision === revision) return pendingSnapshot.promise
+    const requestRevision = revision
+    const request = { revision, promise: null }
+    request.promise = createRequest()("/api/qna?summary=1").then((snapshot) => {
+      if (ensureIdentity() !== identity || requestRevision !== revision) return this.read()
+      snapshot.posts = snapshot.posts.map((post) => {
+        const previous = cachedSnapshot.posts.find((item) => item.questionId === post.questionId)
+        return previous?.detailLoaded && previous.updatedAt === post.updatedAt ? { ...post, content: previous.content, messages: previous.messages, detailLoaded: true } : post
+      })
+      dispatchSnapshot(snapshot)
+      loadedAt = Date.now()
+      return this.read()
+    }).finally(() => { if (pendingSnapshot === request) pendingSnapshot = null })
+    pendingSnapshot = request
+    return request.promise
+  },
+  async getQuestion(questionId) {
+    const identity = ensureIdentity()
+    if (isTestMode) return this.read()
+    const requestRevision = revision
+    const key = `${identity}:${requestRevision}:${questionId}`
+    if (pendingDetails.has(key)) return pendingDetails.get(key)
+    const promise = createRequest()(`/api/qna/questions/${encodeURIComponent(questionId)}`).then(({ post }) => {
+      if (ensureIdentity() !== identity || requestRevision !== revision) return this.read()
+      dispatchSnapshot({ ...cachedSnapshot, posts: cachedSnapshot.posts.map((item) => item.questionId === post.questionId ? post : item) })
+      return this.read()
+    }).finally(() => pendingDetails.delete(key))
+    pendingDetails.set(key, promise)
+    return promise
   },
   async createQuestion(input) {
+    const identity = ensureIdentity()
     if (isTestMode) {
       const nextId = Math.max(0, ...cachedSnapshot.posts.map((post) => post.questionId)) + 1
       cachedSnapshot.posts.unshift({ id: `Q-2026-${String(nextId).padStart(3, "0")}`, questionId: nextId, title: input.title, excerpt: "", category: input.category, line: input.lineName, tags: input.tags, status: "waiting", author: getIdentity().displayName, authorUserId: getIdentity().userId, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), views: 0, content: input.bodyHtml, attachments: [], messages: [] })
       return testResult()
     }
-    await createRequest()("/api/qna/questions", { method: "POST", body: input })
-    return this.getSnapshot()
+    const { post } = await createRequest()("/api/qna/questions", { method: "POST", body: input })
+    if (ensureIdentity() !== identity) return this.read()
+    return publishMutation((snapshot) => ({ ...snapshot, posts: [post, ...snapshot.posts.filter((item) => item.questionId !== post.questionId)] }))
   },
   async updateQuestion(questionId, input) {
     if (isTestMode) {
@@ -117,15 +176,26 @@ export const qnaRepository = {
       })
       return testResult()
     }
+    if (input.operation === "view") {
+      const identity = ensureIdentity()
+      await createRequest()(`/api/qna/questions/${encodeURIComponent(questionId)}`, { method: "PATCH", body: input })
+      if (ensureIdentity() !== identity) return this.read()
+      dispatchSnapshot({ ...cachedSnapshot, posts: cachedSnapshot.posts.map((post) => post.questionId === Number(questionId) ? { ...post, views: post.views + 1 } : post) })
+      return this.read()
+    }
+    loadedAt = 0
+    revision++
     return mutate(`/api/qna/questions/${encodeURIComponent(questionId)}`, input)
   },
   async createMessage(questionId, input) {
+    const identity = ensureIdentity()
     if (isTestMode) {
       cachedSnapshot.posts = cachedSnapshot.posts.map((post) => post.questionId === Number(questionId) ? { ...post, status: post.status === "waiting" ? "active" : post.status, messages: [...post.messages, { id: `m-${Date.now()}`, messageId: Date.now(), author: getIdentity().displayName, authorUserId: getIdentity().userId, role: "답변·댓글", time: new Date().toISOString(), body: input.bodyHtml.replace(/<[^>]+>/g, " ").trim(), content: input.bodyHtml }] } : post)
       return testResult()
     }
-    await createRequest()(`/api/qna/questions/${encodeURIComponent(questionId)}/messages`, { method: "POST", body: input })
-    return this.getSnapshot()
+    const { message, questionStatus } = await createRequest()(`/api/qna/questions/${encodeURIComponent(questionId)}/messages`, { method: "POST", body: input })
+    if (ensureIdentity() !== identity) return this.read()
+    return publishMutation((snapshot) => ({ ...snapshot, posts: snapshot.posts.map((post) => post.questionId === Number(questionId) ? { ...post, status: questionStatus, updatedAt: message.time, messages: [...post.messages, message] } : post) }))
   },
   async updateMessage(questionId, messageId, input) {
     if (isTestMode) {
@@ -154,9 +224,14 @@ export const qnaRepository = {
     return mutate("/api/qna/notifications", { all: true })
   },
   reset() {
+    ensureIdentity()
+    revision++
+    loadedAt = 0
+    pendingSnapshot = null
     dispatchSnapshot(isTestMode ? testSeed : emptySnapshot)
   },
   write(snapshot) {
+    ensureIdentity()
     if (!isTestMode) throw new QnaRepositoryError("운영 품질VOE 데이터는 로컬 저장소에 쓸 수 없습니다.")
     dispatchSnapshot(normalizeTestSnapshot(snapshot))
     return this.read()

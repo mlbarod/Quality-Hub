@@ -1,19 +1,43 @@
 const ENDPOINT = "https://openapi.samsung.net/mail/api/v2.0/mails/send"
+const REQUIRED_ENV = ["KNOX_MAIL_USER_ID", "KNOX_MAIL_TOKEN", "KNOX_MAIL_SYSTEM_ID", "KNOX_MAIL_PORTAL_URL"]
+
+function configError(field) {
+  return Object.assign(new Error(`메일 환경변수 확인: ${field}`), { mailField: field })
+}
+
+function diagnostics(error) {
+  const codes = new Set(["ER_NO_SUCH_TABLE", "ER_BAD_FIELD_ERROR", "ER_ACCESS_DENIED_ERROR", "ER_TABLEACCESS_DENIED_ERROR", "ECONNREFUSED", "ECONNRESET", "ETIMEDOUT", "ENOTFOUND", "EAI_AGAIN", "CERT_HAS_EXPIRED", "DEPTH_ZERO_SELF_SIGNED_CERT", "UNABLE_TO_VERIFY_LEAF_SIGNATURE", "UND_ERR_CONNECT_TIMEOUT"])
+  const code = error?.cause?.code ?? error?.code
+  return {
+    ...(codes.has(code) ? { errorCode: code } : {}),
+    ...(error?.name === "TimeoutError" ? { errorCode: "TIMEOUT" } : {}),
+    ...(REQUIRED_ENV.includes(error?.mailField) || error?.mailField === "KNOX_MAIL_TIMEOUT_MS" ? { field: error.mailField } : {}),
+    ...(error?.mailReason === "invalid_knox_id" ? { reason: "invalid_knox_id" } : {}),
+  }
+}
+
+function writeMailLog(logger, state, details = {}) {
+  const level = ["configuration_failed", "preparation_failed", "failed", "retrying"].includes(state) ? "error"
+    : ["disabled", "skipped_disabled", "skipped_no_recipients", "department_recipients_unresolved"].includes(state) ? "warn" : "info"
+  const output = logger[level] ?? logger.info ?? logger.log ?? logger.error
+  output?.call(logger, `Q&A mail ${JSON.stringify({ state, ...details })}`)
+}
 
 export function loadQnaMailConfig(env = process.env) {
   if (env.KNOX_MAIL_ENABLED !== "true") return null
   const required = (key) => {
     const value = env[key]?.trim()
-    if (!value || /[\r\n]/.test(value)) throw new Error(`메일 환경변수 확인: ${key}`)
+    if (!value || /[\r\n]/.test(value)) throw configError(key)
     return value
   }
   const userId = required("KNOX_MAIL_USER_ID")
   const token = required("KNOX_MAIL_TOKEN")
   const systemId = required("KNOX_MAIL_SYSTEM_ID")
-  const portalUrl = new URL(required("KNOX_MAIL_PORTAL_URL"))
-  if (!["http:", "https:"].includes(portalUrl.protocol) || portalUrl.username || portalUrl.password) throw new Error("메일 포털 URL 확인")
+  let portalUrl
+  try { portalUrl = new URL(required("KNOX_MAIL_PORTAL_URL")) } catch { throw configError("KNOX_MAIL_PORTAL_URL") }
+  if (!["http:", "https:"].includes(portalUrl.protocol) || portalUrl.username || portalUrl.password) throw configError("KNOX_MAIL_PORTAL_URL")
   const timeoutMs = Number(env.KNOX_MAIL_TIMEOUT_MS || 5000)
-  if (!Number.isInteger(timeoutMs) || timeoutMs < 100 || timeoutMs > 30000) throw new Error("메일 제한 시간 확인")
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 100 || timeoutMs > 30000) throw configError("KNOX_MAIL_TIMEOUT_MS")
   return { userId, token, systemId, portalUrl: portalUrl.href, timeoutMs }
 }
 
@@ -36,7 +60,7 @@ export function richHtmlToMailText(html) {
 
 function emailAddress(id) {
   const value = String(id ?? "").trim().toLowerCase()
-  if (!/^[a-z0-9][a-z0-9._-]{0,99}$/.test(value)) throw new Error("Knox ID 형식 확인")
+  if (!/^[a-z0-9][a-z0-9._-]{0,99}$/.test(value)) throw Object.assign(new Error("Knox ID 형식 확인"), { mailReason: "invalid_knox_id" })
   return `${value}@samsung.com`
 }
 
@@ -62,21 +86,37 @@ export function buildQnaMail(config, { eventType, question, message, actor, reci
 
 export function createQnaMailNotifier({ env = process.env, fetchImpl = globalThis.fetch, logger = console } = {}) {
   return {
+    reportStartup() {
+      const missingFields = REQUIRED_ENV.filter((key) => !env[key]?.trim())
+      try {
+        const config = loadQnaMailConfig(env)
+        if (!config) {
+          writeMailLog(logger, "disabled", { stage: "startup", reason: env.KNOX_MAIL_ENABLED === undefined ? "enabled_not_set" : "enabled_not_true", missingFields })
+        } else {
+          writeMailLog(logger, "configured", { stage: "startup", timeoutMs: config.timeoutMs, maxAttempts: 2 })
+        }
+      } catch (error) {
+        writeMailLog(logger, "configuration_failed", { stage: "startup", missingFields, ...diagnostics(error) })
+      }
+    },
     async notify({ repository, eventType, questionId, messageId, actor }) {
       const context = { eventType, questionId, ...(messageId ? { messageId } : {}) }
       // 토큰, 주소, 본문과 원격 오류 응답은 로그에 남기지 않는다.
-      const log = (state, details = {}) => logger.info?.("Q&A mail", { ...context, state, ...details })
+      const log = (state, details = {}) => writeMailLog(logger, state, { ...context, ...details })
       let config, payload
+      let stage = "configuration"
       try {
         config = loadQnaMailConfig(env)
-        if (!config) return
+        if (!config) { log("skipped_disabled", { field: "KNOX_MAIL_ENABLED" }); return }
+        stage = "recipient_and_content_query"
         const data = await repository.getMailContext(questionId, messageId)
         if (!data) { log("skipped_hidden_or_missing"); return }
         if (data.departmentRuleCount) log("department_recipients_unresolved", { ruleCount: data.departmentRuleCount })
+        stage = "message_composition"
         payload = buildQnaMail(config, { ...data, eventType, actor })
         if (!payload.recipients.length) { log("skipped_no_recipients"); return }
-      } catch {
-        log("preparation_failed")
+      } catch (error) {
+        log("preparation_failed", { stage, ...diagnostics(error) })
         return
       }
       const url = new URL(ENDPOINT)
@@ -92,8 +132,8 @@ export function createQnaMailNotifier({ env = process.env, fetchImpl = globalThi
           // 실제 응답 계약 미수령: HTTP 접수와 실제 전달 성공을 구분한다.
           if (response.ok) { log("http_accepted_response_unverified", { attempt, httpStatus: response.status }); return }
           log(attempt === 2 ? "failed" : "retrying", { attempt, httpStatus: response.status })
-        } catch {
-          log(attempt === 2 ? "failed" : "retrying", { attempt, reason: "network_or_timeout" })
+        } catch (error) {
+          log(attempt === 2 ? "failed" : "retrying", { attempt, reason: "network_or_timeout", ...diagnostics(error) })
         }
       }
     },

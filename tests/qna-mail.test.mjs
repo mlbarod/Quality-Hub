@@ -28,7 +28,7 @@ test('지정 제목, 본문 줄바꿈, 링크와 본인 포함 중복 없는 수
 
 test('API 호출자는 개발자 ID, 발신자는 작성자이며 HTTP 접수는 검증 대기로 기록한다', async () => {
   const logs = []
-  await createQnaMailNotifier({ env, logger: { info: (...args) => logs.push(args) }, fetchImpl: async (url, init) => {
+  await createQnaMailNotifier({ env, logger: { info: (line) => logs.push(JSON.parse(line.slice('Q&A mail '.length))) }, fetchImpl: async (url, init) => {
     assert.equal(url.searchParams.get('userId'), 'developer')
     assert.equal(init.method, 'POST')
     assert.equal(init.headers.Authorization, 'Bearer secret-token')
@@ -37,7 +37,7 @@ test('API 호출자는 개발자 ID, 발신자는 작성자이며 HTTP 접수는
     assert.equal(JSON.parse(init.body).sender.emailAddress, 'author@samsung.com')
     return new Response(null, { status: 202 })
   } }).notify(event)
-  assert.equal(logs[0][1].state, 'http_accepted_response_unverified')
+  assert.equal(logs[0].state, 'http_accepted_response_unverified')
   assert.doesNotMatch(JSON.stringify(logs), /secret-token|작성자|samsung.com/)
 })
 
@@ -45,7 +45,7 @@ test('HTTP 실패와 네트워크 실패는 추가 한 번만 재시도한다', 
   for (const mode of ['http', 'network', 'recovery']) {
     let calls = 0
     const logs = []
-    await createQnaMailNotifier({ env, logger: { info: (_, value) => logs.push(value) }, fetchImpl: async () => {
+    await createQnaMailNotifier({ env, logger: { info: (line) => logs.push(JSON.parse(line.slice('Q&A mail '.length))) }, fetchImpl: async () => {
       calls++
       if (mode === 'network') throw new Error('secret remote details')
       return new Response(null, { status: mode === 'recovery' && calls === 2 ? 200 : 500 })
@@ -77,4 +77,41 @@ test('제한 시간이 지나면 중단 신호로 두 시도를 종료한다', a
   } finally {
     clearTimeout(keepAlive)
   }
+})
+
+function captureLogger() {
+  const entries = []
+  return { entries, logger: Object.fromEntries(['info', 'warn', 'error'].map((level) => [level, (line) => entries.push({ level, ...JSON.parse(line.slice('Q&A mail '.length)) })])) }
+}
+
+test('서버 시작 상태는 비활성·설정 누락·정상을 구분하고 값은 노출하지 않는다', () => {
+  for (const [settings, expected, level] of [[{}, 'disabled', 'warn'], [{ ...env, KNOX_MAIL_TOKEN: '' }, 'configuration_failed', 'error'], [env, 'configured', 'info']]) {
+    const { logger, entries } = captureLogger()
+    createQnaMailNotifier({ env: settings, logger }).reportStartup()
+    assert.equal(entries[0].state, expected)
+    assert.equal(entries[0].level, level)
+    assert.equal(entries[0].stage, 'startup')
+    if (expected === 'configuration_failed') assert.deepEqual(entries[0].missingFields, ['KNOX_MAIL_TOKEN'])
+    assert.doesNotMatch(JSON.stringify(entries), /secret-token|developer|portal.example/)
+  }
+})
+
+test('등록 후 비활성 상태도 로그를 남기고 실제 발송은 하지 않는다', async () => {
+  const { logger, entries } = captureLogger()
+  await createQnaMailNotifier({ env: {}, logger, fetchImpl: () => assert.fail('발송 금지') }).notify(event)
+  assert.equal(entries[0].state, 'skipped_disabled')
+  assert.equal(entries[0].questionId, 7)
+})
+
+test('DB 준비 실패와 네트워크 실패는 오류 채널에 안전한 코드만 기록한다', async () => {
+  const { logger, entries } = captureLogger()
+  await createQnaMailNotifier({ env, logger }).notify({ ...event, repository: { async getMailContext() { throw Object.assign(new Error('secret SQL'), { code: 'ER_NO_SUCH_TABLE', sql: 'secret SQL' }) } } })
+  assert.equal(entries[0].stage, 'recipient_and_content_query')
+  assert.equal(entries[0].errorCode, 'ER_NO_SUCH_TABLE')
+  assert.equal(entries[0].level, 'error')
+  await createQnaMailNotifier({ env, logger, fetchImpl: async () => { throw new Error('secret URL', { cause: { code: 'ENOTFOUND' } }) } }).notify(event)
+  assert.equal(entries.at(-1).state, 'failed')
+  assert.equal(entries.at(-1).errorCode, 'ENOTFOUND')
+  assert.equal(entries.at(-1).level, 'error')
+  assert.doesNotMatch(JSON.stringify(entries), /secret/)
 })
