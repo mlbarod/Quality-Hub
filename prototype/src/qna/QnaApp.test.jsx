@@ -248,3 +248,20 @@ describe("Q&A 프로토타입", () => {
     expect(writeButton.querySelector(".qna-write-label")).toBeInTheDocument()
   })
 })
+
+test("메일의 숫자 질문 ID로 데이터 로딩 후 해당 상세를 연다", async () => {
+  const snapshot = qnaRepository.read()
+  const target = snapshot.posts[1]
+  window.__qualityHubPendingQnaView = { questionId: String(target.questionId) }
+  render(<QnaApp />)
+  await waitFor(() => expect(screen.getByRole('heading', { name: target.title })).toBeInTheDocument())
+  expect(window.__qualityHubPendingQnaView).toBeNull()
+})
+
+test("존재하지 않는 메일 링크는 다른 글 대신 목록과 안내를 보여준다", async () => {
+  window.__qualityHubPendingQnaView = { questionId: '999999999' }
+  render(<QnaApp />)
+  await waitFor(() => expect(screen.getByText('질문을 찾을 수 없거나 삭제된 게시글입니다.')).toBeInTheDocument())
+  expect(screen.getByRole('region', { name: '품질VOE 게시글 목록' })).toBeInTheDocument()
+  expect(window.__qualityHubPendingQnaView).toBeNull()
+})

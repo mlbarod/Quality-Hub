@@ -489,12 +489,17 @@ export function QnaApp({ initialView = "list", lineOptions = QNA_LINE_OPTIONS })
 
   useEffect(() => {
     const applyView = (detail) => {
-      const requestedPostId = detail?.postId
+      const requestedQuestionId = detail?.questionId
+      if (requestedQuestionId && loadState !== "ready") return
+      const requestedPostId = requestedQuestionId
+        ? posts.find((post) => String(post.questionId) === String(requestedQuestionId) && !post.hidden)?.id
+        : detail?.postId
       const hasRequestedPost = requestedPostId && posts.some((post) => post.id === requestedPostId && !post.hidden)
       if (requestedPostId && !hasRequestedPost && loadState === "loading") return
       const nextView = detail?.view === "notifications" ? "notifications" : hasRequestedPost ? "detail" : "list"
       if (hasRequestedPost) setSelectedId(requestedPostId)
       setView(nextView)
+      if (requestedQuestionId && !hasRequestedPost) setLiveMessage("질문을 찾을 수 없거나 삭제된 게시글입니다.")
       window.__qualityHubPendingQnaView = null
       window.requestAnimationFrame(() => document.querySelector("#qna-main")?.focus())
     }

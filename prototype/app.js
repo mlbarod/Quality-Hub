@@ -882,9 +882,9 @@ const setRuleMode = (mode, { announce = true, focus = true, restoreAgent = true 
 
 const qnaModes = new Set(["closed", "open"]);
 
-const setQnaMode = (mode, { announce = true, focus = true, restoreAgent = true, view = "list", postId = null } = {}) => {
+const setQnaMode = (mode, { announce = true, focus = true, restoreAgent = true, view = "list", postId = null, questionId = null } = {}) => {
   if (!prototype || !qnaModes.has(mode)) return;
-  const qnaViewKey = `${view}:${postId ?? ""}`;
+  const qnaViewKey = `${view}:${postId ?? ""}:${questionId ?? ""}`;
   if (initializedModes.qna && prototype.dataset.qnaMode === mode && (mode === "closed" || activeQnaViewKey === qnaViewKey)) return;
   initializedModes.qna = true;
   activeQnaViewKey = mode === "open" ? qnaViewKey : "";
@@ -923,7 +923,7 @@ const setQnaMode = (mode, { announce = true, focus = true, restoreAgent = true, 
   document.title = mode === "open" ? "Quality Hub · 품질VOE" : "Quality Hub";
 
   if (mode === "open") {
-    const qnaViewDetail = { view, postId };
+    const qnaViewDetail = { view, postId, questionId };
     window.__qualityHubPendingQnaView = qnaViewDetail;
     window.dispatchEvent(new CustomEvent("qualityhub:qna-view", { detail: qnaViewDetail }));
   }
@@ -2321,7 +2321,7 @@ const initialRuleQuery = new URL(window.location.href).searchParams.get("rule");
 setRuleMode(initialRuleQuery === "open" ? "open" : "closed", { announce: false, focus: false, restoreAgent: false });
 
 const initialQnaQuery = new URL(window.location.href).searchParams.get("qna");
-setQnaMode(initialQnaQuery === "open" ? "open" : "closed", { announce: false, focus: false, restoreAgent: false });
+setQnaMode(initialQnaQuery === "open" ? "open" : "closed", { announce: false, focus: false, restoreAgent: false, questionId: new URL(window.location.href).searchParams.get("questionId") });
 
 const initialUserQuery = new URL(window.location.href).searchParams.get("users");
 setUserMode(initialUserQuery === "open" ? "open" : "closed", { announce: false, focus: false, restoreAgent: false });

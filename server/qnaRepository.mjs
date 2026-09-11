@@ -286,6 +286,35 @@ export function createQnaPool({ config = loadDbConfig(), mysqlImpl = mysql } = {
 
 export function createQnaRepository({ pool = createQnaPool(), uuidFactory = randomUUID } = {}) {
   return {
+    async getMailContext(questionIdInput, messageIdInput) {
+      const questionId = requireId(questionIdInput, "questionId")
+      const [questions] = await pool.execute(`
+        SELECT question_id AS questionId, title, body_html AS bodyHtml, category, line_name AS lineName
+        FROM quality_hub_qna_question WHERE question_id = ? AND hidden_at IS NULL
+      `, [questionId])
+      if (!questions[0]) return null
+      let message
+      if (messageIdInput !== undefined) {
+        const [messages] = await pool.execute(`
+          SELECT body_html AS bodyHtml FROM quality_hub_qna_message
+          WHERE question_id = ? AND message_id = ? AND hidden_at IS NULL
+        `, [questionId, requireId(messageIdInput, "messageId")])
+        if (!messages[0]) return null
+        message = messages[0]
+      }
+      const [recipients] = await pool.execute(`
+        SELECT user_id AS userId FROM quality_hub_master_account
+        UNION
+        SELECT match_value AS userId FROM quality_hub_access_rule
+        WHERE is_active = 1 AND role_name = 'admin' AND claim_field = 'user_id' AND match_type = 'exact'
+      `)
+      const [departmentRules] = await pool.execute(`
+        SELECT COUNT(*) AS count FROM quality_hub_access_rule
+        WHERE is_active = 1 AND role_name = 'admin' AND claim_field = 'department'
+      `)
+      return { question: questions[0], message, recipientUserIds: recipients.map((row) => row.userId), departmentRuleCount: Number(departmentRules[0]?.count ?? 0) }
+    },
+
     async getSnapshot(actorInput) {
       const actor = normalizeActor(actorInput)
       const includeHidden = actor.role === "master"

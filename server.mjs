@@ -16,7 +16,7 @@ import { createRuleSopApi } from "./server/ruleSopApi.mjs"
 const rootDir = fileURLToPath(new URL(".", import.meta.url))
 export const sourceStaticDir = join(rootDir, "prototype")
 export const builtStaticDir = join(rootDir, "dist")
-export const serverEnvironmentFiles = [".env.rag", ".env.gpt-oss", ".env.db", ".env.sso"]
+export const serverEnvironmentFiles = [".env.rag", ".env.gpt-oss", ".env.db", ".env.sso", ".env.mail"]
 const defaultPort = 4173
 const defaultHost = "0.0.0.0"
 const healthPath = "/healthz"

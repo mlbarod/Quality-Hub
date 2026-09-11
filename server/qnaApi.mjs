@@ -1,4 +1,5 @@
 import { createQnaRepository, QnaNotFoundError, QnaPermissionError } from "./qnaRepository.mjs"
+import { createQnaMailNotifier } from "./qnaMail.mjs"
 
 const API_PATH = "/api/qna"
 const MAX_JSON_BODY_BYTES = 600 * 1024
@@ -90,9 +91,16 @@ function toApiError(error) {
   return new QnaApiRequestError("품질VOE 요청을 처리하지 못했습니다.", { status: 500, code: "INTERNAL_ERROR" })
 }
 
-export function createQnaApi({ repository, repositoryFactory = createQnaRepository, logger = console } = {}) {
+export function createQnaApi({ repository, repositoryFactory = createQnaRepository, logger = console, mailNotifier = createQnaMailNotifier({ logger }) } = {}) {
   let activeRepository = repository
   let ownsRepository = false
+  const pendingMail = new Set()
+  const notify = (event) => {
+    const task = Promise.resolve().then(() => mailNotifier.notify({ repository: activeRepository, ...event }))
+      .catch(() => logger.error?.("Q&A mail", { state: "notification_failed", questionId: event.questionId }))
+      .finally(() => pendingMail.delete(task))
+    pendingMail.add(task)
+  }
   const getRepository = () => {
     if (!activeRepository) {
       try {
@@ -125,6 +133,7 @@ export function createQnaApi({ repository, repositoryFactory = createQnaReposito
         }
         if (method === "POST" && route.type === "questions") {
           const result = await getRepository().createQuestion(await readJsonBody(req), actor)
+          notify({ eventType: "question_created", questionId: result.questionId, actor })
           sendJson(res, 201, result)
           return true
         }
@@ -134,6 +143,7 @@ export function createQnaApi({ repository, repositoryFactory = createQnaReposito
         }
         if (method === "POST" && route.type === "messages") {
           const result = await getRepository().createMessage(route.questionId, await readJsonBody(req), actor)
+          notify({ eventType: "message_created", questionId: route.questionId, messageId: result.messageId, actor })
           sendJson(res, 201, result)
           return true
         }
@@ -168,6 +178,7 @@ export function createQnaApi({ repository, repositoryFactory = createQnaReposito
     },
 
     async close() {
+      await Promise.allSettled([...pendingMail])
       if (ownsRepository && activeRepository) await activeRepository.close()
     },
   }

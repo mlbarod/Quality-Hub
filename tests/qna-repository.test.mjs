@@ -104,3 +104,22 @@ test("Q&A 입력 정규화는 위험 HTML과 중복 태그를 제거하고 제�
   assert.deepEqual(normalizeTags(["#Rate", " rate ", "식각"]), ["Rate", "식각"])
   assert.throws(() => normalizeTags(["1", "2", "3", "4", "5", "6"]), /최대 5개/)
 })
+
+test("메일은 공개 질문·답변과 개별 관리자·마스터를 조회하고 부서 규칙은 별도로 표시한다", async () => {
+  const calls = []
+  const repository = createQnaRepository({ pool: { async execute(sql, params) {
+    calls.push([sql, params])
+    if (sql.includes('FROM quality_hub_qna_question')) return [[{ questionId: 7, title: '질문' }]]
+    if (sql.includes('FROM quality_hub_qna_message')) return [[{ bodyHtml: '<p>답변</p>' }]]
+    if (sql.includes('UNION')) return [[{ userId: 'admin' }, { userId: 'master' }]]
+    if (sql.includes('COUNT(*)')) return [[{ count: 1 }]]
+    throw new Error('unexpected query')
+  } } })
+  const result = await repository.getMailContext(7, 9)
+  assert.deepEqual(result.recipientUserIds, ['admin', 'master'])
+  assert.equal(result.departmentRuleCount, 1)
+  assert.equal(result.message.bodyHtml, '<p>답변</p>')
+  assert.deepEqual(calls[1][1], [7, 9])
+  assert.match(calls[2][0], /is_active = 1 AND role_name = 'admin' AND claim_field = 'user_id' AND match_type = 'exact'/)
+  assert.match(calls[0][0], /hidden_at IS NULL/)
+})
