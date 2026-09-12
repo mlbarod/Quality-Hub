@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { readFile } from "node:fs/promises"
+import { readFile, readdir } from "node:fs/promises"
 import test from "node:test"
 
 const [dockerfile, cdepDockerfile, dockerignore, compose, composeEnvExample, gitignore, packageJson, readme, operations, requirements, developmentPlan] = await Promise.all([
@@ -41,6 +41,28 @@ test("C-DEP 이미지는 필수 환경파일을 변경하지 않고 지정 경�
   assert.match(cdepDockerfile, /COPY prototype\/\.env\.local \.\/prototype\/\.env\.local/)
   for (const fileName of ["db", "rag", "gpt-oss", "sso", "mail"]) {
     assert.match(cdepDockerfile, new RegExp(`COPY[^\\n]*\\.env\\.${fileName} \\.\\/`))
+  }
+})
+
+test("두 이미지의 빌드 단계는 프론트엔드에서 사용하는 서버 공통 모듈을 포함한다", async () => {
+  const sourceRoot = new URL("../prototype/src/", import.meta.url)
+  const files = (await readdir(sourceRoot, { recursive: true }))
+    .filter((file) => /\.(?:js|jsx)$/.test(file) && !file.includes(".test."))
+  const sharedModules = new Set()
+  for (const file of files) {
+    const source = await readFile(new URL(file, sourceRoot), "utf8")
+    for (const match of source.matchAll(/from\s+["'](?:\.\.\/)+server\/([^"']+)["']/g)) {
+      sharedModules.add(`server/${match[1]}`)
+    }
+  }
+  assert.ok(sharedModules.size > 0)
+  for (const [name, recipe] of [["Dockerfile", dockerfile], ["Dockerfile-prod", cdepDockerfile]]) {
+    const buildStage = recipe.split("FROM dependencies AS build")[1].split("RUN npm run build")[0]
+    const copiedSources = buildStage.split("\n").filter((line) => line.startsWith("COPY "))
+      .flatMap((line) => line.trim().split(/\s+/).slice(1, -1))
+    for (const module of sharedModules) {
+      assert.ok(copiedSources.includes(module), `${name} 빌드 단계에 ${module} 복사가 필요합니다.`)
+    }
   }
 })
 

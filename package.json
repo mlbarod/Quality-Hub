@@ -7,6 +7,7 @@
     "start": "node server.mjs",
     "dev": "node server.mjs --source",
     "build": "vite build",
+    "build:container-check": "node --test tests/container-build.test.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "start:static": "npm run build && node server.mjs",
     "rag:search": "node --env-file-if-exists=.env.rag scripts/rag-search.mjs",
