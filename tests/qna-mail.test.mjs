@@ -11,7 +11,7 @@ const event = { repository: { async getMailContext() { return data } }, eventTyp
 
 test('환경변수 비활성화와 누락·잘못된 설정을 구분한다', () => {
   assert.equal(loadQnaMailConfig({}), null)
-  for (const key of ['KNOX_MAIL_USER_ID', 'KNOX_MAIL_TOKEN', 'KNOX_MAIL_SYSTEM_ID', 'KNOX_MAIL_PORTAL_URL']) assert.throws(() => loadQnaMailConfig({ ...env, [key]: '' }))
+  for (const key of ['KNOX_MAIL_TOKEN', 'KNOX_MAIL_SYSTEM_ID', 'KNOX_MAIL_PORTAL_URL']) assert.throws(() => loadQnaMailConfig({ ...env, [key]: '' }))
   assert.throws(() => loadQnaMailConfig({ ...env, KNOX_MAIL_PORTAL_URL: 'javascript:alert(1)' }))
   assert.throws(() => loadQnaMailConfig({ ...env, KNOX_MAIL_TIMEOUT_MS: '-1' }))
 })
@@ -68,10 +68,10 @@ test('임의 HTML 속성·스크립트·외부 리소스를 제거하고 표시�
   assert.doesNotMatch(broken, /<img|secret/)
 })
 
-test('API 호출자는 개발자 ID, 발신자는 작성자이며 HTTP 접수는 검증 대기로 기록한다', async () => {
+test('API URL과 발신자는 작성자이며 HTTP 접수는 검증 대기로 기록한다', async () => {
   const logs = []
   await createQnaMailNotifier({ env, logger: { info: (line) => logs.push(JSON.parse(line.slice('Q&A mail '.length))) }, fetchImpl: async (url, init) => {
-    assert.equal(url.searchParams.get('userId'), 'developer')
+    assert.equal(url.searchParams.get('userId'), 'author')
     assert.equal(init.method, 'POST')
     assert.equal(init.headers.Authorization, 'Bearer secret-token')
     assert.equal(init.headers['System-ID'], 'system')
@@ -157,4 +157,52 @@ test('DB 준비 실패와 네트워크 실패는 오류 채널에 안전한 코�
   assert.equal(entries.at(-1).errorCode, 'ENOTFOUND')
   assert.equal(entries.at(-1).level, 'error')
   assert.doesNotMatch(JSON.stringify(entries), /secret/)
+})
+
+
+test('고정 사용자 ID가 없어도 설정이 유효하고 기존 값은 사용하지 않는다', () => {
+  const { KNOX_MAIL_USER_ID, ...withoutFixedUser } = env
+  assert.deepEqual(loadQnaMailConfig(withoutFixedUser), loadQnaMailConfig(env))
+  assert.deepEqual(loadQnaMailConfig({ ...env, KNOX_MAIL_USER_ID: '다른 값\n' }), loadQnaMailConfig(env))
+  const { logger, entries } = captureLogger()
+  createQnaMailNotifier({ env: withoutFixedUser, logger }).reportStartup()
+  assert.equal(entries[0].state, 'configured')
+  assert.equal(entries[0].senderSource, 'actor')
+})
+
+test('회귀: 개발자와 다른 일반유저·관리자·마스터도 URL과 발신자를 일치시켜 질문과 답변을 보낸다', async () => {
+  const { logger, entries } = captureLogger()
+  const sent = []
+  const notifier = createQnaMailNotifier({ env, logger, fetchImpl: async (url, init) => {
+    const payload = JSON.parse(init.body)
+    const userId = url.searchParams.get('userId')
+    // 현장 증상에 대한 재현 조건: 호출 사용자와 발신자가 다르면 거절한다.
+    if (payload.sender.emailAddress !== `${userId}@samsung.com`) return new Response(null, { status: 403 })
+    sent.push({ userId, payload })
+    return new Response(null, { status: 202 })
+  } })
+  const authors = [['general', 'general.writer'], ['admin', 'admin.writer'], ['master', 'master.writer']]
+  await Promise.all(authors.flatMap(([role, userId]) => ['question_created', 'message_created'].map((eventType) => notifier.notify({
+    ...event, eventType, ...(eventType === 'message_created' ? { messageId: 9 } : {}),
+    actor: { userId: ` ${userId.toUpperCase()} `, displayName: '다른 작성자', role },
+    repository: { async getMailContext() { return { ...data, question: { ...data.question, authorUserId: 'original.author' }, recipientUserIds: ['admin.writer', 'master.writer'] } } },
+  }))))
+  assert.equal(sent.length, 6)
+  for (const [, userId] of authors) {
+    const mails = sent.filter((mail) => mail.userId === userId)
+    assert.equal(mails.length, 2)
+    assert.ok(mails.some(({ payload }) => payload.subject.startsWith('[품질 Hub VOE] 추가 답변:')))
+    for (const { payload } of mails) assert.deepEqual(payload.recipients.map((recipient) => recipient.emailAddress), ['admin.writer@samsung.com', 'master.writer@samsung.com'])
+  }
+  assert.equal(entries.filter((entry) => entry.state === 'http_accepted_response_unverified').length, 6)
+  assert.doesNotMatch(JSON.stringify(entries), /secret-token|developer|writer@samsung.com/)
+})
+
+test('작성자 ID가 없거나 잘못되면 설정 ID로 대신 발송하지 않는다', async () => {
+  for (const userId of ['', undefined, 'wrong@example.com', 'bad&id']) {
+    const { logger, entries } = captureLogger()
+    await createQnaMailNotifier({ env, logger, fetchImpl: () => assert.fail('잘못된 작성자로 발송 금지') }).notify({ ...event, actor: { ...actor, userId } })
+    assert.equal(entries[0].state, 'preparation_failed')
+    assert.equal(entries[0].reason, 'invalid_knox_id')
+  }
 })

@@ -1,7 +1,7 @@
 import { escapeMailHtml, richHtmlToMailHtml } from "./qnaMailHtml.mjs"
 
 const ENDPOINT = "https://openapi.samsung.net/mail/api/v2.0/mails/send"
-const REQUIRED_ENV = ["KNOX_MAIL_USER_ID", "KNOX_MAIL_TOKEN", "KNOX_MAIL_SYSTEM_ID", "KNOX_MAIL_PORTAL_URL"]
+const REQUIRED_ENV = ["KNOX_MAIL_TOKEN", "KNOX_MAIL_SYSTEM_ID", "KNOX_MAIL_PORTAL_URL"]
 
 function configError(field) {
   return Object.assign(new Error(`메일 환경변수 확인: ${field}`), { mailField: field })
@@ -32,7 +32,6 @@ export function loadQnaMailConfig(env = process.env) {
     if (!value || /[\r\n]/.test(value)) throw configError(key)
     return value
   }
-  const userId = required("KNOX_MAIL_USER_ID")
   const token = required("KNOX_MAIL_TOKEN")
   const systemId = required("KNOX_MAIL_SYSTEM_ID")
   let portalUrl
@@ -40,7 +39,7 @@ export function loadQnaMailConfig(env = process.env) {
   if (!["http:", "https:"].includes(portalUrl.protocol) || portalUrl.username || portalUrl.password) throw configError("KNOX_MAIL_PORTAL_URL")
   const timeoutMs = Number(env.KNOX_MAIL_TIMEOUT_MS || 5000)
   if (!Number.isInteger(timeoutMs) || timeoutMs < 100 || timeoutMs > 30000) throw configError("KNOX_MAIL_TIMEOUT_MS")
-  return { userId, token, systemId, portalUrl: portalUrl.href, timeoutMs }
+  return { token, systemId, portalUrl: portalUrl.href, timeoutMs }
 }
 
 export function richHtmlToMailText(html) {
@@ -104,7 +103,7 @@ export function createQnaMailNotifier({ env = process.env, fetchImpl = globalThi
         if (!config) {
           writeMailLog(logger, "disabled", { stage: "startup", reason: env.KNOX_MAIL_ENABLED === undefined ? "enabled_not_set" : "enabled_not_true", missingFields })
         } else {
-          writeMailLog(logger, "configured", { stage: "startup", timeoutMs: config.timeoutMs, maxAttempts: 2 })
+          writeMailLog(logger, "configured", { stage: "startup", timeoutMs: config.timeoutMs, maxAttempts: 2, senderSource: "actor" })
         }
       } catch (error) {
         writeMailLog(logger, "configuration_failed", { stage: "startup", missingFields, ...diagnostics(error) })
@@ -131,7 +130,9 @@ export function createQnaMailNotifier({ env = process.env, fetchImpl = globalThi
         return
       }
       const url = new URL(ENDPOINT)
-      url.searchParams.set("userId", config.userId)
+      // buildQnaMail이 검증·정규화한 발신자와 URL의 사용자를 일치시킨다.
+      // 고정 환경변수 ID로 다른 작성자의 메일을 보내지 않는다.
+      url.searchParams.set("userId", payload.sender.emailAddress.split("@")[0])
       for (let attempt = 1; attempt <= 2; attempt += 1) {
         try {
           const response = await fetchImpl(url, {
