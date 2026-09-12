@@ -22,6 +22,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import { QnaFontSize, fontSizedHtml } from "./fontSize"
+import { QNA_FONT_SIZES, QNA_DEFAULT_FONT_SIZE } from "../../../server/qnaFontSize.mjs"
 
 function ToolbarButton({ label, active = false, disabled = false, onClick, children }) {
   return (
@@ -62,6 +64,7 @@ export function RichTextEditor({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ link: false }),
+      QnaFontSize,
       Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { rel: "noopener noreferrer" } }),
       Image.configure({ allowBase64: true, HTMLAttributes: { class: "qna-editor-image" } }),
       TableKit.configure({
@@ -79,12 +82,13 @@ export function RichTextEditor({
         "aria-multiline": "true",
       },
     },
-    onUpdate: ({ editor: currentEditor }) => onChange?.(currentEditor.getHTML(), currentEditor.getText()),
+    onUpdate: ({ editor: currentEditor }) => onChange?.(fontSizedHtml(currentEditor), currentEditor.getText()),
   })
 
   const editorState = useEditorState({
     editor,
     selector: ({ editor: currentEditor }) => ({
+      fontSize: currentEditor?.getAttributes("qnaFontSize").size ?? QNA_DEFAULT_FONT_SIZE,
       bold: currentEditor?.isActive("bold") ?? false,
       italic: currentEditor?.isActive("italic") ?? false,
       bulletList: currentEditor?.isActive("bulletList") ?? false,
@@ -117,9 +121,16 @@ export function RichTextEditor({
   }
 
   return (
-    <div className={cn("overflow-hidden rounded-[10px] border bg-white transition", error ? "border-[#c96861]" : "border-[#d5e3ec] focus-within:border-[#6ec0f7] focus-within:ring-[3px] focus-within:ring-[rgba(7,136,223,.1)]")}>
+    <div className={cn("qna-rich-editor overflow-hidden rounded-[10px] border bg-white transition", error ? "border-[#c96861]" : "border-[#d5e3ec] focus-within:border-[#6ec0f7] focus-within:ring-[3px] focus-within:ring-[rgba(7,136,223,.1)]")}>
       <TooltipProvider delayDuration={350}>
         <div className="flex min-h-11 flex-wrap items-center gap-0.5 border-b border-[#e3ebf0] bg-[#fafbfa] px-2 py-1.5" role="toolbar" aria-label={toolbarLabel}>
+          <label className="mr-2 flex items-center gap-2 text-[14px] text-[#263b4a]">
+            글씨 크기
+            <select aria-label="글씨 크기" className="h-9 rounded-md border border-[#d5e3ec] bg-white px-2 text-[14px] focus-visible:outline-2 focus-visible:outline-[#0673bc]" value={editorState.fontSize} disabled={!editor} onChange={(event) => editor?.chain().focus().setMark("qnaFontSize", { size: Number(event.target.value) }).run()}>
+              {QNA_FONT_SIZES.map((size) => <option key={size} value={size}>{size}</option>)}
+            </select>
+            <span>pt</span>
+          </label>
           <ToolbarButton label="굵게" active={editorState.bold} onClick={() => editor?.chain().focus().toggleBold().run()}><Bold className="size-4" /></ToolbarButton>
           <ToolbarButton label="기울임" active={editorState.italic} onClick={() => editor?.chain().focus().toggleItalic().run()}><Italic className="size-4" /></ToolbarButton>
           <span className="mx-1 h-5 w-px bg-[#d5e3ec]" aria-hidden="true" />

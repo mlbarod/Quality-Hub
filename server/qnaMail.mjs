@@ -75,7 +75,7 @@ export function buildQnaMail(config, { eventType, question, message, actor, reci
   const reply = eventType === "message_created"
   const contents = [
     '<!doctype html><html lang="ko"><head><meta charset="utf-8"></head><body style="margin:0;padding:24px;background:#ffffff;">',
-    '<div style="font-family:Arial,\'Malgun Gothic\',sans-serif;font-size:14px;line-height:1.8;color:#263b4a;text-align:left;overflow-wrap:break-word;">',
+    '<div style="font-family:Arial,\'Malgun Gothic\',sans-serif;font-size:11pt;line-height:1.8;color:#263b4a;text-align:left;overflow-wrap:break-word;">',
     `<p style="margin:0 0 16px;">작성자: ${escapeMailHtml(actor.displayName)}<br>구분: ${escapeMailHtml(question.category)}<br>라인: ${escapeMailHtml(question.lineName)}</p>`,
     `<p style="margin:0 0 24px;">게시글 바로가기:<br><a href="${escapeMailHtml(link.href)}" target="_blank" rel="noopener noreferrer" style="color:#0673bc;text-decoration:underline;overflow-wrap:anywhere;">${escapeMailHtml(link.href)}</a></p>`,
     '<h2 style="margin:0 0 16px;font-size:18px;color:#172c3c;">질문 본문</h2>',
@@ -84,7 +84,7 @@ export function buildQnaMail(config, { eventType, question, message, actor, reci
   if (reply) contents.push(
     '<hr style="margin:32px 0 24px;border:0;border-top:3px solid #6c91aa;">',
     '<h2 style="margin:0 0 16px;font-size:18px;color:#172c3c;">추가 답변</h2>',
-    `<div style="font-size:13px;line-height:1.65;color:#454a4f;">${richHtmlToMailHtml(message.bodyHtml, config.portalUrl)}</div>`,
+    `<div style="font-size:11pt;line-height:1.65;color:#454a4f;">${richHtmlToMailHtml(message.bodyHtml, config.portalUrl)}</div>`,
   )
   contents.push("</div></body></html>")
   return {

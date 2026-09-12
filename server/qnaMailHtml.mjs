@@ -1,4 +1,5 @@
 import { parseFragment } from "parse5"
+import { isQnaFontSize } from "./qnaFontSize.mjs"
 
 export function escapeMailHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character])
@@ -43,7 +44,9 @@ export function richHtmlToMailHtml(html, portalUrl) {
     const children = () => (node.childNodes ?? []).map((child) => render(child, depth + 1)).join("")
     if (!allowed.has(tag)) return children()
     const attributes = new Map((node.attrs ?? []).map(({ name, value }) => [name, value]))
-    let attrs = styles[tag] ? ` style="${styles[tag]}"` : ""
+    const fontSize = attributes.get("data-qna-font-size")
+    const style = (styles[tag] ?? "") + (isQnaFontSize(fontSize) ? `font-size:${fontSize}pt;` : "")
+    let attrs = style ? ` style="${style}"` : ""
     if (tag === "a" && attributes.has("href")) {
       try {
         const url = new URL(attributes.get("href"), portalUrl)
