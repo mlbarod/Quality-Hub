@@ -10,6 +10,27 @@
   font-family: "Pretendard Variable", Inter, Pretendard, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
+/* 기존 목록 폭(최대 1420px, 내부 여백 40px)의 바깥 여백을 1/3로 축소한다. */
+.qna-board-container {
+  width: 100%;
+  padding-inline: max(calc(40px / 3), calc((100% - 1340px) / 6));
+}
+
+.qna-detail-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 20px;
+}
+
+.qna-detail-summary > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.qna-detail-summary > :nth-child(2):last-child {
+  grid-column: span 2;
+}
+
 .qna-scope button {
   font-family: inherit;
 }
