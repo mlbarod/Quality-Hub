@@ -296,7 +296,8 @@ export function createQnaRepository({ pool = createQnaPool(), uuidFactory = rand
     async getMailContext(questionIdInput, messageIdInput) {
       const questionId = requireId(questionIdInput, "questionId")
       const [questions] = await pool.execute(`
-        SELECT question_id AS questionId, title, body_html AS bodyHtml, category, line_name AS lineName
+        SELECT question_id AS questionId, title, body_html AS bodyHtml, category, line_name AS lineName,
+               author_user_id AS authorUserId
         FROM quality_hub_qna_question WHERE question_id = ? AND hidden_at IS NULL
       `, [questionId])
       if (!questions[0]) return null
@@ -319,7 +320,11 @@ export function createQnaRepository({ pool = createQnaPool(), uuidFactory = rand
         SELECT COUNT(*) AS count FROM quality_hub_access_rule
         WHERE is_active = 1 AND role_name = 'admin' AND claim_field = 'department'
       `)
-      return { question: questions[0], message, recipientUserIds: recipients.map((row) => row.userId), departmentRuleCount: Number(departmentRules[0]?.count ?? 0) }
+      const recipientUserIds = recipients.map((row) => row.userId)
+      // 추가 답변은 해당 질문의 작성자에게도 알린다. 다른 일반유저는 조회하지 않는다.
+      // 관리자와 작성자가 겹치는 경우 주소 정규화 후 메일 구성 단계에서 중복 제거한다.
+      if (message) recipientUserIds.push(questions[0].authorUserId)
+      return { question: questions[0], message, recipientUserIds, departmentRuleCount: Number(departmentRules[0]?.count ?? 0) }
     },
 
     async getSnapshot(actorInput, { summary = false, questionId: requestedId } = {}) {

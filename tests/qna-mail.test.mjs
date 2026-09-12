@@ -3,6 +3,7 @@ import test from 'node:test'
 import { buildQnaMail, createQnaMailNotifier, loadQnaMailConfig, richHtmlToMailText } from '../server/qnaMail.mjs'
 import { richHtmlToMailHtml } from '../server/qnaMailHtml.mjs'
 import { parseFragment } from 'parse5'
+import { createQnaRepository } from '../server/qnaRepository.mjs'
 
 const env = { KNOX_MAIL_ENABLED: 'true', KNOX_MAIL_USER_ID: 'developer', KNOX_MAIL_TOKEN: 'secret-token', KNOX_MAIL_SYSTEM_ID: 'system', KNOX_MAIL_PORTAL_URL: 'https://portal.example/hub/' }
 const data = { question: { questionId: 7, title: '질문 제목', category: 'FDC', lineName: 'A', bodyHtml: '<p>첫째 &amp; 내용</p><p>둘째<br>셋째</p>' }, message: { bodyHtml: '<p>추가 내용</p>' }, recipientUserIds: ['author', 'master', 'MASTER'] }
@@ -205,4 +206,38 @@ test('작성자 ID가 없거나 잘못되면 설정 ID로 대신 발송하지 �
     assert.equal(entries[0].state, 'preparation_failed')
     assert.equal(entries[0].reason, 'invalid_knox_id')
   }
+})
+
+
+test('실제 수신자 구성: 답변은 해당 질문 작성자와 관리자에게만 보내고 중복을 제거한다', async () => {
+  const authors = { 7: 'general.author', 8: 'other.general', 9: ' ADMIN ' }
+  const repository = createQnaRepository({ pool: { async execute(sql, params) {
+    if (sql.includes('FROM quality_hub_qna_question')) return [[{ ...data.question, questionId: params[0], authorUserId: authors[params[0]] }]]
+    if (sql.includes('FROM quality_hub_qna_message')) {
+      assert.equal(params[1], 20 + params[0])
+      return [[{ bodyHtml: '<p>담당자 답변</p>' }]]
+    }
+    if (sql.includes('UNION')) {
+      assert.match(sql, /role_name = 'admin' AND claim_field = 'user_id' AND match_type = 'exact'/)
+      return [[{ userId: 'admin' }, { userId: 'master' }]]
+    }
+    if (sql.includes('COUNT(*)')) return [[{ count: 0 }]]
+    assert.fail('예상하지 않은 수신자 조회')
+  } } })
+  const sent = []
+  const notifier = createQnaMailNotifier({ env, logger: { info() {} }, fetchImpl: async (url, init) => {
+    const payload = JSON.parse(init.body)
+    assert.equal(url.searchParams.get('userId'), 'reply.writer')
+    assert.equal(payload.sender.emailAddress, 'reply.writer@samsung.com')
+    sent.push(payload.recipients.map((recipient) => recipient.emailAddress))
+    return new Response(null, { status: 202 })
+  } })
+  for (const questionId of [7, 8, 9]) await notifier.notify({ repository, eventType: 'message_created', questionId, messageId: 20 + questionId, actor: { userId: 'reply.writer', displayName: '답변자' } })
+  assert.deepEqual(sent, [
+    ['admin@samsung.com', 'master@samsung.com', 'general.author@samsung.com'],
+    ['admin@samsung.com', 'master@samsung.com', 'other.general@samsung.com'],
+    ['admin@samsung.com', 'master@samsung.com'],
+  ])
+  await notifier.notify({ repository, eventType: 'question_created', questionId: 7, actor: { userId: 'reply.writer', displayName: '작성자' } })
+  assert.deepEqual(sent.at(-1), ['admin@samsung.com', 'master@samsung.com'])
 })

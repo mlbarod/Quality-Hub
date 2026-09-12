@@ -122,7 +122,7 @@
 - 메일 발송 API는 `POST https://openapi.samsung.net/mail/api/v2.0/mails/send?userId={작성자_Knox_ID}`이며, `userId`와 발신자는 현재 질문·추가 답변 작성자의 동일한 ID로 자동 구성. 기존 `KNOX_MAIL_USER_ID`는 무시하며 필수 설정에서 제외 (2026-09-12 작성자별 미발송 수정)
 - 요청 헤더는 `accept: */*`, `Content-Type: application/json`, `Authorization: Bearer {token}`, `System-ID: {System id}`를 사용. 토큰과 System ID는 서버 환경변수로 제공하며, 사용자 확인상 토큰은 만료되지 않음
 - 요청 본문은 `subject`, `docSecuType: PERSONAL`, `contents`, `contentType: HTML`, `sender: {emailAddress}`, `recipients: [{emailAddress, recipientType: TO}]` 구조를 사용. `sender.emailAddress`는 질문 또는 추가 답변 작성자의 `{knox_id}@samsung.com`으로 구성하고, 수신자 주소는 각 수신자의 `{knox_id}@samsung.com`으로 구성. URL의 `userId`와 본문의 발신자 ID를 일치시킴
-- 수신 대상은 권한 관리 탭에 등록된 관리자와 마스터이며, 작성자가 수신 대상인 경우 본인도 포함. 사용자 확인상 수신자 수 제한은 없음
+- 신규 질문 메일은 권한 관리 탭에 등록된 관리자와 마스터에게 발송. 추가 답변 메일은 같은 관리자·마스터와 해당 질문의 원작성자에게 발송하며 원작성자가 일반 권한이어도 포함. 다른 일반유저 전체나 다른 게시글 작성자는 추가하지 않음. 주소 정규화 후 중복을 제거하며 본인도 수신 대상에서 제외하지 않음. 사용자 확인상 수신자 수 제한은 없음
 - 메일 제목은 게시글 신규 등록 시 `[품질 Hub VOE] 게시글 등록:{질문 제목}`, 추가 답변 등록 시 `[품질 Hub VOE] 추가 답변: {질문 제목}`으로 구성
 - 메일 본문은 사용자가 승인한 예시처럼 작성자·구분·라인, 게시글 바로가기 링크, 실제 질문 본문 순서로 표시. 2026-09-11 사용자 요청으로 `contentType: HTML` 본문에 VOE의 문단·강조·목록·인용·링크·표 서식을 유지하고 이미지는 `[이미지: 게시글에서 확인]` 안내로 대체. 임의 HTML 속성·외부 리소스는 제외하며 실제 Knox HTML 지원과 수신 표시는 미검증
 - 설명용 성공 응답(`200 OK`, `success`, `messageId`)과 실패 응답(`401 Unauthorized`, `code`, `message`) 예시는 실제 Knox API 규격으로 확정하지 않음
