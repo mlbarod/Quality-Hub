@@ -144,3 +144,13 @@ test("품질VOE 상세 질문 본문을 넓고 또렷하게 표시한다", () =>
   assert.match(qnaApp, /qna-rendered-content qna-question-content/)
   assert.match(qnaCss, /\.qna-question-content \{[\s\S]*color: #263b4a;[\s\S]*font-size: 14px;[\s\S]*font-weight: 430;/)
 })
+
+
+test("홈과 App 재진입은 문서 리로드 없이 목록을 갱신한다", () => {
+  assert.match(script, /const openHome = [\s\S]*?void loadReportCatalog\(\);[\s\S]*?void loadRuleCatalog\(\);[\s\S]*?qualityhub:data-refresh/)
+  assert.match(script, /if \(!getReportCards\(\).length\) setReportCatalogState\("loading"\)/)
+  assert.match(script, /if \(!getRuleCards\(\).length\) setRuleCatalogState\("loading"\)/)
+  assert.match(qnaApp, /qualityhub:data-refresh/)
+  assert.match(qnaApp, /loadSnapshot\(\{ force: true \}\)/)
+  assert.doesNotMatch(script, /window\.location\.reload\(\)/)
+})

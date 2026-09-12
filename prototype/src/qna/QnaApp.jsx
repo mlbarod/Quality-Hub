@@ -481,12 +481,12 @@ export function QnaApp({ initialView = "list", lineOptions = QNA_LINE_OPTIONS })
     setSelectedId((current) => current && nextPosts.some((post) => post.id === current) ? current : nextPosts.find((post) => !post.hidden)?.id ?? null)
   }
 
-  const loadSnapshot = async () => {
+  const loadSnapshot = async ({ force = false } = {}) => {
     const cached = qnaRepository.read()
     if (!cached.posts.length && !cached.notifications.length) setLoadState("loading")
     setLoadError("")
     try {
-      applySnapshot(await qnaRepository.getSnapshot())
+      applySnapshot(await qnaRepository.getSnapshot({ force }))
       setLoadState("ready")
     } catch (error) {
       setLoadError(error.message ?? "품질VOE DB 데이터를 불러오지 못했습니다.")
@@ -510,7 +510,10 @@ export function QnaApp({ initialView = "list", lineOptions = QNA_LINE_OPTIONS })
       window.__qualityHubPendingQnaView = null
       window.requestAnimationFrame(() => document.querySelector("#qna-main")?.focus())
     }
-    const handleView = (event) => applyView(event.detail)
+    const handleView = (event) => {
+      if (event.detail?.view === "list") setFilters(initialFilters)
+      applyView(event.detail)
+    }
     window.addEventListener("qualityhub:qna-view", handleView)
     if (window.__qualityHubPendingQnaView) applyView(window.__qualityHubPendingQnaView)
     return () => window.removeEventListener("qualityhub:qna-view", handleView)
@@ -536,7 +539,15 @@ export function QnaApp({ initialView = "list", lineOptions = QNA_LINE_OPTIONS })
   }, [])
 
   useEffect(() => {
-    if (currentRole !== "blocked" && currentUser?.userId) void loadSnapshot()
+    if (currentRole === "blocked" || !currentUser?.userId) return
+    void loadSnapshot({ force: true })
+    const refresh = () => { void loadSnapshot({ force: true }) }
+    window.addEventListener("qualityhub:qna-view", refresh)
+    window.addEventListener("qualityhub:data-refresh", refresh)
+    return () => {
+      window.removeEventListener("qualityhub:qna-view", refresh)
+      window.removeEventListener("qualityhub:data-refresh", refresh)
+    }
   }, [currentRole, currentUser?.userId])
 
   useEffect(() => () => window.clearTimeout(liveTimerRef.current), [])

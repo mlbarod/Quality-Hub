@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react"
+import { act, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, test, vi } from "vitest"
 
@@ -264,4 +264,24 @@ test("존재하지 않는 메일 링크는 다른 글 대신 목록과 안내를
   await waitFor(() => expect(screen.getByText('질문을 찾을 수 없거나 삭제된 게시글입니다.')).toBeInTheDocument())
   expect(screen.getByRole('region', { name: '품질VOE 게시글 목록' })).toBeInTheDocument()
   expect(window.__qualityHubPendingQnaView).toBeNull()
+})
+
+
+test("홈 복귀와 App 재진입 시 최신 질문을 조회하고 이전 검색 조건을 해제한다", async () => {
+  const user = userEvent.setup()
+  const original = qnaRepository.read()
+  const snapshot = vi.spyOn(qnaRepository, "getSnapshot").mockResolvedValue(original)
+  try {
+    render(<QnaApp />)
+    await waitFor(() => expect(snapshot).toHaveBeenCalled())
+    const search = screen.getByPlaceholderText(/검색/)
+    await user.type(search, "존재하지않는질문")
+    const latest = { ...original.posts[0], id: "new-question", questionId: 9999, title: "방금 등록한 최신 질문" }
+    snapshot.mockResolvedValue({ ...original, posts: [latest, ...original.posts] })
+    await act(async () => window.dispatchEvent(new CustomEvent("qualityhub:data-refresh")))
+    expect(snapshot).toHaveBeenLastCalledWith({ force: true })
+    await act(async () => window.dispatchEvent(new CustomEvent("qualityhub:qna-view", { detail: { view: "list" } })))
+    expect(search).toHaveValue("")
+    expect(await screen.findByRole("button", { name: /방금 등록한 최신 질문/ })).toBeVisible()
+  } finally { snapshot.mockRestore() }
 })

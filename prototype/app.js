@@ -186,7 +186,6 @@ const initializedModes = {
   rule: false,
   user: false,
 };
-let activeQnaViewKey = "";
 
 const getCurrentUser = () => currentAuthenticatedUser ?? getRoleOption(currentRole);
 
@@ -682,6 +681,7 @@ const renderReportCatalog = (reports) => {
 
   syncReportCategoryOptions(categories.filter((category) => category !== "미분류"));
   updateReportCounts();
+  document.querySelector("[data-report-app-count]")?.replaceChildren(`총 ${reports.length}개`);
   applyReportFilters();
   syncGlobalSearchResults();
 };
@@ -701,8 +701,7 @@ const loadReportCatalog = ({ force = false } = {}) => {
   if (reportLoadPromise && !force) return reportLoadPromise;
   if (reportLoadPromise && force) return reportLoadPromise.then(() => loadReportCatalog({ force: true }));
 
-  clearReportCatalog();
-  setReportCatalogState("loading");
+  if (!getReportCards().length) setReportCatalogState("loading");
   reportLoadPromise = requestReportApi()
     .then((payload) => {
       if (!Array.isArray(payload.reports)) throw new Error("Report 목록 응답 형식이 올바르지 않습니다.");
@@ -884,10 +883,8 @@ const qnaModes = new Set(["closed", "open"]);
 
 const setQnaMode = (mode, { announce = true, focus = true, restoreAgent = true, view = "list", postId = null, questionId = null } = {}) => {
   if (!prototype || !qnaModes.has(mode)) return;
-  const qnaViewKey = `${view}:${postId ?? ""}:${questionId ?? ""}`;
-  if (initializedModes.qna && prototype.dataset.qnaMode === mode && (mode === "closed" || activeQnaViewKey === qnaViewKey)) return;
+  if (initializedModes.qna && prototype.dataset.qnaMode === mode && mode === "closed") return;
   initializedModes.qna = true;
-  activeQnaViewKey = mode === "open" ? qnaViewKey : "";
 
   if (mode === "open") {
     if (prototype.dataset.reportMode !== "closed") {
@@ -1012,6 +1009,9 @@ const openHome = ({ announce = true, focus = true } = {}) => {
   setAgentMode("closed", { announce: false, focus: false });
   if (globalSearch instanceof HTMLDialogElement && globalSearch.open) globalSearch.close();
   setDashboardMode("home", { announce: false, focus: false });
+  void loadReportCatalog();
+  void loadRuleCatalog();
+  window.dispatchEvent(new CustomEvent("qualityhub:data-refresh"));
 
   if (focus) focusAfterTransition(homeView, 80);
   if (announce) showToast("App 홈으로 돌아왔습니다.");
@@ -1413,6 +1413,8 @@ setAgentMode(agentModes.has(initialAgentQuery) ? initialAgentQuery : prototype?.
 
 document.querySelectorAll("[data-report-open]").forEach((button) => {
   button.addEventListener("click", () => {
+    if (reportSearch) reportSearch.value = "";
+    document.querySelector("[data-report-filter='all']")?.click();
     setReportMode("catalog");
     void loadReportCatalog();
   });
@@ -1853,8 +1855,7 @@ const loadRuleCatalog = ({ force = false } = {}) => {
   if (ruleLoadPromise && !force) return ruleLoadPromise;
   if (ruleLoadPromise && force) return ruleLoadPromise.then(() => loadRuleCatalog({ force: true }));
 
-  clearRuleCatalog();
-  setRuleCatalogState("loading");
+  if (!getRuleCards().length) setRuleCatalogState("loading");
   ruleLoadPromise = requestRuleApi()
     .then((payload) => {
       if (!Array.isArray(payload.documents)) throw new Error("Rule&SOP 목록 응답 형식이 올바르지 않습니다.");
@@ -2081,6 +2082,9 @@ changeCategoryRetry?.addEventListener("click", () => { void loadChangeCategory({
 document.querySelectorAll("[data-rule-open]").forEach((button) => {
   button.addEventListener("click", () => {
     ruleReturnFocus = button;
+    if (ruleSearch) ruleSearch.value = "";
+    resetRuleFilters();
+    applyRuleFilters();
     setRuleMode("open");
     void loadRuleCatalog();
     void loadChangeCategory();
@@ -2435,7 +2439,9 @@ const openGlobalSearch = (opener) => {
   globalSearchReturnFocus = opener instanceof HTMLElement ? opener : null;
   if (globalSearchInput instanceof HTMLInputElement) globalSearchInput.value = "";
   syncGlobalSearchResults();
-  void qnaRepository.getSnapshot().catch(() => {}).then(syncGlobalSearchResults);
+  void loadReportCatalog();
+  void loadRuleCatalog();
+  void qnaRepository.getSnapshot({ force: true }).catch(() => { showToast("품질VOE 검색 데이터를 갱신하지 못했습니다. 다시 시도해 주세요."); }).then(syncGlobalSearchResults);
   globalSearch.showModal();
   window.requestAnimationFrame(() => globalSearchInput?.focus());
 };
