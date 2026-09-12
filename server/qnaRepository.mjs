@@ -146,7 +146,7 @@ async function insertHistory(connection, { questionId, messageId = null, actionT
     INSERT INTO quality_hub_qna_history (
       history_id, question_id, message_id, action_type,
       actor_user_id, actor_display_name, detail_json, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(3))
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, (UTC_TIMESTAMP(3) + INTERVAL 9 HOUR))
   `, [uuidFactory(), questionId, messageId, actionType, actor.userId, actor.displayName, detail ? JSON.stringify(detail) : null])
 }
 
@@ -155,7 +155,7 @@ async function insertNotification(connection, { questionId, recipientUserId, act
   await connection.execute(`
     INSERT INTO quality_hub_qna_notification (
       notification_id, recipient_user_id, question_id, event_type, read_at, created_at
-    ) VALUES (?, ?, ?, ?, NULL, CURRENT_TIMESTAMP(3))
+    ) VALUES (?, ?, ?, ?, NULL, (UTC_TIMESTAMP(3) + INTERVAL 9 HOUR))
   `, [uuidFactory(), recipientUserId, questionId, eventType])
 }
 
@@ -199,7 +199,8 @@ function assertMessageOwner(message, actor) {
 function formatDate(value) {
   if (!value) return null
   if (value instanceof Date) return value.toISOString()
-  return String(value).replace(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})/, "$1T$2")
+  const text = String(value).replace(" ", "T")
+  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(text) ? `${text}+09:00` : text
 }
 
 function buildQuestionCode(questionId, createdAt) {
@@ -410,20 +411,23 @@ export function createQnaRepository({ pool = createQnaPool(), uuidFactory = rand
     async createQuestion(input, actorInput, { includePost = false } = {}) {
       const actor = normalizeActor(actorInput)
       const question = questionInput(input)
-      const createdAt = new Date()
       return withTransaction(pool, async (connection) => {
         const [result] = await connection.execute(`
           INSERT INTO quality_hub_qna_question (
             title, body_html, body_text, category, line_name, status,
             author_user_id, author_display_name, final_message_id, view_count,
             created_at, updated_at, hidden_at, hidden_by_user_id
-          ) VALUES (?, ?, ?, ?, ?, 'waiting', ?, ?, NULL, 0, CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3), NULL, NULL)
+          ) VALUES (?, ?, ?, ?, ?, 'waiting', ?, ?, NULL, 0, (UTC_TIMESTAMP(3) + INTERVAL 9 HOUR), (UTC_TIMESTAMP(3) + INTERVAL 9 HOUR), NULL, NULL)
         `, [question.title, question.bodyHtml, question.bodyText, question.category, question.lineName, actor.userId, actor.displayName])
         const questionId = Number(result.insertId)
         for (const tag of question.tags) {
           await connection.execute("INSERT INTO quality_hub_qna_question_tag (question_id, tag_name) VALUES (?, ?)", [questionId, tag])
         }
         await insertHistory(connection, { questionId, actionType: "question_created", actor, uuidFactory })
+        const [[storedQuestion] = []] = includePost
+          ? await connection.execute("SELECT created_at AS createdAt FROM quality_hub_qna_question WHERE question_id = ?", [questionId])
+          : [[]]
+        const createdAt = storedQuestion?.createdAt
         const post = includePost ? { ...toPosts([{ ...question, questionId, authorUserId: actor.userId, authorDisplayName: actor.displayName, status: "waiting", viewCount: 0, createdAt, updatedAt: createdAt }], [], question.tags.map((tagName) => ({ questionId, tagName })))[0], detailLoaded: true, bodyText: question.bodyText } : undefined
         return { questionId, ...(includePost ? { post } : {}) }
       })
@@ -443,7 +447,7 @@ export function createQnaRepository({ pool = createQnaPool(), uuidFactory = rand
           if (!PRIVILEGED_ROLES.has(actor.role)) throw new QnaPermissionError()
           const status = requireText(input.status, "status", 20)
           if (!QUESTION_STATUSES.has(status)) throw new QnaValidationError("처리 상태를 목록에서 다시 선택해 주세요.")
-          await connection.execute("UPDATE quality_hub_qna_question SET status = ?, final_message_id = IF(? = 'completed', final_message_id, NULL), updated_at = CURRENT_TIMESTAMP(3) WHERE question_id = ?", [status, status, questionId])
+          await connection.execute("UPDATE quality_hub_qna_question SET status = ?, final_message_id = IF(? = 'completed', final_message_id, NULL), updated_at = (UTC_TIMESTAMP(3) + INTERVAL 9 HOUR) WHERE question_id = ?", [status, status, questionId])
           await insertNotification(connection, { questionId, recipientUserId: current.authorUserId, actorUserId: actor.userId, eventType: "status_changed", uuidFactory })
           await insertHistory(connection, { questionId, actionType: "status_changed", actor, detail: { status }, uuidFactory })
           return { updated: true }
@@ -453,7 +457,7 @@ export function createQnaRepository({ pool = createQnaPool(), uuidFactory = rand
           const messageId = requireId(input.messageId, "messageId")
           const message = await lockMessage(connection, questionId, messageId)
           if (message.hiddenAt) throw new QnaNotFoundError("답변")
-          await connection.execute("UPDATE quality_hub_qna_question SET final_message_id = ?, status = 'completed', updated_at = CURRENT_TIMESTAMP(3) WHERE question_id = ?", [messageId, questionId])
+          await connection.execute("UPDATE quality_hub_qna_question SET final_message_id = ?, status = 'completed', updated_at = (UTC_TIMESTAMP(3) + INTERVAL 9 HOUR) WHERE question_id = ?", [messageId, questionId])
           await insertNotification(connection, { questionId, recipientUserId: current.authorUserId, actorUserId: actor.userId, eventType: "final_selected", uuidFactory })
           await insertHistory(connection, { questionId, messageId, actionType: "final_selected", actor, uuidFactory })
           return { updated: true }
@@ -464,13 +468,13 @@ export function createQnaRepository({ pool = createQnaPool(), uuidFactory = rand
             const [rows] = await connection.execute("SELECT COUNT(*) AS messageCount FROM quality_hub_qna_message WHERE question_id = ? AND hidden_at IS NULL", [questionId])
             if (Number(rows[0]?.messageCount ?? 0) > 0) throw new QnaPermissionError()
           }
-          await connection.execute("UPDATE quality_hub_qna_question SET hidden_at = CURRENT_TIMESTAMP(3), hidden_by_user_id = ?, updated_at = CURRENT_TIMESTAMP(3) WHERE question_id = ?", [actor.userId, questionId])
+          await connection.execute("UPDATE quality_hub_qna_question SET hidden_at = (UTC_TIMESTAMP(3) + INTERVAL 9 HOUR), hidden_by_user_id = ?, updated_at = (UTC_TIMESTAMP(3) + INTERVAL 9 HOUR) WHERE question_id = ?", [actor.userId, questionId])
           await insertHistory(connection, { questionId, actionType: "question_hidden", actor, uuidFactory })
           return { updated: true }
         }
         if (input?.operation === "restore") {
           if (actor.role !== "master") throw new QnaPermissionError()
-          await connection.execute("UPDATE quality_hub_qna_question SET hidden_at = NULL, hidden_by_user_id = NULL, updated_at = CURRENT_TIMESTAMP(3) WHERE question_id = ?", [questionId])
+          await connection.execute("UPDATE quality_hub_qna_question SET hidden_at = NULL, hidden_by_user_id = NULL, updated_at = (UTC_TIMESTAMP(3) + INTERVAL 9 HOUR) WHERE question_id = ?", [questionId])
           await insertHistory(connection, { questionId, actionType: "question_restored", actor, uuidFactory })
           return { updated: true }
         }
@@ -481,7 +485,7 @@ export function createQnaRepository({ pool = createQnaPool(), uuidFactory = rand
         if (!bodyText) throw new QnaValidationError("질문 본문을 입력해 주세요.")
         await connection.execute(`
           UPDATE quality_hub_qna_question
-          SET title = ?, body_html = ?, body_text = ?, updated_at = CURRENT_TIMESTAMP(3)
+          SET title = ?, body_html = ?, body_text = ?, updated_at = (UTC_TIMESTAMP(3) + INTERVAL 9 HOUR)
           WHERE question_id = ?
         `, [title, bodyHtml, bodyText, questionId])
         await insertHistory(connection, { questionId, actionType: "question_updated", actor, uuidFactory })
@@ -493,7 +497,6 @@ export function createQnaRepository({ pool = createQnaPool(), uuidFactory = rand
       const questionId = requireId(questionIdInput, "questionId")
       const actor = normalizeActor(actorInput)
       const message = messageInput(input)
-      const createdAt = new Date()
       return withTransaction(pool, async (connection) => {
         const question = await lockQuestion(connection, questionId)
         if (question.hiddenAt) throw new QnaNotFoundError("질문")
@@ -501,12 +504,16 @@ export function createQnaRepository({ pool = createQnaPool(), uuidFactory = rand
           INSERT INTO quality_hub_qna_message (
             question_id, body_html, body_text, author_user_id, author_display_name,
             created_at, updated_at, hidden_at, hidden_by_user_id
-          ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3), NULL, NULL)
+          ) VALUES (?, ?, ?, ?, ?, (UTC_TIMESTAMP(3) + INTERVAL 9 HOUR), (UTC_TIMESTAMP(3) + INTERVAL 9 HOUR), NULL, NULL)
         `, [questionId, message.bodyHtml, message.bodyText, actor.userId, actor.displayName])
         const messageId = Number(result.insertId)
-        await connection.execute("UPDATE quality_hub_qna_question SET status = IF(status = 'waiting', 'active', status), updated_at = CURRENT_TIMESTAMP(3) WHERE question_id = ?", [questionId])
+        await connection.execute("UPDATE quality_hub_qna_question SET status = IF(status = 'waiting', 'active', status), updated_at = (UTC_TIMESTAMP(3) + INTERVAL 9 HOUR) WHERE question_id = ?", [questionId])
         await insertNotification(connection, { questionId, recipientUserId: question.authorUserId, actorUserId: actor.userId, eventType: "reply_created", uuidFactory })
         await insertHistory(connection, { questionId, messageId, actionType: "message_created", actor, uuidFactory })
+        const [[storedMessage] = []] = includeMessage
+          ? await connection.execute("SELECT created_at AS createdAt FROM quality_hub_qna_message WHERE message_id = ?", [messageId])
+          : [[]]
+        const createdAt = storedMessage?.createdAt
         return { messageId, ...(includeMessage ? { message: { id: String(messageId), messageId, author: actor.displayName, authorUserId: actor.userId, role: question.authorUserId === actor.userId ? "질문자" : "답변·댓글", time: formatDate(createdAt), body: message.bodyText, content: message.bodyHtml, hidden: false, isFinal: false }, questionStatus: question.status === "waiting" ? "active" : question.status } : {}) }
       })
     },
@@ -520,27 +527,27 @@ export function createQnaRepository({ pool = createQnaPool(), uuidFactory = rand
         const current = await lockMessage(connection, questionId, messageId)
         if (input?.operation === "hide") {
           assertMessageOwner(current, actor)
-          await connection.execute("UPDATE quality_hub_qna_message SET hidden_at = CURRENT_TIMESTAMP(3), hidden_by_user_id = ?, updated_at = CURRENT_TIMESTAMP(3) WHERE message_id = ?", [actor.userId, messageId])
+          await connection.execute("UPDATE quality_hub_qna_message SET hidden_at = (UTC_TIMESTAMP(3) + INTERVAL 9 HOUR), hidden_by_user_id = ?, updated_at = (UTC_TIMESTAMP(3) + INTERVAL 9 HOUR) WHERE message_id = ?", [actor.userId, messageId])
           if (Number(question.finalMessageId) === messageId) {
             const [rows] = await connection.execute("SELECT COUNT(*) AS messageCount FROM quality_hub_qna_message WHERE question_id = ? AND message_id <> ? AND hidden_at IS NULL", [questionId, messageId])
             const status = Number(rows[0]?.messageCount ?? 0) > 0 ? "active" : "waiting"
-            await connection.execute("UPDATE quality_hub_qna_question SET final_message_id = NULL, status = ?, updated_at = CURRENT_TIMESTAMP(3) WHERE question_id = ?", [status, questionId])
+            await connection.execute("UPDATE quality_hub_qna_question SET final_message_id = NULL, status = ?, updated_at = (UTC_TIMESTAMP(3) + INTERVAL 9 HOUR) WHERE question_id = ?", [status, questionId])
           }
           await insertHistory(connection, { questionId, messageId, actionType: "message_hidden", actor, uuidFactory })
           return { updated: true }
         }
         if (input?.operation === "restore") {
           if (actor.role !== "master") throw new QnaPermissionError()
-          await connection.execute("UPDATE quality_hub_qna_message SET hidden_at = NULL, hidden_by_user_id = NULL, updated_at = CURRENT_TIMESTAMP(3) WHERE message_id = ?", [messageId])
-          await connection.execute("UPDATE quality_hub_qna_question SET status = IF(status = 'waiting', 'active', status), updated_at = CURRENT_TIMESTAMP(3) WHERE question_id = ?", [questionId])
+          await connection.execute("UPDATE quality_hub_qna_message SET hidden_at = NULL, hidden_by_user_id = NULL, updated_at = (UTC_TIMESTAMP(3) + INTERVAL 9 HOUR) WHERE message_id = ?", [messageId])
+          await connection.execute("UPDATE quality_hub_qna_question SET status = IF(status = 'waiting', 'active', status), updated_at = (UTC_TIMESTAMP(3) + INTERVAL 9 HOUR) WHERE question_id = ?", [questionId])
           await insertHistory(connection, { questionId, messageId, actionType: "message_restored", actor, uuidFactory })
           return { updated: true }
         }
         if (current.hiddenAt) throw new QnaNotFoundError("답변")
         assertMessageOwner(current, actor)
         const message = messageInput(input)
-        await connection.execute("UPDATE quality_hub_qna_message SET body_html = ?, body_text = ?, updated_at = CURRENT_TIMESTAMP(3) WHERE message_id = ?", [message.bodyHtml, message.bodyText, messageId])
-        await connection.execute("UPDATE quality_hub_qna_question SET updated_at = CURRENT_TIMESTAMP(3) WHERE question_id = ?", [questionId])
+        await connection.execute("UPDATE quality_hub_qna_message SET body_html = ?, body_text = ?, updated_at = (UTC_TIMESTAMP(3) + INTERVAL 9 HOUR) WHERE message_id = ?", [message.bodyHtml, message.bodyText, messageId])
+        await connection.execute("UPDATE quality_hub_qna_question SET updated_at = (UTC_TIMESTAMP(3) + INTERVAL 9 HOUR) WHERE question_id = ?", [questionId])
         await insertHistory(connection, { questionId, messageId, actionType: "message_updated", actor, uuidFactory })
         return { updated: true }
       })
@@ -549,11 +556,11 @@ export function createQnaRepository({ pool = createQnaPool(), uuidFactory = rand
     async markNotificationsRead(input, actorInput) {
       const actor = normalizeActor(actorInput)
       if (input?.all === true) {
-        const [result] = await pool.execute("UPDATE quality_hub_qna_notification SET read_at = CURRENT_TIMESTAMP(3) WHERE recipient_user_id = ? AND read_at IS NULL", [actor.userId])
+        const [result] = await pool.execute("UPDATE quality_hub_qna_notification SET read_at = (UTC_TIMESTAMP(3) + INTERVAL 9 HOUR) WHERE recipient_user_id = ? AND read_at IS NULL", [actor.userId])
         return { updated: Number(result.affectedRows ?? 0) }
       }
       const notificationId = requireText(input?.notificationId, "notificationId", 36)
-      const [result] = await pool.execute("UPDATE quality_hub_qna_notification SET read_at = CURRENT_TIMESTAMP(3) WHERE notification_id = ? AND recipient_user_id = ?", [notificationId, actor.userId])
+      const [result] = await pool.execute("UPDATE quality_hub_qna_notification SET read_at = (UTC_TIMESTAMP(3) + INTERVAL 9 HOUR) WHERE notification_id = ? AND recipient_user_id = ?", [notificationId, actor.userId])
       if (Number(result.affectedRows ?? 0) === 0) throw new QnaNotFoundError("알림")
       return { updated: 1 }
     },

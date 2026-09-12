@@ -155,16 +155,17 @@ test('단일 상세는 질문 ID로 세 쿼리를 한정하며 알림과 전체 
   }
 })
 
-test('질문 등록 결과에 DB 저장에 사용한 정제된 상세를 포함하고 추가 조회하지 않는다', async () => {
+test('질문 등록 결과에 정제된 상세와 DB에 저장된 한국 시각을 포함한다', async () => {
   const calls = []
-  const repository = createQnaRepository({ pool: { async execute(sql, params) { calls.push([sql, params]); return [{ insertId: 33 }] } } })
+  const repository = createQnaRepository({ pool: { async execute(sql, params) { calls.push([sql, params]); if (sql.startsWith("SELECT created_at")) return [[{ createdAt: "2026-09-12 23:01:02.123" }]]; return [{ insertId: 33 }] } } })
   const result = await repository.createQuestion({ title: '제목', bodyHtml: '<p>본문</p><script>secret()</script>', category: 'FDC', lineName: 'A', tags: [] }, master, { includePost: true })
   assert.equal(result.post.questionId, 33)
   assert.equal(result.post.detailLoaded, true)
   assert.equal(result.post.content, '<p>본문</p>')
   assert.ok(Number.isFinite(Date.parse(result.post.createdAt)))
-  assert.match(calls[0][0], /CURRENT_TIMESTAMP/)
-  assert.ok(calls.every(([sql]) => !sql.includes('SELECT')))
+  assert.match(calls[0][0], /UTC_TIMESTAMP\(3\) \+ INTERVAL 9 HOUR/)
+  assert.equal(result.post.createdAt, "2026-09-12T23:01:02.123+09:00")
+  assert.equal(calls.filter(([sql]) => sql.startsWith('SELECT created_at')).length, 1)
 })
 
 test('이미지 포함 본문은 15MB 바이트 한도로 검사하며 큰 사진을 보존한다', () => {
@@ -172,4 +173,29 @@ test('이미지 포함 본문은 15MB 바이트 한도로 검사하며 큰 사�
   assert.equal(sanitizeRichHtml(html), html)
   assert.throws(() => sanitizeRichHtml('가'.repeat(6 * 1024 * 1024)), (error) => error.code === 'BODY_TOO_LARGE')
   assert.throws(() => sanitizeRichHtml('a'.repeat(15 * 1024 * 1024 + 1)), (error) => error.code === 'BODY_TOO_LARGE')
+})
+
+
+test("추가답변의 등록 응답과 재조회 시각은 동일한 KST 시각이다", async () => {
+  const calls = []
+  const stored = "2026-12-31 23:59:59.123"
+  const pool = { async execute(sql, params) {
+    calls.push([sql, params])
+    if (sql.includes("FOR UPDATE")) return [[{ questionId: 7, authorUserId: master.userId, status: "waiting" }]]
+    if (sql.startsWith("SELECT created_at")) return [[{ createdAt: stored }]]
+    if (sql.includes("INSERT INTO quality_hub_qna_message")) return [{ insertId: 21 }]
+    if (sql.includes("FROM quality_hub_qna_question\n")) return [[{ questionId: 7, title: "질문", createdAt: stored, updatedAt: stored }]]
+    if (sql.includes("FROM quality_hub_qna_message")) return [[{ questionId: 7, messageId: 21, createdAt: stored, updatedAt: stored }]]
+    return [[]]
+  } }
+  const repository = createQnaRepository({ pool })
+  const result = await repository.createMessage(7, { bodyHtml: "<p>추가답변</p>" }, master, { includeMessage: true })
+  const snapshot = await repository.getSnapshot(master, { questionId: 7 })
+  assert.equal(result.message.time, "2026-12-31T23:59:59.123+09:00")
+  assert.equal(result.message.time, snapshot.posts[0].messages[0].time)
+  assert.equal(snapshot.posts[0].createdAt, result.message.time)
+  for (const [sql] of calls.filter(([sql]) => /INSERT|UPDATE quality_hub/.test(sql))) {
+    assert.match(sql, /UTC_TIMESTAMP\(3\) \+ INTERVAL 9 HOUR/)
+    assert.doesNotMatch(sql, /CURRENT_TIMESTAMP/)
+  }
 })

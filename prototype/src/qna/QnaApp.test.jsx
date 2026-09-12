@@ -285,3 +285,19 @@ test("홈 복귀와 App 재진입 시 최신 질문을 조회하고 이전 검�
     expect(await screen.findByRole("button", { name: /방금 등록한 최신 질문/ })).toBeVisible()
   } finally { snapshot.mockRestore() }
 })
+
+
+test("질문과 추가답변의 UTC 시각을 한국 시간으로 표시한다", async () => {
+  const snapshot = qnaRepository.read()
+  const instant = "2026-12-31T15:30:00.000Z"
+  snapshot.posts = [{ ...snapshot.posts[0], createdAt: instant, updatedAt: instant, messages: snapshot.posts[0].messages.map(message => ({ ...message, time: instant })) }]
+  const getSnapshot = vi.spyOn(qnaRepository, "getSnapshot").mockResolvedValue(snapshot)
+  const updateQuestion = vi.spyOn(qnaRepository, "updateQuestion").mockResolvedValue(snapshot)
+  try {
+    render(<QnaApp />)
+    const expected = new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Seoul" }).format(new Date(instant))
+    expect(await screen.findByText(expected)).toBeVisible()
+    await userEvent.setup().click(screen.getByRole("button", { name: new RegExp(snapshot.posts[0].title) }))
+    await waitFor(() => expect(screen.getAllByText(expected).length).toBeGreaterThanOrEqual(3))
+  } finally { getSnapshot.mockRestore(); updateQuestion.mockRestore() }
+})
