@@ -166,13 +166,13 @@ function PostListView({ posts, allPosts, filters, setFilters, onSelect, onWrite,
                   </button>
                 ))}
               </div>
-              <span className="text-[11px] text-[#567286]">검색 결과 <strong className="text-[#263b4a]">{posts.length}건</strong></span>
+              <span className="text-[14px] text-[#567286]">검색 결과 <strong className="text-[#263b4a]">{posts.length}건</strong></span>
             </div>
           </div>
 
           {posts.length ? (
             <div>
-              <div className="grid grid-cols-[minmax(0,1fr)_110px_96px_110px_100px_70px] items-center gap-4 border-b border-[#dce7ee] bg-[#f8fafb] px-6 py-3 text-[11px] font-semibold text-[#567286]" aria-hidden="true">
+              <div className="grid grid-cols-[minmax(0,1fr)_110px_96px_110px_100px_70px] items-center gap-4 border-b border-[#dce7ee] bg-[#f8fafb] px-6 py-3 text-[14px] font-semibold text-[#567286]" aria-hidden="true">
                 <span>제목</span><span>등록일</span><span>구분</span><span>라인</span><span>작성자</span><span className="text-right">조회</span>
               </div>
               <div className="divide-y divide-[#e8eef2]">
@@ -185,11 +185,11 @@ function PostListView({ posts, allPosts, filters, setFilters, onSelect, onWrite,
                       <span className="mt-1.5 block truncate text-[12px] text-[#567286]">{post.excerpt}</span>
                       <span className="mt-3 flex flex-wrap items-center gap-1.5">{post.tags.slice(0, 3).map((tag) => <small key={tag} className="rounded-full bg-[#edf3f7] px-2 py-0.5 text-[9px] font-medium text-[#567286]">#{tag}</small>)}<small className="ml-1 text-[10px] text-[#60798b]">최근 변경 {formatDateTime(post.updatedAt)} · 답변 {post.messages.filter((message) => !message.hidden).length}</small></span>
                     </span>
-                    <span className="text-[11px] text-[#567286]">{formatDateTime(post.createdAt)}</span>
+                    <span className="text-[14px] text-[#567286]">{formatDateTime(post.createdAt)}</span>
                     <Badge variant="outline">{post.category}</Badge>
-                    <span className="truncate text-[11px] font-semibold text-[#405665]" title={post.line}>{post.line}</span>
-                    <span className="flex items-center gap-1.5 text-[11px] text-[#567286]"><UserRound className="size-3.5" />{post.author}</span>
-                    <span className="flex items-center justify-end gap-2 text-[11px] text-[#60798b]"><Eye className="size-3.5" />{post.views}<ChevronRight className="size-4 transition group-hover:translate-x-0.5 group-hover:text-[#0673bc]" /></span>
+                    <span className="truncate text-[14px] font-semibold text-[#405665]" title={post.line}>{post.line}</span>
+                    <span className="flex items-center gap-1.5 text-[14px] text-[#567286]"><UserRound className="size-3.5" />{post.author}</span>
+                    <span className="flex items-center justify-end gap-2 text-[14px] text-[#60798b]"><Eye className="size-3.5" />{post.views}<ChevronRight className="size-4 transition group-hover:translate-x-0.5 group-hover:text-[#0673bc]" /></span>
                   </button>
                 </article>
               ))}
