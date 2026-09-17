@@ -3807,6 +3807,8 @@ body:not(.rule-manager) .rule-category-manager-only { display: none !important; 
 .change-category-state > span:nth-child(2) { display: grid; gap: 2px; }
 .change-category-state small { color: var(--muted-foreground); font-size: 12px; }
 .change-category-state > button { margin-left: auto; }
+.change-category-state[hidden],
+.change-category-image-viewport[hidden] { display: none; }
 
 .change-category-image-viewport {
   display: grid;
@@ -4437,16 +4439,25 @@ body:not(.rule-manager) .rule-admin-only { display: none !important; }
 .rule-editor-form > header > button .icon,
 .change-category-view-panel > header > button .icon { width: 19px; height: 19px; }
 
+.change-category-view-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+}
+.change-category-view-panel > header { flex-shrink: 0; }
 .change-category-view-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   padding: 16px;
   overflow: hidden;
   background: #f8fbfd;
 }
 .change-category-view-body .change-category-image-viewport {
   width: 100%;
-  max-height: calc(100vh - 182px);
-  max-height: calc(100dvh - 182px);
-  padding: 0;
+  min-height: 0;
+  padding: 0 0 12px;
   overflow-x: hidden;
   overflow-y: auto;
   border: 0;
