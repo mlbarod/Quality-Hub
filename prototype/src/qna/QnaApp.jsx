@@ -567,7 +567,10 @@ export function QnaApp({ initialView = "list", lineOptions = QNA_LINE_OPTIONS })
     setSelectedId(id)
     navigate("detail")
     const post = posts.find((item) => item.id === id)
-    if (post) void qnaRepository.updateQuestion(post.questionId, { operation: "view" }).then(applySnapshot).catch(() => {})
+    if (post) {
+      window.dispatchEvent(new CustomEvent("qualityhub:qna-post-click", { detail: { title: post.title } }))
+      void qnaRepository.updateQuestion(post.questionId, { operation: "view" }).then(applySnapshot).catch(() => {})
+    }
   }
 
   const runMutation = async (action, successMessage, afterSuccess) => {

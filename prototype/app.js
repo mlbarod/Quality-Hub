@@ -5,6 +5,7 @@ import {
 } from "./src/mock/phase2.js";
 import { createLocalRepository, LOCAL_DATA_EVENT } from "./src/data/localRepository.js";
 import { createAgentChatController } from "./src/agent/chatController.js";
+import { createClickRecorder } from "./src/data/clickedHistory.js";
 import { createSessionAwareFetch } from "./src/auth/sessionClient.js";
 import { qnaRepository } from "./src/qna/repository.js";
 import { buildQnaSearchText, buildTitleSearchText, matchesSearchQuery } from "./src/search/globalSearch.js";
@@ -192,6 +193,11 @@ const getCurrentUser = () => currentAuthenticatedUser ?? getRoleOption(currentRo
 const withIdentityHeader = (headers = {}) => isSsoMode
   ? { ...headers }
   : { "x-quality-hub-user-id": getCurrentUser().userId, ...headers };
+
+const recordClick = createClickRecorder({ getHeaders: () => withIdentityHeader() });
+window.addEventListener("qualityhub:qna-post-click", (event) => {
+  if (typeof event.detail?.title === "string") recordClick("품질 VOE", event.detail.title);
+});
 
 const dashboardStateCopy = {
   loading: {
@@ -1002,6 +1008,7 @@ const openDashboard = ({ announce = true, focus = true } = {}) => {
 };
 
 const openHome = ({ announce = true, focus = true } = {}) => {
+  recordClick.reset();
   setReportMode("closed", { announce: false, focus: false, restoreAgent: false });
   setRuleMode("closed", { announce: false, focus: false, restoreAgent: false });
   setQnaMode("closed", { announce: false, focus: false, restoreAgent: false });
@@ -1046,6 +1053,7 @@ dashboardOpenExternal?.addEventListener("click", () => {
 
 document.querySelectorAll("[data-agent-open]").forEach((button) => {
   button.addEventListener("click", () => {
+    recordClick("품질 Agent");
     setReportMode("closed", { announce: false, focus: false, restoreAgent: false });
     setRuleMode("closed", { announce: false, focus: false, restoreAgent: false });
     setQnaMode("closed", { announce: false, focus: false, restoreAgent: false });
@@ -1056,6 +1064,7 @@ document.querySelectorAll("[data-agent-open]").forEach((button) => {
 
 document.querySelectorAll("[data-qna-open]").forEach((button) => {
   button.addEventListener("click", (event) => {
+    recordClick("품질 VOE");
     qnaReturnFocus = event.currentTarget;
     setQnaMode("open", { view: "list" });
   });
@@ -1413,6 +1422,7 @@ setAgentMode(agentModes.has(initialAgentQuery) ? initialAgentQuery : prototype?.
 
 document.querySelectorAll("[data-report-open]").forEach((button) => {
   button.addEventListener("click", () => {
+    recordClick("각종 Report조회");
     if (reportSearch) reportSearch.value = "";
     document.querySelector("[data-report-filter='all']")?.click();
     setReportMode("catalog");
@@ -1437,7 +1447,10 @@ document.querySelector("[data-report-groups]")?.addEventListener("click", (event
     return;
   }
   const card = target.closest("[data-report-card]");
-  if (card instanceof HTMLElement) setReportMode("viewer", { card });
+  if (card instanceof HTMLElement) {
+    recordClick("각종 Report조회", card.dataset.reportTitle);
+    setReportMode("viewer", { card });
+  }
 });
 
 document.querySelectorAll("[data-report-action]").forEach((button) => {
@@ -2061,7 +2074,10 @@ changeCategoryForm?.addEventListener("submit", async (event) => {
 });
 
 changeCategoryEdit?.addEventListener("click", (event) => openChangeCategoryEditor(event.currentTarget));
-changeCategoryView?.addEventListener("click", (event) => openChangeCategoryViewer(event.currentTarget));
+changeCategoryView?.addEventListener("click", (event) => {
+  recordClick("Rule&SOP", "변승위 category 분류");
+  openChangeCategoryViewer(event.currentTarget);
+});
 document.querySelectorAll("[data-change-category-view-close]").forEach((button) => {
   button.addEventListener("click", () => changeCategoryViewDialog?.close());
 });
@@ -2081,6 +2097,7 @@ changeCategoryRetry?.addEventListener("click", () => { void loadChangeCategory({
 
 document.querySelectorAll("[data-rule-open]").forEach((button) => {
   button.addEventListener("click", () => {
+    recordClick("Rule&SOP");
     ruleReturnFocus = button;
     if (ruleSearch) ruleSearch.value = "";
     resetRuleFilters();
@@ -2103,7 +2120,10 @@ ruleCardGrid?.addEventListener("click", (event) => {
   const target = event.target;
   if (!(target instanceof Element)) return;
   const card = target.closest("[data-rule-card]");
-  if (card instanceof HTMLElement) openRuleDetail(card, card);
+  if (card instanceof HTMLElement) {
+    recordClick("Rule&SOP", card.dataset.ruleTitle);
+    openRuleDetail(card, card);
+  }
 });
 
 document.querySelectorAll("[data-rule-detail-close]").forEach((button) => {
@@ -2447,7 +2467,10 @@ const openGlobalSearch = (opener) => {
 };
 
 document.querySelectorAll("[data-global-search-open]").forEach((button) => {
-  button.addEventListener("click", () => openGlobalSearch(button));
+  button.addEventListener("click", () => {
+    recordClick("통합 검색");
+    openGlobalSearch(button);
+  });
 });
 
 globalSearchInput?.addEventListener("input", applyGlobalSearch);
@@ -2472,6 +2495,7 @@ document.querySelector("[data-global-search-results]")?.addEventListener("keydow
 document.querySelector("[data-global-search-results]")?.addEventListener("click", (event) => {
     const result = event.target instanceof Element ? event.target.closest("[data-global-search-result]") : null;
     if (!(result instanceof HTMLButtonElement)) return;
+    recordClick("통합 검색", result.querySelector("strong")?.textContent);
     const target = result.dataset.searchTarget;
     const contentId = result.dataset.searchId;
     suppressGlobalSearchFocusRestore = true;

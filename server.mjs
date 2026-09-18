@@ -7,6 +7,7 @@ import { fileURLToPath, URL } from "node:url"
 import { createAgentChatApi } from "./server/agentChatApi.mjs"
 import { authorizePrincipal, createAuthApi, sendAuthorizationFailure } from "./server/authApi.mjs"
 import { createChangeCategoryApi } from "./server/changeCategoryApi.mjs"
+import { createClickedHistoryApi } from "./server/clickedHistoryApi.mjs"
 import { createDashboardApi } from "./server/dashboardApi.mjs"
 import { loadOidcConfig } from "./server/oidcService.mjs"
 import { createQnaApi } from "./server/qnaApi.mjs"
@@ -302,6 +303,7 @@ export function createQualityHubServer({
   staticDir = builtStaticDir,
   agentApi = createAgentChatApi(),
   changeCategoryApi = createChangeCategoryApi(),
+  clickedHistoryApi = createClickedHistoryApi(),
   dashboardApi = createDashboardApi(),
   qnaApi = createQnaApi(),
   reportApi = createReportApi(),
@@ -356,6 +358,7 @@ export function createQualityHubServer({
       }
       if (await agentApi.handle(req, res)) return
       if (await changeCategoryApi.handle(req, res)) return
+      if (await clickedHistoryApi.handle(req, res)) return
       if (await dashboardApi.handle(req, res)) return
       if (await qnaApi.handle(req, res)) return
       if (await reportApi.handle(req, res)) return
@@ -374,6 +377,7 @@ export function createQualityHubServer({
   server.once("close", () => {
     void agentApi.close()
     void changeCategoryApi.close()
+    void clickedHistoryApi.close()
     void dashboardApi.close()
     void qnaApi.close()
     void reportApi.close()
@@ -408,6 +412,7 @@ async function startSourceServer({ host, port }) {
   const { createServer: createViteServer } = await import("vite")
   const agentApi = createAgentChatApi()
   const changeCategoryApi = createChangeCategoryApi()
+  const clickedHistoryApi = createClickedHistoryApi()
   const dashboardApi = createDashboardApi()
   const qnaApi = createQnaApi()
   const reportApi = createReportApi()
@@ -452,6 +457,7 @@ async function startSourceServer({ host, port }) {
       }
       if (await agentApi.handle(req, res)) return
       if (await changeCategoryApi.handle(req, res)) return
+      if (await clickedHistoryApi.handle(req, res)) return
       if (await dashboardApi.handle(req, res)) return
       if (await qnaApi.handle(req, res)) return
       if (await reportApi.handle(req, res)) return
@@ -477,6 +483,7 @@ async function startSourceServer({ host, port }) {
   httpServer.once("close", () => {
     void agentApi.close()
     void changeCategoryApi.close()
+    void clickedHistoryApi.close()
     void dashboardApi.close()
     void qnaApi.close()
     void reportApi.close()

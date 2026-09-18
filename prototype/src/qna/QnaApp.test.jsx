@@ -74,7 +74,15 @@ describe("Q&A 프로토타입", () => {
     expect(postTitle).toBeInTheDocument()
     expect(screen.queryByText("식각 장비 A 챔버 온도 변동 이력을 요청합니다")).not.toBeInTheDocument()
 
-    await user.click(postTitle.closest("button"))
+    const clicks = []
+    const onClick = (event) => clicks.push(event.detail)
+    window.addEventListener("qualityhub:qna-post-click", onClick)
+    try {
+      await user.click(postTitle.closest("button"))
+      expect(clicks).toEqual([{ title: "AOI 오경보 증가 원인 분석 자료를 공유해 주세요" }])
+    } finally {
+      window.removeEventListener("qualityhub:qna-post-click", onClick)
+    }
     expect(screen.getByRole("heading", { name: "AOI 오경보 증가 원인 분석 자료를 공유해 주세요" })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "답변과 추가 대화" })).toBeInTheDocument()
   }, 15000)
