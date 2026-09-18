@@ -31,31 +31,33 @@ export function createClickedHistoryRepository({ pool = mysql.createPool({
   return {
     async recordClick(input) {
       const { category, contents, userId, entryDate } = validateClickedHistory(input)
-      if (contents === null) {
-        const connection = await pool.getConnection()
-        try {
+      const connection = await pool.getConnection()
+      try {
+        // update_date는 DATETIME이며 품질VOE와 동일하게 한국 시각을 저장한다.
+        // UTC에서 계산하므로 DB 세션·컨테이너 시간대에 따라 중복 보정되지 않는다.
+        if (contents === null) {
           // 고유키가 없는 기존 스키마에서 NULL 행을 찾을 수 있도록 DB 시각을 그대로 반환한다.
-          const [[row]] = await connection.execute({ sql: "SELECT DATE_FORMAT(CURRENT_TIMESTAMP, '%Y-%m-%d %H:%i:%s') AS entryDate", timeout: 5000 })
+          const [[row]] = await connection.execute({ sql: "SELECT DATE_FORMAT(UTC_TIMESTAMP() + INTERVAL 9 HOUR, '%Y-%m-%d %H:%i:%s') AS entryDate", timeout: 5000 })
           await connection.execute({
             sql: "INSERT INTO clicked_history (category, contents, update_date, knox_id) VALUES (?, NULL, ?, ?)",
             timeout: 5000,
           }, [category, row.entryDate, userId])
           return { entryDate: row.entryDate }
-        } finally {
-          connection.release()
         }
-      }
-      if (entryDate !== undefined) {
-        const [result] = await pool.execute({
-          sql: "UPDATE clicked_history SET contents = ?, update_date = CURRENT_TIMESTAMP WHERE category = ? AND contents IS NULL AND update_date = ? AND knox_id = ? LIMIT 1",
+        if (entryDate !== undefined) {
+          const [result] = await connection.execute({
+            sql: "UPDATE clicked_history SET contents = ?, update_date = (UTC_TIMESTAMP() + INTERVAL 9 HOUR) WHERE category = ? AND contents IS NULL AND update_date = ? AND knox_id = ? LIMIT 1",
+            timeout: 5000,
+          }, [contents, category, entryDate, userId])
+          if (result.affectedRows === 1) return
+        }
+        await connection.execute({
+          sql: "INSERT INTO clicked_history (category, contents, update_date, knox_id) VALUES (?, ?, (UTC_TIMESTAMP() + INTERVAL 9 HOUR), ?)",
           timeout: 5000,
-        }, [contents, category, entryDate, userId])
-        if (result.affectedRows === 1) return
+        }, [category, contents, userId])
+      } finally {
+        connection.release()
       }
-      await pool.execute({
-        sql: "INSERT INTO clicked_history (category, contents, update_date, knox_id) VALUES (?, ?, CURRENT_TIMESTAMP, ?)",
-        timeout: 5000,
-      }, [category, contents, userId])
     },
     async close() { await pool.end() },
   }
